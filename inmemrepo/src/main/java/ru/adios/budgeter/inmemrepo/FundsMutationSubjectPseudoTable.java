@@ -44,25 +44,15 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     public void rawAddition(final FundsMutationSubject subject) {
         if (subject.id.isPresent()) {
             final int idConcrete = subject.id.getAsInt();
-            checkState(table.computeIfAbsent(idConcrete, integer -> {
-                checkState(nameUniqueIndex.putIfAbsent(subject.name, idConcrete) == null, "Name %s already occupied", subject.name);
-                if (subject.parentId != idConcrete) {
-                    ImmutableSet<Integer> ids;
-                    ImmutableSet<Integer> fresh;
-                    final long start = System.currentTimeMillis();
-                    do {
-                        ids = parentIndex.get(subject.parentId);
-                        final ImmutableSet.Builder<Integer> builder = ImmutableSet.builder();
-                        builder.add(idConcrete);
-                        if (ids != null) {
-                            builder.addAll(ids);
-                        }
-                        fresh = builder.build();
-                        checkState(System.currentTimeMillis() - start < 5000, "Parent index resolve during insert of %s timeout", idConcrete);
-                    } while (ids != null ? !parentIndex.replace(subject.parentId, ids, fresh) : parentIndex.putIfAbsent(subject.parentId, fresh) != null);
-                }
-                return subject;
-            }).equals(subject), "Id %s occupied", idConcrete);
+            checkState(PseudoTable.nonUniqueIndexedInsert(
+                    table,
+                    parentIndex,
+                    idConcrete,
+                    key -> subject,
+                    Optional.ofNullable(subject.parentId > 0 ? subject.parentId : null),
+                    Optional.empty(),
+                    o -> checkState(nameUniqueIndex.putIfAbsent(subject.name, (Integer) o) == null, "Name %s already occupied", subject.name)
+            ).equals(subject), "Id %s occupied", idConcrete);
         } else {
             rawAddition(FundsMutationSubject.builder(this)
                     .setFundsMutationSubject(subject)

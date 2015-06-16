@@ -33,29 +33,16 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
 
     @Override
     public void addRate(final UtcDay dayUtc, final CurrencyUnit from, final CurrencyUnit to, final BigDecimal rate) {
-        final int id = idSequence.incrementAndGet();
-        table.computeIfAbsent(id, key -> {
-            final long start = System.currentTimeMillis();
-            ImmutableSet<Integer> ids;
-            ImmutableSet<Integer> fresh;
-            do {
-                ids = dayIndex.get(dayUtc);
-                final ImmutableSet.Builder<Integer> builder = ImmutableSet.builder();
-                builder.add(key);
-                if (ids != null) {
-                    ids.stream().forEach(integer -> {
-                        final StoredCurrencyRate storedCurrencyRate = table.get(integer);
-                        checkState((!storedCurrencyRate.first.equals(from) || !storedCurrencyRate.second.equals(to))
-                                && (!storedCurrencyRate.first.equals(to) || !storedCurrencyRate.second.equals(from)), "Such rate already present (%s,%s,%s)", dayUtc, from, to);
-                    });
-                    builder.addAll(ids);
-                }
-                fresh = builder.build();
-                checkState(System.currentTimeMillis() - start < 5000, "dayIndex update timeout");
-            } while (ids != null ? !dayIndex.replace(dayUtc, ids, fresh) : dayIndex.putIfAbsent(dayUtc, fresh) != null);
-
-            return new StoredCurrencyRate(key, dayUtc, from, to, rate);
-        });
+        PseudoTable.nonUniqueIndexedInsert(
+                table,
+                dayIndex,
+                idSequence.incrementAndGet(),
+                id -> new StoredCurrencyRate(id, dayUtc, from, to, rate),
+                Optional.of(dayUtc),
+                Optional.of(scr -> checkState(
+                                (!scr.first.equals(from) || !scr.second.equals(to)) && (!scr.first.equals(to) || !scr.second.equals(from)),
+                                "Such rate already present (%s,%s,%s)", dayUtc, from, to)
+                ));
     }
 
     @Override

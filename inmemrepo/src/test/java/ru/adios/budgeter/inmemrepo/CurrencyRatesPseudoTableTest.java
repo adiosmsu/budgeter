@@ -12,6 +12,7 @@ import java.math.MathContext;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,9 +30,12 @@ public class CurrencyRatesPseudoTableTest {
 
     @Test
     public void testAddRate() throws Exception {
+        CurrencyRatesPseudoTable.INSTANCE.clear();
+
         CurrencyUnit rub = CurrencyUnit.of("RUB");
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicInteger counter = new AtomicInteger(0);
+        final CopyOnWriteArraySet<CurrencyUnit> checker = new CopyOnWriteArraySet<>();
         for (int i = 0; i < 10; i++) {
             new Thread(() -> {
                 try {
@@ -43,15 +47,22 @@ public class CurrencyRatesPseudoTableTest {
                 CurrencyUnit unit = REG_UNITS.get(counter.getAndIncrement());
                 if (unit.equals(rub))
                     unit = REG_UNITS.get(counter.getAndIncrement());
+                checker.add(unit);
                 CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), rub, unit, BigDecimal.ONE);
             }).start();
         }
         latch.countDown();
         Thread.sleep(1000);
 
-        final ImmutableSet<Integer> integers = CurrencyRatesPseudoTable.INSTANCE.getDayIndex().get(new UtcDay());
-        final int i = CurrencyRatesPseudoTable.INSTANCE.idSequence.get();
-        assertEquals(ImmutableSet.of(i, i-1, i-2, i-3, i-4, i-5, i-6, i-7, i-8, i-9), integers);
+        final ImmutableSet<Integer> indexed = CurrencyRatesPseudoTable.INSTANCE.getDayIndex().get(new UtcDay());
+        indexed.stream().forEach(id -> {
+            final StoredCurrencyRate storedCurrencyRate = CurrencyRatesPseudoTable.INSTANCE.get(id);
+            assertTrue(storedCurrencyRate.second + " indexed by mistake", checker.contains(storedCurrencyRate.second));
+        });
+        for (CurrencyUnit unit : checker) {
+            assertTrue("Added to index element " + unit + " not found in index",
+                    indexed.stream().map(CurrencyRatesPseudoTable.INSTANCE::get).filter(rate -> rate.second.equals(unit)).findFirst().isPresent());
+        }
 
         try {
             CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), rub, REG_UNITS.get(0), BigDecimal.ONE);

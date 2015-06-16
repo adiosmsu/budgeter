@@ -34,7 +34,7 @@ public class FundsMutationEventPseudoTableTest {
                 .setAmount(Money.of(CurrencyUnit.of("RUB"), BigDecimal.valueOf(50L)))
                 .build();
         Schema.FUNDS_MUTATION_EVENTS.registerBenefit(breadBuy);
-        assertEquals("No breadBuy event found", breadBuy, Schema.FUNDS_MUTATION_EVENTS.get(Schema.FUNDS_MUTATION_EVENTS.idSequence.get()));
+        assertEquals("No breadBuy event found", breadBuy, Schema.FUNDS_MUTATION_EVENTS.get(Schema.FUNDS_MUTATION_EVENTS.idSequence.get()).obj);
         try {
             final FundsMutationEvent test = FundsMutationEvent.builder()
                     .setQuantity(10)
@@ -61,7 +61,7 @@ public class FundsMutationEventPseudoTableTest {
                 .setAmount(Money.of(CurrencyUnit.of("RUB"), BigDecimal.valueOf(50L)))
                 .build();
         Schema.FUNDS_MUTATION_EVENTS.registerLoss(breadBuy);
-        assertEquals("No breadBuy event found", breadBuy, Schema.FUNDS_MUTATION_EVENTS.get(Schema.FUNDS_MUTATION_EVENTS.idSequence.get()));
+        assertEquals("No breadBuy event found", breadBuy, Schema.FUNDS_MUTATION_EVENTS.get(Schema.FUNDS_MUTATION_EVENTS.idSequence.get()).obj);
         try {
             final FundsMutationEvent test = FundsMutationEvent.builder()
                     .setQuantity(10)

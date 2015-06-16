@@ -25,7 +25,7 @@ public class PostponedCurrencyExchangeEventPseudoTableTest {
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS
                 .rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), CurrencyUnit.USD, Optional.of(BigDecimal.valueOf(0.89)), OffsetDateTime.now());
         final int id = Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.idSequence.get();
-        assertEquals("Money don't match", Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.get(id).toBuy);
+        assertEquals("Money don't match", Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.get(id).obj.toBuy);
     }
 
     @Test

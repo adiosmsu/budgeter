@@ -9,14 +9,14 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Mikhail Kulikov
  */
-public abstract class AbstractPseudoTable<T extends Stored<U>, U> implements PseudoTable<U> {
+public abstract class AbstractPseudoTable<T extends Stored<U>, U> implements PseudoTable<T> {
 
     @Nonnull
     abstract ConcurrentHashMap<Integer, T> innerTable();
 
     @Override
-    public final U get(int id) {
-        return innerTable().get(id).obj;
+    public final T get(int id) {
+        return innerTable().get(id);
     }
 
     @Override

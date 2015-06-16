@@ -143,12 +143,10 @@ public final class FundsMutationSubject {
 
         private void prepare() {
             checkArgument(id.orElse(1) > 0 && name != null && type != null, "Bad data, possibly uninitialized");
-            if (parentId == 0) {
-                parentId = id.orElse(0);
-                rootId = id.orElse(0);
-            } else if (rootId == 0) {
-                rootId = repository.findById(parentId).orElseThrow(()
-                        -> new IllegalStateException("No database entry for parent [" + parentId + "] when searching root")).rootId;
+            if (parentId > 0 && rootId == 0) {
+                final FundsMutationSubject parent = repository.findById(parentId).orElseThrow(()
+                        -> new IllegalStateException("No database entry for parent [" + parentId + "] when searching root"));
+                rootId = parent.rootId == 0 ? parentId : parent.rootId;
             }
         }
 

@@ -29,7 +29,7 @@ public class CurrencyExchangeEventPseudoTableTest {
                 .setTimestamp(ts)
                 .build();
         Schema.CURRENCY_EXCHANGE_EVENTS.registerCurrencyExchange(exchangeEvent);
-        assertEquals("Storage broke on put/get test", exchangeEvent, Schema.CURRENCY_EXCHANGE_EVENTS.get(Schema.CURRENCY_EXCHANGE_EVENTS.idSequence.get()));
+        assertEquals("Storage broke on put/get test", exchangeEvent, Schema.CURRENCY_EXCHANGE_EVENTS.get(Schema.CURRENCY_EXCHANGE_EVENTS.idSequence.get()).obj);
     }
 
 }

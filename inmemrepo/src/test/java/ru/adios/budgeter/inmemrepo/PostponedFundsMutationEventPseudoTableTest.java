@@ -43,7 +43,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         final int id = Schema.POSTPONED_FUNDS_MUTATION_EVENTS.idSequence.get();
-        assertEquals("Wrong remembered event", Money.of(rub, BigDecimal.valueOf(666L)), Schema.POSTPONED_FUNDS_MUTATION_EVENTS.get(id).mutationEvent.amount);
+        assertEquals("Wrong remembered event", Money.of(rub, BigDecimal.valueOf(666L)), Schema.POSTPONED_FUNDS_MUTATION_EVENTS.get(id).obj.mutationEvent.amount);
     }
 
     @Test
@@ -64,7 +64,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableLoss(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         final int id = Schema.POSTPONED_FUNDS_MUTATION_EVENTS.idSequence.get();
-        assertEquals("Wrong remembered event", Money.of(rub, BigDecimal.valueOf(777L)), Schema.POSTPONED_FUNDS_MUTATION_EVENTS.get(id).mutationEvent.amount);
+        assertEquals("Wrong remembered event", Money.of(rub, BigDecimal.valueOf(777L)), Schema.POSTPONED_FUNDS_MUTATION_EVENTS.get(id).obj.mutationEvent.amount);
     }
 
     @Test
