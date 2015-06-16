@@ -9,6 +9,7 @@ import ru.adios.budgeter.api.UtcDay;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -30,6 +31,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     private Optional<CurrencyUnit> sellUnitRef = Optional.empty();
     private Optional<BigDecimal> customRateRef = Optional.empty();
     private Optional<BigDecimal> naturalRateRef = Optional.empty();
+    private Optional<OffsetDateTime> timestampRef = Optional.of(OffsetDateTime.now());
 
     public ExchangeCurrenciesElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
         this.accounter = accounter;
@@ -65,6 +67,10 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         this.customRateRef = Optional.ofNullable(customRate);
     }
 
+    public void setTimestamp(OffsetDateTime timestamp) {
+        this.timestampRef = Optional.of(timestamp);
+    }
+
     @Override
     public void submit() {
         checkState(sellUnitRef.isPresent(), "Sell unit not set");
@@ -77,7 +83,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         final BigDecimal naturalRate = naturalRateRef.orElseGet(() -> ratesService.getConversionMultiplier(new UtcDay(), unitBuy, unitSell).orElse(null));
         if (naturalRate == null) {
             // we don't have rates in question for today yet, conserve operation to commit later
-            accounter.rememberPostponedExchange(buyAmount, unitSell, customRateRef);
+            accounter.rememberPostponedExchange(buyAmount, unitSell, customRateRef, timestampRef.get());
             return;
         }
 
@@ -100,6 +106,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                         .setBought(buyAmount)
                         .setSold(sellAmount)
                         .setRate(actualRate)
+                        .setTimestamp(timestampRef.get())
                         .build()
         );
     }

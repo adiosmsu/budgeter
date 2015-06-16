@@ -5,7 +5,9 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 
 import java.math.RoundingMode;
+import java.util.Optional;
 import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 /**
  * Date: 6/12/15
@@ -16,7 +18,7 @@ import java.util.stream.Collector;
 public interface Treasury extends CurrenciesRepository, BalancesRepository {
 
     @Override
-    ImmutableList<CurrencyUnit> getRegisteredCurrencies();
+    Stream<CurrencyUnit> getRegisteredCurrencies();
 
     @Override
     void registerCurrency(CurrencyUnit unit);
@@ -25,7 +27,7 @@ public interface Treasury extends CurrenciesRepository, BalancesRepository {
     ImmutableList<CurrencyUnit> searchCurrenciesByString(String str);
 
     @Override
-    Money amount(CurrencyUnit unit);
+    Optional<Money> amount(CurrencyUnit unit);
 
     @Override
     default Money totalAmount(CurrencyUnit unit, CurrencyRatesProvider ratesProvider) {
@@ -49,19 +51,19 @@ public interface Treasury extends CurrenciesRepository, BalancesRepository {
                 return this;
             }
         }
-        return treasury.getRegisteredCurrencies().stream().collect(Collector.of(
+        return treasury.getRegisteredCurrencies().collect(Collector.of(
                 () -> new MoneyWrapper(Money.zero(unit)),
                 (w, otherUnit) -> {
-                    w.plus(
-                            treasury.amount(otherUnit)
-                                    .convertedTo(
-                                            unit,
-                                            ratesProvider
-                                                    .getConversionMultiplier(new UtcDay(), otherUnit, unit)
-                                                    .orElseGet(() -> ratesProvider.getLatestConversionMultiplier(otherUnit, unit)),
-                                            RoundingMode.HALF_DOWN
-                                    )
-                    );
+                    final Optional<Money> amount = treasury.amount(otherUnit);
+                    if (amount.isPresent()) {
+                        w.plus(amount.get().convertedTo(
+                                        unit,
+                                        ratesProvider
+                                                .getConversionMultiplier(new UtcDay(), otherUnit, unit)
+                                                .orElseGet(() -> ratesProvider.getLatestConversionMultiplier(otherUnit, unit)),
+                                        RoundingMode.HALF_DOWN)
+                        );
+                    }
                 },
                 MoneyWrapper::plus,
                 w -> w.m

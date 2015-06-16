@@ -75,10 +75,7 @@ public abstract class ExchangeRatesLoader {
     }
 
     public final void updateSupportedCurrencies() {
-        final ImmutableList<CurrencyUnit> registeredCurrencies = currenciesRepo.getRegisteredCurrencies();
-        if (registeredCurrencies.size() > 0) {
-            supportedCurrencies.addAllAbsent(registeredCurrencies);
-        }
+        currenciesRepo.getRegisteredCurrencies().forEach(supportedCurrencies::addIfAbsent);
     }
 
     public final Map<CurrencyUnit, BigDecimal> loadCurrencies(boolean updateSupported, Optional<UtcDay> dayRef, Optional<List<CurrencyUnit>> problematicsRef) {

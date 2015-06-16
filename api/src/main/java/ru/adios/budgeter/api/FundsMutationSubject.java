@@ -3,6 +3,7 @@ package ru.adios.budgeter.api;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -25,17 +26,16 @@ public final class FundsMutationSubject {
         this.id = builder.id;
         this.parentId = builder.parentId;
         this.rootId = builder.rootId;
-        this.childId = builder.childId;
+        this.childFlag = builder.childFlag;
         this.name = builder.name;
         this.repository = builder.repository;
         this.type = builder.type;
-        checkArgument(id.orElse(1) > 0 && name != null && type != null, "Bad data, possibly uninitialized");
     }
 
-    public final Optional<Integer> id;
+    public final OptionalInt id;
     public final int parentId;
     public final int rootId;
-    public final Optional<Integer> childId;
+    public final boolean childFlag;
     public final SubjectType type;
     public final String name;
 
@@ -50,26 +50,25 @@ public final class FundsMutationSubject {
     }
 
     private Optional<FundsMutationSubject> getInner(int otherId) {
+        return getInner(id, otherId, this, repository);
+    }
+
+    private static Optional<FundsMutationSubject> getInner(OptionalInt id, int otherId, FundsMutationSubject inst, FundsMutationSubjectRepository repository) {
         if (id.orElse(-1) == otherId)
-            return Optional.of(this);
+            return Optional.ofNullable(inst);
         return repository.findById(otherId);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        FundsMutationSubject that = (FundsMutationSubject) o;
-        return id.equals(that.id)
-                && name.equals(that.name);
+        return this == o
+                || !(o == null || getClass() != o.getClass())
+                && name.equals(((FundsMutationSubject) o).name);
     }
 
     @Override
     public int hashCode() {
-        int result = id.hashCode();
-        result = 31 * result + name.hashCode();
-        return result;
+        return name.hashCode();
     }
 
     public enum SubjectType {
@@ -81,10 +80,10 @@ public final class FundsMutationSubject {
     @NotThreadSafe
     public static final class Builder {
 
-        private Optional<Integer> id = Optional.empty();
+        private OptionalInt id = OptionalInt.empty();
         private int parentId;
         private int rootId;
-        public Optional<Integer> childId = Optional.empty();
+        public boolean childFlag = false;
         private SubjectType type;
         private String name;
 
@@ -95,8 +94,19 @@ public final class FundsMutationSubject {
             this.repository = repository;
         }
 
+        public Builder setFundsMutationSubject(FundsMutationSubject subject) {
+            id = subject.id;
+            parentId = subject.parentId;
+            rootId = subject.rootId;
+            childFlag = subject.childFlag;
+            type = subject.type;
+            name = subject.name;
+            return this;
+        }
+
         public Builder setId(int id) {
-            this.id = Optional.of(id);
+            checkArgument(id > 0);
+            this.id = OptionalInt.of(id);
             return this;
         }
 
@@ -111,17 +121,19 @@ public final class FundsMutationSubject {
         }
 
         public Builder setParentId(int parentId) {
+            checkArgument(parentId > 0);
             this.parentId = parentId;
             return this;
         }
 
         public Builder setRootId(int rootId) {
+            checkArgument(rootId > 0);
             this.rootId = rootId;
             return this;
         }
 
-        public Builder setChildId(int childId) {
-            this.childId = Optional.of(childId);
+        public Builder setChildFlag(boolean childFlag) {
+            this.childFlag = childFlag;
             return this;
         }
 
@@ -130,10 +142,14 @@ public final class FundsMutationSubject {
         }
 
         private void prepare() {
-            if (parentId == 0)
+            checkArgument(id.orElse(1) > 0 && name != null && type != null, "Bad data, possibly uninitialized");
+            if (parentId == 0) {
                 parentId = id.orElse(0);
-            if (rootId == 0)
                 rootId = id.orElse(0);
+            } else if (rootId == 0) {
+                rootId = repository.findById(parentId).orElseThrow(()
+                        -> new IllegalStateException("No database entry for parent [" + parentId + "] when searching root")).rootId;
+            }
         }
 
     }

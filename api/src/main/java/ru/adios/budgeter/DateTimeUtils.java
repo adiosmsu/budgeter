@@ -2,6 +2,7 @@ package ru.adios.budgeter;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 
 /**
@@ -18,6 +19,10 @@ public final class DateTimeUtils {
 
     public static OffsetDateTime nowInUtc() {
         return OffsetDateTime.now(Clock.systemUTC());
+    }
+
+    public static OffsetDateTime toUtcDay(OffsetDateTime dateTime) {
+        return DateTimeUtils.cutTime(dateTime.withOffsetSameInstant(ZoneOffset.UTC));
     }
 
     private DateTimeUtils() {}

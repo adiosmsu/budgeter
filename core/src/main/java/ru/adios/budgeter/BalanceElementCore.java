@@ -1,10 +1,11 @@
 package ru.adios.budgeter;
 
-import com.google.common.collect.ImmutableList;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.Treasury;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,7 +33,10 @@ public final class BalanceElementCore {
     }
 
     public Stream<Money> streamIndividualBalances() {
-        return treasury.getRegisteredCurrencies().stream().map(treasury::amount);
+        return treasury.getRegisteredCurrencies().map(unit -> {
+            final Optional<Money> amount = treasury.amount(unit);
+            return amount.orElse(Money.of(unit, SPECIAL));
+        }).filter(money -> !money.getAmount().equals(SPECIAL));
     }
 
     public Money getTotalBalance() {
@@ -40,13 +44,15 @@ public final class BalanceElementCore {
     }
 
     public boolean noTodayRate() {
-        final ImmutableList<CurrencyUnit> registeredCurrencies = treasury.getRegisteredCurrencies();
-        return registeredCurrencies.stream().collect(Collectors.<CurrencyUnit>averagingInt(unit -> ratesService.isRateStale(unit) ? 0 : 1)) < registeredCurrencies.size()
+        final List<CurrencyUnit> collected = treasury.getRegisteredCurrencies().collect(Collectors.toList());
+        return collected.stream().collect(Collectors.<CurrencyUnit>averagingInt(unit -> ratesService.isRateStale(unit) ? 0 : 1)) < collected.size()
                 || ratesService.isRateStale(totalUnitNonNull());
     }
 
     private CurrencyUnit totalUnitNonNull() {
         return totalUnitRef.orElse(CurrencyUnit.USD);
     }
+
+    private static final BigDecimal SPECIAL = BigDecimal.valueOf(Long.MIN_VALUE);
 
 }

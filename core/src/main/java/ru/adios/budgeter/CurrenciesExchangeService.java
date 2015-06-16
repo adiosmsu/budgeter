@@ -41,8 +41,38 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
     @Autowired private volatile ExchangeRatesLoader.BtcLoader btcLoader;
     @Autowired private volatile ExchangeRatesLoader.CbrLoader cbrLoader;
 
+    private final Optional<TransactionalSupport> nonSpringTransactional;
+
+    public CurrenciesExchangeService() {
+        nonSpringTransactional = Optional.empty();
+    }
+
+    public CurrenciesExchangeService(
+            TransactionalSupport nonSpringTransactional,
+            CurrencyRatesRepository ratesRepository,
+            Accounter accounter,
+            Treasury treasury,
+            ExchangeRatesLoader.BtcLoader btcLoader,
+            ExchangeRatesLoader.CbrLoader cbrLoader
+    ) {
+        this.ratesRepository = ratesRepository;
+        this.accounter = accounter;
+        this.treasury = treasury;
+        this.btcLoader = btcLoader;
+        this.cbrLoader = cbrLoader;
+        this.nonSpringTransactional = Optional.of(nonSpringTransactional);
+    }
+
     @Transactional
-    public void runWithTransaction(ImmutableList<Runnable> runnables) {
+    public void runWithTransaction(final ImmutableList<Runnable> runnables) {
+        if (nonSpringTransactional.isPresent()) {
+            nonSpringTransactional.get().runWithTransaction(() -> runRunnables(runnables));
+        } else {
+            runRunnables(runnables);
+        }
+    }
+
+    private void runRunnables(ImmutableList<Runnable> runnables) {
         runnables.forEach(java.lang.Runnable::run);
     }
 
@@ -168,7 +198,8 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
                 core.setConversionUnit(postponedMutationEvent.conversionUnit);
                 core.setCustomRate(postponedMutationEvent.customRate);
                 core.setNaturalRate(postponedMutationEvent.conversionUnit.equals(forRates) ? entry.getValue() : CurrencyRatesProvider.reverseRate(entry.getValue()));
-                core.register();
+                core.setTimestamp(postponedMutationEvent.mutationEvent.timestamp);
+                core.submit();
             }));
             accounter.streamRememberedLosses(day, forRates, entry.getKey()).forEach(postponedMutationEvent -> tasksBuilder.add(() -> {
                 final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
@@ -178,7 +209,8 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
                 core.setConversionUnit(postponedMutationEvent.conversionUnit);
                 core.setCustomRate(postponedMutationEvent.customRate);
                 core.setNaturalRate(postponedMutationEvent.conversionUnit.equals(forRates) ? CurrencyRatesProvider.reverseRate(entry.getValue()) : entry.getValue());
-                core.register();
+                core.setTimestamp(postponedMutationEvent.mutationEvent.timestamp);
+                core.submit();
             }));
             accounter.streamRememberedExchanges(day, forRates, entry.getKey()).forEach(postponedExchange -> tasksBuilder.add(() -> {
                 final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
@@ -186,6 +218,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
                 core.setSellUnit(postponedExchange.unitSell);
                 core.setCustomRate(postponedExchange.customRate.orElse(null));
                 core.setNaturalRate(postponedExchange.unitSell.equals(forRates) ? CurrencyRatesProvider.reverseRate(entry.getValue()) : entry.getValue());
+                core.setTimestamp(postponedExchange.timestamp);
                 core.submit();
             }));
         }

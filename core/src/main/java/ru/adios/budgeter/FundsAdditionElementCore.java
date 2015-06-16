@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  *
  * @author Mikhail Kulikov
  */
-public final class FundsAdditionElementCore implements MoneySettable {
+public final class FundsAdditionElementCore implements MoneySettable, Submitter {
 
     private final Treasury treasury;
 
@@ -47,7 +47,8 @@ public final class FundsAdditionElementCore implements MoneySettable {
         amountWrapper.setAmountUnit(unit);
     }
 
-    public void register() {
+    @Override
+    public void submit() {
         treasury.addAmount(getAmount());
     }
 

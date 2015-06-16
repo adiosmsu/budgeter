@@ -21,6 +21,10 @@ public final class UtcDay implements Comparable<UtcDay> {
         inner = DateTimeUtils.cutTime(DateTimeUtils.nowInUtc());
     }
 
+    public UtcDay(OffsetDateTime inner) {
+        this.inner = DateTimeUtils.toUtcDay(inner);
+    }
+
     public UtcDay(String str, DateTimeFormatter formatter) {
         inner = DateTimeUtils.cutTime(OffsetDateTime.parse(str, formatter.withZone(ZoneOffset.UTC)));
     }

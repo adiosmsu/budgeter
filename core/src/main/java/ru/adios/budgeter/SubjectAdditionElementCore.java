@@ -4,6 +4,7 @@ import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 
 /**
  * Date: 6/13/15
@@ -36,9 +37,9 @@ public final class SubjectAdditionElementCore implements Submitter {
     public boolean setParentName(String parentName) {
         parentRef = repository.findByName(parentName);
         if (parentRef.isPresent()) {
-            final Optional<Integer> idParentRef = parentRef.get().id;
+            final OptionalInt idParentRef = parentRef.get().id;
             if (idParentRef.isPresent()) {
-                subjectBuilder.setParentId(idParentRef.get());
+                subjectBuilder.setParentId(idParentRef.getAsInt());
                 return true;
             }
         }

@@ -2,7 +2,10 @@ package ru.adios.budgeter;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
-import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.Accounter;
+import ru.adios.budgeter.api.FundsMutationEvent;
+import ru.adios.budgeter.api.FundsMutationSubject;
+import ru.adios.budgeter.api.Treasury;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,7 +34,7 @@ public interface FundsMutator {
             rec.setAmount(customAmount.minus(naturalAmount).abs().multipliedBy(quantity));
             rec.setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()));
             rec.setDirection(customVsNatural > 0 ? directionIfCustomMore : directionIfCustomMore.other());
-            rec.register();
+            rec.submit();
         }
     }
 

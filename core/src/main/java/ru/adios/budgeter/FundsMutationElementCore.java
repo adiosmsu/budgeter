@@ -6,6 +6,7 @@ import ru.adios.budgeter.api.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -16,7 +17,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @author Mikhail Kulikov
  */
-public final class FundsMutationElementCore implements MoneySettable, FundsMutator {
+public final class FundsMutationElementCore implements MoneySettable, FundsMutator, Submitter {
 
     private final Accounter accounter;
     private final CurrenciesExchangeService ratesService;
@@ -97,7 +98,11 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         eventBuilder.setSubject(subject);
     }
 
-    public void register() {
+    public void setTimestamp(OffsetDateTime timestamp) {
+        eventBuilder.setTimestamp(timestamp);
+    }
+
+    public void submit() {
         checkState(directionRef.isPresent(), "No direction set");
 
         final MutationDirection direction = directionRef.get();
@@ -132,12 +137,14 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     otherPartyAmount = direction.getOtherPartyAmount(amount, unitConv, actualRate);
                 }
 
-                direction.register(accounter, treasury, eventBuilder.setAmount(actualAmount).build());
+                final FundsMutationEvent event = eventBuilder.setAmount(actualAmount).build();
+                direction.register(accounter, treasury, event);
                 accounter.registerCurrencyExchange(
                         CurrencyExchangeEvent.builder()
                                 .setRate(actualRate)
                                 .setBought(actualAmount)
                                 .setSold(otherPartyAmount)
+                                .setTimestamp(event.timestamp)
                                 .build()
                 );
                 return;

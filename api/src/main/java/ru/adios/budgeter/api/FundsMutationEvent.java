@@ -4,8 +4,10 @@ import org.joda.money.Money;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+import java.time.OffsetDateTime;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Date: 6/13/15
@@ -23,12 +25,36 @@ public final class FundsMutationEvent {
     public final Money amount;
     public final int quantity;
     public final FundsMutationSubject subject;
+    public final OffsetDateTime timestamp;
 
     private FundsMutationEvent(Builder builder) {
         this.amount = builder.amount;
         this.quantity = builder.quantity;
         this.subject = builder.subject;
+        this.timestamp = builder.timestamp;
         checkArgument(amount != null && subject != null && quantity > 0, "Bad data, possibly uninitialized");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FundsMutationEvent that = (FundsMutationEvent) o;
+
+        return quantity == that.quantity
+                && amount.equals(that.amount)
+                && subject.equals(that.subject)
+                && timestamp.equals(that.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = amount.hashCode();
+        result = 31 * result + quantity;
+        result = 31 * result + subject.hashCode();
+        result = 31 * result + timestamp.hashCode();
+        return result;
     }
 
     @NotThreadSafe
@@ -37,6 +63,7 @@ public final class FundsMutationEvent {
         private Money amount;
         private int quantity;
         private FundsMutationSubject subject;
+        private OffsetDateTime timestamp = OffsetDateTime.now();
 
         private Builder() {
         }
@@ -45,6 +72,7 @@ public final class FundsMutationEvent {
             amount = fundsMutationEvent.amount;
             quantity = fundsMutationEvent.quantity;
             subject = fundsMutationEvent.subject;
+            timestamp = fundsMutationEvent.timestamp;
             return this;
         }
 
@@ -60,6 +88,11 @@ public final class FundsMutationEvent {
 
         public Builder setSubject(FundsMutationSubject subject) {
             this.subject = subject;
+            return this;
+        }
+
+        public Builder setTimestamp(OffsetDateTime timestamp) {
+            this.timestamp = checkNotNull(timestamp);
             return this;
         }
 

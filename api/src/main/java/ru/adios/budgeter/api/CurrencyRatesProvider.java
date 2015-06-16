@@ -1,8 +1,12 @@
 package ru.adios.budgeter.api;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.math.IntMath;
 import org.joda.money.CurrencyUnit;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -56,10 +60,23 @@ public interface CurrencyRatesProvider {
     }
 
     static Stream<ConversionPair> streamConversionPairs(Set<CurrencyUnit> unitsSet) {
-        final CurrencyUnit[] wrapper = new CurrencyUnit[1];
-        return unitsSet.stream()
-                .filter(unit -> wrapper[0] != null || (wrapper[0] = unit) == null)
-                .map(unit -> new ConversionPair(wrapper[0], unit));
+        final int sizeUnits = unitsSet.size();
+        if (sizeUnits <= 1)
+            return Stream.empty();
+        if (sizeUnits == 2) {
+            final Iterator<CurrencyUnit> it = unitsSet.iterator();
+            return Stream.of(new ConversionPair(it.next(), it.next()));
+        }
+        final ImmutableList<CurrencyUnit> currencyUnitsList = ImmutableList.copyOf(unitsSet);
+
+        final ArrayList<ConversionPair> builder = new ArrayList<>(IntMath.binomial(sizeUnits, 2) + 1);
+        for (int j = 0; j < currencyUnitsList.size() - 1; j++) {
+            final CurrencyUnit first = currencyUnitsList.get(j);
+            for (int i = j + 1; i < currencyUnitsList.size(); i++) {
+                builder.add(new ConversionPair(first, currencyUnitsList.get(i)));
+            }
+        }
+        return builder.stream();
     }
 
     final class ConversionPair {

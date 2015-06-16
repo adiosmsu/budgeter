@@ -3,6 +3,7 @@ package ru.adios.budgeter.api;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Date: 6/13/15
@@ -16,10 +17,27 @@ public interface FundsMutationSubjectRepository {
 
     Optional<FundsMutationSubject> findByName(String name);
 
-    Optional<FundsMutationSubject> findByParent(int parentId);
+    Stream<FundsMutationSubject> findByParent(int parentId);
 
     ImmutableList<FundsMutationSubject> searchByString(String str);
 
-    void addSubject(FundsMutationSubject subject);
+    default void addSubject(FundsMutationSubject subject) {
+        if (subject.parentId == 0) {
+            final FundsMutationSubject.Builder builder = FundsMutationSubject.builder(this).setFundsMutationSubject(subject);
+            if (!subject.id.isPresent())
+                builder.setId(idSeqNext());
+            subject = builder.build();
+        }
+        rawAddition(subject);
+        if (subject.parentId != 0) {
+            updateChildFlag(subject.parentId);
+        }
+    }
+
+    void rawAddition(FundsMutationSubject subject);
+
+    int idSeqNext();
+
+    void updateChildFlag(int id);
 
 }
