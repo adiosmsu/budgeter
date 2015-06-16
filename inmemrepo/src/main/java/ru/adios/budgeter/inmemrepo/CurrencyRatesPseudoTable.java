@@ -47,7 +47,10 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
 
     @Override
     public Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
-        return dayIndex.get(day)
+        final ImmutableSet<Integer> indexed = dayIndex.get(day);
+        if (indexed == null)
+            return Optional.empty();
+        return indexed
                 .stream()
                 .map(table::get)
                 .map(rate -> getRelevance(from, to, rate))

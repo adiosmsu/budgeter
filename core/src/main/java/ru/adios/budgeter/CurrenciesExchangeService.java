@@ -144,7 +144,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
 
     @Override
     public boolean isRateStale(CurrencyUnit to) {
-        return false;
+        return ratesRepository.isRateStale(to);
     }
 
     private Optional<BigDecimal> conversionMultiplierFor(

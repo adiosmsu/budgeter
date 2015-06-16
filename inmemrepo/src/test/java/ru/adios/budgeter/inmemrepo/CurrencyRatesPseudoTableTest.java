@@ -12,6 +12,7 @@ import java.math.MathContext;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,6 +83,9 @@ public class CurrencyRatesPseudoTableTest {
         CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(ts), rub, CurrencyUnit.USD, two);
         assertEquals(two, CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(ts), rub, CurrencyUnit.USD).get());
         assertEquals(CurrencyRatesProvider.reverseRate(two), CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(ts), CurrencyUnit.USD, rub).get());
+        final Optional<BigDecimal> none =
+                CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(OffsetDateTime.of(1989, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.USD, CurrencyUnit.CHF);
+        assertFalse(none.isPresent());
     }
 
     @Test

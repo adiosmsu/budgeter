@@ -2,12 +2,13 @@ package ru.adios.budgeter;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.UtcDay;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 /**
@@ -19,13 +20,13 @@ import java.util.stream.Stream;
 public final class BalanceElementCore {
 
     private final Treasury treasury;
-    private final CurrenciesExchangeService ratesService;
+    private final CurrencyRatesProvider provider;
 
     private Optional<CurrencyUnit> totalUnitRef = Optional.empty();
 
-    public BalanceElementCore(Treasury treasury, CurrenciesExchangeService ratesService) {
+    public BalanceElementCore(Treasury treasury, CurrencyRatesProvider provider) {
         this.treasury = treasury;
-        this.ratesService = ratesService;
+        this.provider = provider;
     }
 
     public void setTotalUnit(CurrencyUnit totalUnit) {
@@ -40,13 +41,18 @@ public final class BalanceElementCore {
     }
 
     public Money getTotalBalance() {
-        return treasury.totalAmount(totalUnitNonNull(), ratesService);
+        return treasury.totalAmount(totalUnitNonNull(), provider);
     }
 
     public boolean noTodayRate() {
-        final List<CurrencyUnit> collected = treasury.getRegisteredCurrencies().collect(Collectors.toList());
-        return collected.stream().collect(Collectors.<CurrencyUnit>averagingInt(unit -> ratesService.isRateStale(unit) ? 0 : 1)) < collected.size()
-                || ratesService.isRateStale(totalUnitNonNull());
+        final UtcDay today = new UtcDay();
+        final CurrencyUnit main = totalUnitNonNull();
+        final AtomicBoolean wasSomething = new AtomicBoolean(false);
+        final boolean foundNoRateCase = treasury.getRegisteredCurrencies().filter(unit -> {
+            wasSomething.set(true);
+            return !main.equals(unit) && !provider.getConversionMultiplier(today, main, unit).isPresent();
+        }).findFirst().isPresent();
+        return !wasSomething.get() || foundNoRateCase;
     }
 
     private CurrencyUnit totalUnitNonNull() {
