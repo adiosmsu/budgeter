@@ -155,6 +155,8 @@ public abstract class ExchangeRatesLoader {
 
     abstract Parser parser();
 
+    public abstract boolean isFetchingAllSupportedProblematic(UtcDay day);
+
     private interface Parser {
 
         List<String> getUrlStrings(UtcDay day, Optional<List<CurrencyUnit>> problematicsRef);
@@ -185,6 +187,11 @@ public abstract class ExchangeRatesLoader {
             return cbrParser;
         }
 
+        @Override
+        public boolean isFetchingAllSupportedProblematic(UtcDay day) {
+            return false;
+        }
+
     }
 
     @ThreadSafe
@@ -211,6 +218,7 @@ public abstract class ExchangeRatesLoader {
         public Map<CurrencyUnit, BigDecimal> parseInput(InputStream stream, String urlStr, UtcDay day, final Optional<List<CurrencyUnit>> problematicsRef) throws IOException {
             final Map<CurrencyUnit, BigDecimal> rates = new TreeMap<>();
 
+            final Optional<StringBuilder> debugDump = logger.isDebugEnabled() ? Optional.of(new StringBuilder(1000)): Optional.empty();
             SAXParserFactory factory = SAXParserFactory.newInstance();
             try {
                 SAXParser saxParser = factory.newSAXParser();
@@ -231,7 +239,9 @@ public abstract class ExchangeRatesLoader {
                     }
 
                     @Override
-                    public void characters(char[] ch, int start, int length) throws SAXException {
+                    public void characters(final char[] ch, final int start, final int length) throws SAXException {
+                        debugDump.ifPresent(builder -> builder.append(new String(ch, start, length)));
+
                         if (insideCode) {
                             final String code = new String(ch, start, length).toUpperCase();
                             if (supportedCurrency(code, problematicsRef)) {
@@ -250,10 +260,19 @@ public abstract class ExchangeRatesLoader {
                             currentRate = null;
                         }
                     }
+
+                    @Override
+                    public void endElement(String uri, String localName, String qName) throws SAXException {
+                        if (qName.equalsIgnoreCase("Valute")) {
+                            currentRate = null;
+                        }
+                    }
                 });
             } catch (ParserConfigurationException | SAXException e) {
                 throw new IOException(e);
             }
+
+            debugDump.ifPresent(builder -> logger.debug(builder.toString()));
 
             return rates;
         }
@@ -281,6 +300,11 @@ public abstract class ExchangeRatesLoader {
         @Override
         BtcParser parser() {
             return btcParser;
+        }
+
+        @Override
+        public boolean isFetchingAllSupportedProblematic(UtcDay day) {
+            return day.equals(new UtcDay());
         }
 
     }

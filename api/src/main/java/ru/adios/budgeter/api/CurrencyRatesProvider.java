@@ -21,13 +21,23 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public interface CurrencyRatesProvider {
 
-    int RATES_SCALE = 4;
+    int RATES_SCALE = 12;
 
     default Optional<BigDecimal> getConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {
         return getConversionMultiplier(new UtcDay(), from, to);
     }
 
-    Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to);
+    default Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
+        final Optional<BigDecimal> straight = getConversionMultiplierStraight(day, from, to);
+        if (straight.isPresent()) {
+            return straight;
+        } else {
+            final CurrencyUnit rub = CurrencyUnit.of("RUB");
+            return getConversionMultiplierWithIntermediate(day, from, to, rub);
+        }
+    }
+
+    Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to);
 
     Optional<BigDecimal> getLatestOptionalConversionMultiplier(CurrencyUnit from, CurrencyUnit to);
 
@@ -47,6 +57,16 @@ public interface CurrencyRatesProvider {
         final Optional<BigDecimal> rubToSecond = getLatestOptionalConversionMultiplier(intermediate, to);
         checkState(rubToSecond.isPresent(), "No rate from %s to %s", intermediate, to);
         return getConversionMultiplierFromIntermediateMultipliers(rubToFirst.get(), rubToSecond.get());
+    }
+
+    default Optional<BigDecimal> getConversionMultiplierWithIntermediate(UtcDay day, CurrencyUnit from, CurrencyUnit to, CurrencyUnit intermediate) {
+        final Optional<BigDecimal> rubToFirst = getConversionMultiplierStraight(day, intermediate, from);
+        if (!rubToFirst.isPresent())
+            return rubToFirst;
+        final Optional<BigDecimal> rubToSecond = getConversionMultiplierStraight(day, intermediate, to);
+        if (!rubToSecond.isPresent())
+            return rubToSecond;
+        return Optional.of(getConversionMultiplierFromIntermediateMultipliers(rubToFirst.get(), rubToSecond.get()));
     }
 
     boolean isRateStale(CurrencyUnit to);

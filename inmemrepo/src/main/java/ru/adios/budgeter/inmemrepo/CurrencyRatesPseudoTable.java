@@ -46,7 +46,7 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
     }
 
     @Override
-    public Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
+    public Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
         final ImmutableSet<Integer> indexed = dayIndex.get(day);
         if (indexed == null)
             return Optional.empty();

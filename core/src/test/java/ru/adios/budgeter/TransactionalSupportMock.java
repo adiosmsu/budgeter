@@ -9,6 +9,8 @@ package ru.adios.budgeter;
 public class TransactionalSupportMock implements TransactionalSupport {
 
     @Override
-    public void runWithTransaction(Runnable runnable) {}
+    public void runWithTransaction(Runnable runnable) {
+        runnable.run();
+    }
 
 }

@@ -39,6 +39,11 @@ public class CurrencyRatesRepositoryMock implements CurrencyRatesRepository {
         return table.isRateStale(to);
     }
 
+    @Override
+    public Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
+        return table.getConversionMultiplierStraight(day, from, to);
+    }
+
     void clear() {
         table.clear();
     }

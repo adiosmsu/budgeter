@@ -42,6 +42,11 @@ public final class UtcDay implements Comparable<UtcDay> {
     }
 
     @Override
+    public String toString() {
+        return inner.toString();
+    }
+
+    @Override
     public int compareTo(@Nonnull UtcDay other) {
         return inner.compareTo(other.inner);
     }

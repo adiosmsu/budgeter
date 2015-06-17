@@ -2,6 +2,8 @@ package ru.adios.budgeter;
 
 import com.google.common.collect.ImmutableList;
 import org.joda.money.CurrencyUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import ru.adios.budgeter.api.*;
@@ -9,6 +11,7 @@ import ru.adios.budgeter.api.*;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -24,6 +27,8 @@ import java.util.concurrent.ThreadFactory;
 @ThreadSafe
 public class CurrenciesExchangeService implements CurrencyRatesProvider {
 
+    private static final Logger logger = LoggerFactory.getLogger(CurrenciesExchangeService.class);
+
     private static final ExecutorService executor = Executors.newFixedThreadPool(4, new ThreadFactory() {
         private int counter = 0;
 
@@ -34,6 +39,10 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
             return thread;
         }
     });
+
+    static {
+        executor.submit(() -> logger.info("Executor started"));
+    }
 
     @Autowired private volatile CurrencyRatesRepository ratesRepository;
     @Autowired private volatile Accounter accounter;
@@ -88,6 +97,11 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
         return getConversionMultiplier(day, from, to, true);
     }
 
+    @Override
+    public Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
+        return getConversionMultiplier(day, from, to);
+    }
+
     private Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to, boolean attemptToLoadFromRepo) {
         final ImmutableList.Builder<Runnable> tasksBuilder = ImmutableList.builder();
 
@@ -128,7 +142,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
         } finally {
             final ImmutableList<Runnable> tasks = tasksBuilder.build();
             if (tasks.size() > 0)
-                executor.submit(() -> runWithTransaction(tasks));
+                executor.submit(() -> runWithTransaction(tasks.reverse()));
         }
     }
 
@@ -180,56 +194,68 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
     }
 
     private static Map<CurrencyUnit, BigDecimal> loadCurrencies(ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other) {
-        return loader.loadCurrencies(Optional.of(day), Optional.of(ImmutableList.of(other)));
+        loader.updateSupportedCurrencies();
+        final Optional<List<CurrencyUnit>> problematicsRef = loader.isFetchingAllSupportedProblematic(day)
+                ? Optional.of(ImmutableList.of(other))
+                : Optional.empty();
+        return loader.loadCurrencies(false, Optional.of(day), problematicsRef);
     }
 
     private Optional<BigDecimal> checkOtherWayAroundAndGet(
-            final UtcDay day, final CurrencyUnit forRates, Map<CurrencyUnit, BigDecimal> rates, CurrencyUnit from, CurrencyUnit to, final ImmutableList.Builder<Runnable> tasksBuilder
+            final UtcDay day, final CurrencyUnit forRates, final Map<CurrencyUnit, BigDecimal> rates, CurrencyUnit from, CurrencyUnit to, final ImmutableList.Builder<Runnable> tasksBuilder
     ) {
         if (rates.isEmpty())
             return Optional.empty();
 
-        for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
-            accounter.streamRememberedBenefits(day, forRates, entry.getKey()).forEach(postponedMutationEvent -> tasksBuilder.add(() -> {
-                final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
-                core.setEvent(postponedMutationEvent.mutationEvent);
-                core.setAmount(postponedMutationEvent.mutationEvent.amount);
-                core.setDirection(FundsMutator.MutationDirection.BENEFIT);
-                core.setConversionUnit(postponedMutationEvent.conversionUnit);
-                core.setCustomRate(postponedMutationEvent.customRate);
-                core.setNaturalRate(postponedMutationEvent.conversionUnit.equals(forRates) ? entry.getValue() : CurrencyRatesProvider.reverseRate(entry.getValue()));
-                core.setTimestamp(postponedMutationEvent.mutationEvent.timestamp);
-                core.submit();
-            }));
-            accounter.streamRememberedLosses(day, forRates, entry.getKey()).forEach(postponedMutationEvent -> tasksBuilder.add(() -> {
-                final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
-                core.setEvent(postponedMutationEvent.mutationEvent);
-                core.setAmount(postponedMutationEvent.mutationEvent.amount);
-                core.setDirection(FundsMutator.MutationDirection.LOSS);
-                core.setConversionUnit(postponedMutationEvent.conversionUnit);
-                core.setCustomRate(postponedMutationEvent.customRate);
-                core.setNaturalRate(postponedMutationEvent.conversionUnit.equals(forRates) ? CurrencyRatesProvider.reverseRate(entry.getValue()) : entry.getValue());
-                core.setTimestamp(postponedMutationEvent.mutationEvent.timestamp);
-                core.submit();
-            }));
-            accounter.streamRememberedExchanges(day, forRates, entry.getKey()).forEach(postponedExchange -> tasksBuilder.add(() -> {
-                final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
-                core.setBuyAmount(postponedExchange.toBuy);
-                core.setSellUnit(postponedExchange.unitSell);
-                core.setCustomRate(postponedExchange.customRate.orElse(null));
-                core.setNaturalRate(postponedExchange.unitSell.equals(forRates) ? CurrencyRatesProvider.reverseRate(entry.getValue()) : entry.getValue());
-                core.setTimestamp(postponedExchange.timestamp);
-                core.submit();
-            }));
-        }
+        tasksBuilder.add(() -> {
+            for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
+                accounter.streamRememberedBenefits(day, forRates, entry.getKey()).forEach(postponedMutationEvent -> {
+                    final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
+                    core.setEvent(postponedMutationEvent.mutationEvent);
+                    core.setAmount(postponedMutationEvent.mutationEvent.amount);
+                    core.setDirection(FundsMutator.MutationDirection.BENEFIT);
+                    core.setConversionUnit(postponedMutationEvent.conversionUnit);
+                    core.setCustomRate(postponedMutationEvent.customRate);
+                    core.setNaturalRate(postponedMutationEvent.conversionUnit.equals(forRates) ? entry.getValue() : CurrencyRatesProvider.reverseRate(entry.getValue()));
+                    core.setTimestamp(postponedMutationEvent.mutationEvent.timestamp);
+                    core.submit();
+                });
+                accounter.streamRememberedLosses(day, forRates, entry.getKey()).forEach(postponedMutationEvent -> {
+                    final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
+                    core.setEvent(postponedMutationEvent.mutationEvent);
+                    core.setAmount(postponedMutationEvent.mutationEvent.amount);
+                    core.setDirection(FundsMutator.MutationDirection.LOSS);
+                    core.setConversionUnit(postponedMutationEvent.conversionUnit);
+                    core.setCustomRate(postponedMutationEvent.customRate);
+                    core.setNaturalRate(postponedMutationEvent.conversionUnit.equals(forRates) ? CurrencyRatesProvider.reverseRate(entry.getValue()) : entry.getValue());
+                    core.setTimestamp(postponedMutationEvent.mutationEvent.timestamp);
+                    core.submit();
+                });
+                accounter.streamRememberedExchanges(day, forRates, entry.getKey()).forEach(postponedExchange -> {
+                    final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
+                    core.setBuyAmount(postponedExchange.toBuy);
+                    core.setSellUnit(postponedExchange.unitSell);
+                    core.setCustomRate(postponedExchange.customRate.orElse(null));
+                    core.setNaturalRate(postponedExchange.unitSell.equals(forRates) ? CurrencyRatesProvider.reverseRate(entry.getValue()) : entry.getValue());
+                    core.setTimestamp(postponedExchange.timestamp);
+                    core.submit();
+                });
+            }
+        });
 
-        if (from.equals(forRates)) {
-            return Optional.ofNullable(rates.get(to));
-        } else {
-            final BigDecimal divisor = rates.get(from);
-            if (divisor == null)
-                return Optional.empty();
-            return Optional.of(CurrencyRatesProvider.reverseRate(divisor));
+        try {
+            if (from.equals(forRates)) {
+                return Optional.ofNullable(rates.remove(to));
+            } else {
+                final BigDecimal divisor = rates.remove(from);
+                if (divisor == null)
+                    return Optional.empty();
+                return Optional.of(CurrencyRatesProvider.reverseRate(divisor));
+            }
+        } finally {
+            for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
+                tasksBuilder.add(() -> ratesRepository.addRate(day, forRates, entry.getKey(), entry.getValue()));
+            }
         }
     }
 
