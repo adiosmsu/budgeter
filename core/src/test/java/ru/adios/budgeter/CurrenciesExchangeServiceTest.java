@@ -43,7 +43,8 @@ public class CurrenciesExchangeServiceTest {
 
         Thread.sleep(100);
 
-        final UtcDay yesterday = new UtcDay(new UtcDay().inner.minus(1, ChronoUnit.DAYS));
+        final UtcDay today = new UtcDay();
+        final UtcDay yesterday = new UtcDay(today.inner.minus(1, ChronoUnit.DAYS));
         final Optional<BigDecimal> rubToUsd = service.getConversionMultiplier(yesterday, rub, CurrencyUnit.USD);
         Thread.sleep(100);
         assertTrue("rubToUsd didn't download from net", rubToUsd.isPresent());
@@ -62,6 +63,12 @@ public class CurrenciesExchangeServiceTest {
         assertTrue("usdToRub didn't compute or download", usdToRub.isPresent());
         assertEquals(CurrencyRatesProvider.reverseRate(rubToUsd.get()), usdToRub.get());
         System.out.println("usdToRub: " + usdToRub.get());
+
+        final BigDecimal ourVal = BigDecimal.valueOf(55.5534);
+        ratesRepository.addRate(today, rub, CurrencyUnit.USD, ourVal);
+        final Optional<BigDecimal> ourRate = service.getConversionMultiplier(today, rub, CurrencyUnit.USD);
+        assertTrue("Today's rubToEur didn't compute or download", ourRate.isPresent());
+        assertEquals(ourVal, ourRate.get());
     }
 
     @Test
