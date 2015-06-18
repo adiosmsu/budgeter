@@ -27,6 +27,12 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParsePosition;
+import java.time.DateTimeException;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -289,7 +295,7 @@ public abstract class ExchangeRatesLoader {
         private static final String CODE_BTC = "BTC";
         private static final String CODE_MBTC = "mBTC";
         private static final String CODE_UBTC = "µBTC";
-        private static final DateTimeFormatter CSV_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        private static final DateTimeFormatter CSV_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withChronology(IsoChronology.INSTANCE);
 
         private final BtcParser btcParser = new BtcParser();
 
@@ -304,7 +310,7 @@ public abstract class ExchangeRatesLoader {
 
         @Override
         public boolean isFetchingAllSupportedProblematic(UtcDay day) {
-            return day.equals(new UtcDay());
+            return !day.equals(new UtcDay());
         }
 
     }
@@ -417,9 +423,29 @@ public abstract class ExchangeRatesLoader {
 
         private Stream<DayAndRate> parseCsv(InputStream is) throws IOException {
             final CSVParser parser = new CSVParser(new InputStreamReader(is, Charsets.UTF_8), CSVFormat.RFC4180);
+            final ParsePosition pos = new ParsePosition(0);
             return StreamSupport
                     .stream(parser.spliterator(), false)
-                    .map(record -> new DayAndRate(new UtcDay(record.get(0), BtcLoader.CSV_DATE_FORMATTER), new BigDecimal(record.get(3))));
+                    .map(record -> {
+                        final String str = record.get(0);
+                        BtcLoader.CSV_DATE_FORMATTER.parseUnresolved(str, pos);
+                        try {
+                            if (pos.getErrorIndex() < 0) {
+                                try {
+                                    return Optional.of(new DayAndRate(
+                                                    new UtcDay(OffsetDateTime.of(LocalDateTime.parse(str, BtcLoader.CSV_DATE_FORMATTER), ZoneOffset.UTC)),
+                                                    new BigDecimal(record.get(3)))
+                                    );
+                                } catch (DateTimeException ignore) {}
+                            }
+                            return Optional.<DayAndRate>empty();
+                        } finally {
+                            pos.setIndex(0);
+                            pos.setErrorIndex(-1);
+                        }
+                    })
+                    .filter(Optional::isPresent)
+                    .map(Optional::get);
         }
 
     }

@@ -10,6 +10,19 @@
 
     <artifactId>api</artifactId>
 
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/java/org/joda/money</directory>
+                <targetPath>org/joda/money</targetPath>
+                <filtering>true</filtering>
+                <includes>
+                    <include>*.csv</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>org.joda</groupId>

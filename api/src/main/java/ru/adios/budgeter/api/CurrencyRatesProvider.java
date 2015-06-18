@@ -32,7 +32,7 @@ public interface CurrencyRatesProvider {
         if (straight.isPresent()) {
             return straight;
         } else {
-            final CurrencyUnit rub = CurrencyUnit.of("RUB");
+            final CurrencyUnit rub = Units.RUB;
             return getConversionMultiplierWithIntermediate(day, from, to, rub);
         }
     }
@@ -46,7 +46,7 @@ public interface CurrencyRatesProvider {
         if (opt.isPresent()) {
             return opt.get();
         } else {
-            final CurrencyUnit rub = CurrencyUnit.of("RUB");
+            final CurrencyUnit rub = Units.RUB;
             return getLatestConversionMultiplierWithIntermediate(from, to, rub);
         }
     }

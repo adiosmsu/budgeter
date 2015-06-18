@@ -98,7 +98,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
     }
 
     @Override
-    public Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
+    public final Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
         return getConversionMultiplier(day, from, to);
     }
 

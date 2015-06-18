@@ -3,6 +3,7 @@ package ru.adios.budgeter;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
+import ru.adios.budgeter.api.Units;
 import ru.adios.budgeter.api.UtcDay;
 
 import java.math.BigDecimal;
@@ -46,11 +47,10 @@ public class BalanceElementCoreTest {
         ratesRepository.clear();
         treasury.addAmount(Money.of(CurrencyUnit.USD, 1000));
         treasury.addAmount(Money.of(CurrencyUnit.EUR, 500));
-        final CurrencyUnit rub = CurrencyUnit.of("RUB");
-        ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, rub, BigDecimal.valueOf(55));
-        ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, rub, BigDecimal.valueOf(65));
-        core.setTotalUnit(rub);
-        assertEquals("Wrong total balance", Money.of(rub, BigDecimal.valueOf(87500.)), core.getTotalBalance());
+        ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(55));
+        ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(65));
+        core.setTotalUnit(Units.RUB);
+        assertEquals("Wrong total balance", Money.of(Units.RUB, BigDecimal.valueOf(87500.)), core.getTotalBalance());
     }
 
     @Test
@@ -59,11 +59,10 @@ public class BalanceElementCoreTest {
         treasury.clear();
         treasury.addAmount(Money.of(CurrencyUnit.USD, 1000));
         treasury.addAmount(Money.of(CurrencyUnit.EUR, 500));
-        final CurrencyUnit rub = CurrencyUnit.of("RUB");
         assertTrue("Miraculously rates present", core.noTodayRate());
-        ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, rub, BigDecimal.valueOf(55));
-        ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, rub, BigDecimal.valueOf(65));
-        core.setTotalUnit(rub);
+        ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(55));
+        ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(65));
+        core.setTotalUnit(Units.RUB);
         assertFalse("Rates don't present though we added them", core.noTodayRate());
     }
 

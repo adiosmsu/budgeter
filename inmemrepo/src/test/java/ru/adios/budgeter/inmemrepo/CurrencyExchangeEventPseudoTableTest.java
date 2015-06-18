@@ -4,6 +4,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
 import ru.adios.budgeter.api.CurrencyExchangeEvent;
+import ru.adios.budgeter.api.Units;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -20,10 +21,9 @@ public class CurrencyExchangeEventPseudoTableTest {
 
     @Test
     public void testRegisterCurrencyExchange() throws Exception {
-        CurrencyUnit rub = CurrencyUnit.of("RUB");
         final OffsetDateTime ts = OffsetDateTime.now();
         CurrencyExchangeEvent exchangeEvent = CurrencyExchangeEvent.builder()
-                .setBought(Money.of(rub, BigDecimal.valueOf(30000L)))
+                .setBought(Money.of(Units.RUB, BigDecimal.valueOf(30000L)))
                 .setSold(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(1000L)))
                 .setRate(BigDecimal.valueOf(30L))
                 .setTimestamp(ts)

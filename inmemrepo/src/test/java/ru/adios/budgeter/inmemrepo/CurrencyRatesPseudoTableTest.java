@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
 import org.junit.Test;
 import ru.adios.budgeter.api.CurrencyRatesProvider;
+import ru.adios.budgeter.api.Units;
 import ru.adios.budgeter.api.UtcDay;
 
 import java.math.BigDecimal;
@@ -33,7 +34,7 @@ public class CurrencyRatesPseudoTableTest {
     public void testAddRate() throws Exception {
         CurrencyRatesPseudoTable.INSTANCE.clear();
 
-        CurrencyUnit rub = CurrencyUnit.of("RUB");
+        CurrencyUnit rub = Units.RUB;
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicInteger counter = new AtomicInteger(0);
         final CopyOnWriteArraySet<CurrencyUnit> checker = new CopyOnWriteArraySet<>();
@@ -66,11 +67,11 @@ public class CurrencyRatesPseudoTableTest {
         }
 
         try {
-            CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), rub, REG_UNITS.get(0), BigDecimal.ONE);
+            CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), Units.RUB, REG_UNITS.get(0), BigDecimal.ONE);
             fail("Double insert passed");
         } catch (Exception ignored) {}
         try {
-            CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), REG_UNITS.get(0), rub, BigDecimal.ONE);
+            CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), REG_UNITS.get(0), Units.RUB, BigDecimal.ONE);
             fail("Double insert passed");
         } catch (Exception ignored) {}
     }
@@ -78,11 +79,10 @@ public class CurrencyRatesPseudoTableTest {
     @Test
     public void testGetConversionMultiplier() throws Exception {
         final OffsetDateTime ts = OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
-        CurrencyUnit rub = CurrencyUnit.of("RUB");
         final BigDecimal two = new BigDecimal(BigInteger.valueOf(2), 0, new MathContext(1));
-        CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(ts), rub, CurrencyUnit.USD, two);
-        assertEquals(two, CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(ts), rub, CurrencyUnit.USD).get());
-        assertEquals(CurrencyRatesProvider.reverseRate(two), CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(ts), CurrencyUnit.USD, rub).get());
+        CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(ts), Units.RUB, CurrencyUnit.USD, two);
+        assertEquals(two, CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).get());
+        assertEquals(CurrencyRatesProvider.reverseRate(two), CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(ts), CurrencyUnit.USD, Units.RUB).get());
         final Optional<BigDecimal> none =
                 CurrencyRatesPseudoTable.INSTANCE.getConversionMultiplier(new UtcDay(OffsetDateTime.of(1989, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.USD, CurrencyUnit.CHF);
         assertFalse(none.isPresent());
@@ -105,11 +105,10 @@ public class CurrencyRatesPseudoTableTest {
     @Test
     public void testGetLatestConversionMultiplier() throws Exception {
         CurrencyRatesPseudoTable.INSTANCE.clear();
-        final CurrencyUnit rub = CurrencyUnit.of("RUB");
         final BigDecimal usdRate = BigDecimal.valueOf(55);
-        CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), rub, CurrencyUnit.USD, usdRate);
+        CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), Units.RUB, CurrencyUnit.USD, usdRate);
         final BigDecimal eurRate = BigDecimal.valueOf(65);
-        CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), rub, CurrencyUnit.EUR, eurRate);
+        CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), Units.RUB, CurrencyUnit.EUR, eurRate);
         assertEquals(CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(usdRate, eurRate),
                 CurrencyRatesPseudoTable.INSTANCE.getLatestConversionMultiplier(CurrencyUnit.USD, CurrencyUnit.EUR));
     }
