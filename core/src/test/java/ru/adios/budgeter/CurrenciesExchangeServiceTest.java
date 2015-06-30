@@ -1,6 +1,7 @@
 package ru.adios.budgeter;
 
 import org.joda.money.CurrencyUnit;
+import org.junit.Before;
 import org.junit.Test;
 import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Units;
@@ -34,15 +35,18 @@ public class CurrenciesExchangeServiceTest {
             ExchangeRatesLoader.createCbrLoader(treasury)
     );
 
-    @Test
-    public void testGetConversionMultiplier() throws Exception {
+    @Before
+    public void setUp() {
         treasury.clear();
         ratesRepository.clear();
 
         treasury.registerCurrency(Units.RUB);
         treasury.registerCurrency(CurrencyUnit.USD);
         treasury.registerCurrency(CurrencyUnit.EUR);
+    }
 
+    @Test
+    public void testGetConversionMultiplier() throws Exception {
         Thread.sleep(100);
 
         final UtcDay today = new UtcDay();

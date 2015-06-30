@@ -56,24 +56,28 @@ import java.util.zip.GZIPInputStream;
 public abstract class ExchangeRatesLoader {
 
     public static ExchangeRatesLoader.CbrLoader createCbrLoader(CurrenciesRepository currenciesRepo) {
-        return new CbrLoader(currenciesRepo, CurrencyUnit.of(CbrLoader.CODE_RUB));
+        return new CbrLoader(currenciesRepo, CurrencyUnit.of(CbrLoader.CODE_RUB), new CbrParser());
     }
 
     public static ExchangeRatesLoader.BtcLoader createBtcLoader(CurrenciesRepository currenciesRepo) {
-        return new BtcLoader(currenciesRepo, CurrencyUnit.of(BtcLoader.CODE_BTC));
+        return new BtcLoader(currenciesRepo, CurrencyUnit.of(BtcLoader.CODE_BTC), new BtcParser());
     }
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeRatesLoader.class);
 
     private static final int HTTP_TIMEOUT_MS = 15000;
 
+
     private final CurrenciesRepository currenciesRepo;
     private final CopyOnWriteArrayList<CurrencyUnit> supportedCurrencies = new CopyOnWriteArrayList<>();
     private final CurrencyUnit mainUnit;
 
-    private ExchangeRatesLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit) {
+    private final Parser parser;
+
+    private ExchangeRatesLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, Parser parser) {
         this.currenciesRepo = currenciesRepo;
         this.mainUnit = mainUnit;
+        this.parser = parser;
     }
 
     public final CurrencyUnit getMainUnit() {
@@ -91,14 +95,13 @@ public abstract class ExchangeRatesLoader {
 
         final UtcDay utcDay = dayRef.orElseGet(UtcDay::new);
         final Map<CurrencyUnit, BigDecimal> mergedResults = new TreeMap<>();
-        final Parser parser = parser();
 
-        for (String urlStr : parser.getUrlStrings(utcDay, problematicsRef)) {
+        for (String urlStr : parser.getUrlStrings(utcDay, problematicsRef, this)) {
             HttpURLConnection connection = null;
             InputStream is = null;
             Map<CurrencyUnit, BigDecimal> result = null;
 
-            final Optional<Map<CurrencyUnit, BigDecimal>> resultRef = parser.maybeFromCache(urlStr, utcDay, problematicsRef);
+            final Optional<Map<CurrencyUnit, BigDecimal>> resultRef = parser.maybeFromCache(urlStr, utcDay, problematicsRef, this);
             if (resultRef.isPresent()) {
                 result = resultRef.get();
             } else {
@@ -122,7 +125,7 @@ public abstract class ExchangeRatesLoader {
                         if ("gzip".equalsIgnoreCase(contentEncoding))
                             is = new GZIPInputStream(is);
 
-                        result = parser.parseInput(is, urlStr, utcDay, problematicsRef);
+                        result = parser.parseInput(is, urlStr, utcDay, problematicsRef, this);
 
                         logger.info("fetched exchange rates from {} ({}), took {} ms", url, contentEncoding, System.currentTimeMillis() - start);
                     } else {
@@ -159,19 +162,18 @@ public abstract class ExchangeRatesLoader {
         return loadCurrencies(true, dayRef, problematicsRef);
     }
 
-    abstract Parser parser();
+    abstract boolean isFetchingAllSupportedProblematic(UtcDay day);
 
-    public abstract boolean isFetchingAllSupportedProblematic(UtcDay day);
 
     private interface Parser {
 
-        List<String> getUrlStrings(UtcDay day, Optional<List<CurrencyUnit>> problematicsRef);
+        List<String> getUrlStrings(UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader);
 
         boolean resultInOneQuery(String urlStr);
 
-        Optional<Map<CurrencyUnit, BigDecimal>> maybeFromCache(String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef);
+        Optional<Map<CurrencyUnit, BigDecimal>> maybeFromCache(String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader);
 
-        Map<CurrencyUnit, BigDecimal> parseInput(InputStream reader, String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef) throws IOException;
+        Map<CurrencyUnit, BigDecimal> parseInput(InputStream reader, String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader) throws IOException;
 
     }
 
@@ -182,31 +184,24 @@ public abstract class ExchangeRatesLoader {
         private static final String CBR_ADDRESS = "http://www.cbr.ru/scripts/XML_daily.asp?date_req=";
         private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-        private final CbrParser cbrParser = new CbrParser();
-
-        public CbrLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit) {
-            super(currenciesRepo, mainUnit);
+        public CbrLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, CbrParser cbrParser) {
+            super(currenciesRepo, mainUnit, cbrParser);
         }
 
         @Override
-        CbrParser parser() {
-            return cbrParser;
-        }
-
-        @Override
-        public boolean isFetchingAllSupportedProblematic(UtcDay day) {
+        boolean isFetchingAllSupportedProblematic(UtcDay day) {
             return false;
         }
 
     }
 
     @ThreadSafe
-    private final class CbrParser implements Parser {
+    private final static class CbrParser implements Parser {
 
         private CbrParser() {}
 
         @Override
-        public List<String> getUrlStrings(UtcDay day, Optional<List<CurrencyUnit>> problematicsRef) {
+        public List<String> getUrlStrings(UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader) {
             return ImmutableList.of(CbrLoader.CBR_ADDRESS + CbrLoader.DAY_FORMATTER.format(day.inner));
         }
 
@@ -216,18 +211,27 @@ public abstract class ExchangeRatesLoader {
         }
 
         @Override
-        public Optional<Map<CurrencyUnit, BigDecimal>> maybeFromCache(String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef) {
+        public Optional<Map<CurrencyUnit, BigDecimal>> maybeFromCache(String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader) {
             return Optional.empty();
         }
 
         @Override
-        public Map<CurrencyUnit, BigDecimal> parseInput(InputStream stream, String urlStr, UtcDay day, final Optional<List<CurrencyUnit>> problematicsRef) throws IOException {
+        public Map<CurrencyUnit, BigDecimal> parseInput(
+                InputStream stream,
+                String urlStr,
+                UtcDay day,
+                final Optional<List<CurrencyUnit>> problematicsRef,
+                final ExchangeRatesLoader loader
+        ) throws IOException {
             final Map<CurrencyUnit, BigDecimal> rates = new TreeMap<>();
 
-            final Optional<StringBuilder> debugDump = logger.isDebugEnabled() ? Optional.of(new StringBuilder(1000)): Optional.empty();
-            SAXParserFactory factory = SAXParserFactory.newInstance();
+            final Optional<StringBuilder> debugDump = logger.isDebugEnabled()
+                    ? Optional.of(new StringBuilder(1000))
+                    : Optional.empty();
+            final SAXParserFactory factory = SAXParserFactory.newInstance();
             try {
-                SAXParser saxParser = factory.newSAXParser();
+                final SAXParser saxParser = factory.newSAXParser();
+
                 saxParser.parse(stream, new DefaultHandler() {
                     private boolean insideCode = false;
                     private boolean insideValue = false;
@@ -250,7 +254,7 @@ public abstract class ExchangeRatesLoader {
 
                         if (insideCode) {
                             final String code = new String(ch, start, length).toUpperCase();
-                            if (supportedCurrency(code, problematicsRef)) {
+                            if (loader.supportedCurrency(code, problematicsRef)) {
                                 currentUnit = CurrencyUnit.getInstance(code);
                             }
                             insideCode = false;
@@ -297,38 +301,31 @@ public abstract class ExchangeRatesLoader {
         private static final String CODE_UBTC = "µBTC";
         private static final DateTimeFormatter CSV_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withChronology(IsoChronology.INSTANCE);
 
-        private final BtcParser btcParser = new BtcParser();
-
-        public BtcLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit) {
-            super(currenciesRepo, mainUnit);
+        public BtcLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, BtcParser btcParser) {
+            super(currenciesRepo, mainUnit, btcParser);
         }
 
         @Override
-        BtcParser parser() {
-            return btcParser;
-        }
-
-        @Override
-        public boolean isFetchingAllSupportedProblematic(UtcDay day) {
+        boolean isFetchingAllSupportedProblematic(UtcDay day) {
             return !day.equals(new UtcDay());
         }
 
     }
 
     @ThreadSafe
-    private final class BtcParser implements Parser {
+    private final static class BtcParser implements Parser {
 
-        private final ConcurrentHashMap<CurrencyUnit, ConcurrentHashMap<UtcDay, BigDecimal>> historyCache = new ConcurrentHashMap<>(20, 1.0f, 4);
+        private final ConcurrentHashMap<CurrencyUnit, ConcurrentHashMap<UtcDay, BigDecimal>> historyCache = new ConcurrentHashMap<>(20, 1.0f, 2);
         private final AtomicReference<UtcDay> lastCacheUpdate = new AtomicReference<>(new UtcDay());
 
         private BtcParser() {}
 
         @Override
-        public List<String> getUrlStrings(UtcDay day, Optional<List<CurrencyUnit>> problematicsRef) {
+        public List<String> getUrlStrings(UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader) {
             if (day.equals(new UtcDay())) {
                 return ImmutableList.of(BtcLoader.BLOCKCHAIN_INFO_URL_STR, BtcLoader.BITCOIN_AVERAGE_URL_STR);
             } else {
-                final List<CurrencyUnit> relevant = supportedFromOptional(problematicsRef);
+                final List<CurrencyUnit> relevant = loader.supportedFromOptional(problematicsRef);
                 return relevant
                         .stream()
                         .map(unit -> BtcLoader.BITCOIN_AVERAGE_HISTORY_URL_TEMPLATE.replace("<>", unit.getCode().toUpperCase()))
@@ -342,7 +339,7 @@ public abstract class ExchangeRatesLoader {
         }
 
         @Override
-        public Optional<Map<CurrencyUnit, BigDecimal>> maybeFromCache(String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef) {
+        public Optional<Map<CurrencyUnit, BigDecimal>> maybeFromCache(String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader) {
             if (urlStr.startsWith(BtcLoader.BITCOIN_AVERAGE_HISTORY_START)) {
                 final UtcDay lcuSnapshot = lastCacheUpdate.get();
                 final UtcDay today = new UtcDay();
@@ -350,7 +347,7 @@ public abstract class ExchangeRatesLoader {
                 if (lcuSnapshot.compareTo(today) >= 0) {
                     final Map<CurrencyUnit, BigDecimal> result = new TreeMap<>();
 
-                    for (final CurrencyUnit unit : supportedFromOptional(problematicsRef)) {
+                    for (final CurrencyUnit unit : loader.supportedFromOptional(problematicsRef)) {
                         final ConcurrentHashMap<UtcDay, BigDecimal> unitCache = historyCache.get(unit);
 
                         if (unitCache == null)
@@ -374,7 +371,13 @@ public abstract class ExchangeRatesLoader {
         }
 
         @Override
-        public Map<CurrencyUnit, BigDecimal> parseInput(InputStream stream, String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef) throws IOException {
+        public Map<CurrencyUnit, BigDecimal> parseInput(
+                InputStream stream,
+                String urlStr,
+                UtcDay day,
+                Optional<List<CurrencyUnit>> problematicsRef,
+                ExchangeRatesLoader loader
+        ) throws IOException {
             final Map<CurrencyUnit, BigDecimal> rates = new TreeMap<>();
 
             if (urlStr.startsWith(BtcLoader.BITCOIN_AVERAGE_HISTORY_START)) {
@@ -394,7 +397,7 @@ public abstract class ExchangeRatesLoader {
                 while ((token = jsonParser.nextToken()) != null) {
                     if (token == JsonToken.FIELD_NAME) {
                         final String code = jsonParser.getText();
-                        if (code != null && !"timestamp".equals(code) && supportedCurrency(code, problematicsRef) && !BtcLoader.CODE_BTC.equals(code)
+                        if (code != null && !"timestamp".equals(code) && loader.supportedCurrency(code, problematicsRef) && !BtcLoader.CODE_BTC.equals(code)
                                 && !BtcLoader.CODE_MBTC.equals(code) && !BtcLoader.CODE_UBTC.equals(code))
                         {
                             while ((token = jsonParser.nextToken()) != JsonToken.END_OBJECT) {
