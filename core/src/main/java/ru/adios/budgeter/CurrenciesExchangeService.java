@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import ru.adios.budgeter.api.*;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,7 +15,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 /**
  * Date: 6/14/15
@@ -29,15 +27,10 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrenciesExchangeService.class);
 
-    private static final ExecutorService executor = Executors.newFixedThreadPool(4, new ThreadFactory() {
-        private int counter = 0;
-
-        @Override
-        public Thread newThread(@Nonnull Runnable r) {
-            final Thread thread = new Thread(r, "currenciesExecutorThread0" + ++counter);
-            thread.setDaemon(true);
-            return thread;
-        }
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+        final Thread thread = new Thread(r, "currenciesExecutorThread");
+        thread.setDaemon(true);
+        return thread;
     });
 
     static {
