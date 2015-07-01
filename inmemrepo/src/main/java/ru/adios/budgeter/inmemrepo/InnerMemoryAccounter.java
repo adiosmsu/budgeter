@@ -27,6 +27,11 @@ public final class InnerMemoryAccounter implements Accounter {
     }
 
     @Override
+    public FundsMutationAgentRepository fundsMutationAgentRepo() {
+        return Schema.FUNDS_MUTATION_AGENTS;
+    }
+
+    @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel) {
         return Schema.FUNDS_MUTATION_EVENTS.getStatsInTimePeriod(from, till, parentLevel);
     }

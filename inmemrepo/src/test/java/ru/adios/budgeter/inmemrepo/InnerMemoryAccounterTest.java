@@ -4,10 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
-import ru.adios.budgeter.api.Accounter;
-import ru.adios.budgeter.api.FundsMutationEvent;
-import ru.adios.budgeter.api.FundsMutationSubject;
-import ru.adios.budgeter.api.Units;
+import ru.adios.budgeter.api.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -39,10 +36,12 @@ public class InnerMemoryAccounterTest {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
 
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent();
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
+                .setAgent(agent)
                 .build();
 
         innerMemoryAccounter.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.empty());
@@ -52,6 +51,7 @@ public class InnerMemoryAccounterTest {
                 .setQuantity(1)
                 .setSubject(game)
                 .setAmount(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(10L)))
+                .setAgent(agent)
                 .build();
 
         innerMemoryAccounter.rememberPostponedExchangeableLoss(gameBuy, Units.RUB, Optional.empty());

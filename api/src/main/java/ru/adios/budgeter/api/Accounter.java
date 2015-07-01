@@ -18,6 +18,8 @@ public interface Accounter extends FundsMutationEventRepository, CurrencyExchang
 
     FundsMutationSubjectRepository fundsMutationSubjectRepo();
 
+    FundsMutationAgentRepository fundsMutationAgentRepo();
+
     @Immutable
     final class PostponingReasons {
 

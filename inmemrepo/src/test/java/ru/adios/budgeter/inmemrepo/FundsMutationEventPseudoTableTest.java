@@ -2,6 +2,7 @@ package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.Money;
 import org.junit.Test;
+import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.FundsMutationEvent;
 import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.Units;
@@ -28,10 +29,12 @@ public class FundsMutationEventPseudoTableTest {
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent();
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
+                .setAgent(agent)
                 .build();
         Schema.FUNDS_MUTATION_EVENTS.registerBenefit(breadBuy);
         assertEquals("No breadBuy event found", breadBuy, Schema.FUNDS_MUTATION_EVENTS.get(Schema.FUNDS_MUTATION_EVENTS.idSequence.get()).obj);
@@ -55,10 +58,12 @@ public class FundsMutationEventPseudoTableTest {
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent();
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
+                .setAgent(agent)
                 .build();
         Schema.FUNDS_MUTATION_EVENTS.registerLoss(breadBuy);
         assertEquals("No breadBuy event found", breadBuy, Schema.FUNDS_MUTATION_EVENTS.get(Schema.FUNDS_MUTATION_EVENTS.idSequence.get()).obj);

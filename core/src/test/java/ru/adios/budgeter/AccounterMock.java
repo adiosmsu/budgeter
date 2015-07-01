@@ -32,6 +32,11 @@ public class AccounterMock implements Accounter {
     }
 
     @Override
+    public FundsMutationAgentRepository fundsMutationAgentRepo() {
+        return accounter.fundsMutationAgentRepo();
+    }
+
+    @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel) {
         return fundsMutationEventRepository.getStatsInTimePeriod(from, till, parentLevel);
     }

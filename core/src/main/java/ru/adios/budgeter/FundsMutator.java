@@ -41,8 +41,10 @@ public interface FundsMutator {
 
         BENEFIT {
             @Override
-            void register(Accounter accounter, Treasury treasury, FundsMutationEvent event) {
-                accounter.registerBenefit(event);
+            void register(Accounter accounter, Treasury treasury, FundsMutationEvent event, boolean mutateFunds) {
+                if (mutateFunds) {
+                    accounter.registerBenefit(event);
+                }
                 treasury.addAmount(event.amount.multipliedBy(event.quantity));
             }
 
@@ -58,8 +60,10 @@ public interface FundsMutator {
         },
         LOSS {
             @Override
-            void register(Accounter accounter, Treasury treasury, FundsMutationEvent event) {
-                accounter.registerLoss(event);
+            void register(Accounter accounter, Treasury treasury, FundsMutationEvent event, boolean mutateFunds) {
+                if (mutateFunds) {
+                    accounter.registerLoss(event);
+                }
                 treasury.addAmount(event.amount.multipliedBy(event.quantity).negated());
             }
 
@@ -74,7 +78,7 @@ public interface FundsMutator {
             }
         };
 
-        abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent event);
+        abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent event, boolean mutateFunds);
 
         abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate);
 

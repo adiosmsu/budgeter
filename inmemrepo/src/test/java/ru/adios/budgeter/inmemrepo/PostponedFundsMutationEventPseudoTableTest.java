@@ -24,6 +24,8 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
     @Test
     public void testRememberPostponedExchangeableBenefit() throws Exception {
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent();
+
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
@@ -36,6 +38,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(666L)))
+                .setAgent(agent)
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         final int id = Schema.POSTPONED_FUNDS_MUTATION_EVENTS.idSequence.get();
@@ -44,6 +47,8 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
     @Test
     public void testRememberPostponedExchangeableLoss() throws Exception {
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent();
+
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
@@ -56,6 +61,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(777L)))
+                .setAgent(agent)
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableLoss(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         final int id = Schema.POSTPONED_FUNDS_MUTATION_EVENTS.idSequence.get();
@@ -64,6 +70,8 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
     @Test
     public void testStreamRememberedBenefits() throws Exception {
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent();
+
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
@@ -77,12 +85,14 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(888L)))
+                .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
         final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(999L)))
+                .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
@@ -101,6 +111,8 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
     @Test
     public void testStreamRememberedLosses() throws Exception {
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent();
+
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
@@ -114,12 +126,14 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(1000L)))
+                .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
         final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(1001L)))
+                .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());

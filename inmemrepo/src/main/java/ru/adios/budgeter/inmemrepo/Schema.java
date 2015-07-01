@@ -15,6 +15,7 @@ public final class Schema {
     public static final PostponedFundsMutationEventPseudoTable POSTPONED_FUNDS_MUTATION_EVENTS = PostponedFundsMutationEventPseudoTable.INSTANCE;
     public static final TreasuryPseudoTable TREASURY = TreasuryPseudoTable.INSTANCE;
     public static final CurrencyRatesPseudoTable CURRENCY_RATES = CurrencyRatesPseudoTable.INSTANCE;
+    public static final FundsMutationAgentPseudoTable FUNDS_MUTATION_AGENTS = FundsMutationAgentPseudoTable.INSTANCE;
 
     static void clearSchema() {
         FUNDS_MUTATION_SUBJECTS.clear();
@@ -24,6 +25,7 @@ public final class Schema {
         POSTPONED_FUNDS_MUTATION_EVENTS.clear();
         TREASURY.clear();
         CURRENCY_RATES.clear();
+        FUNDS_MUTATION_AGENTS.clear();
     }
 
     private Schema() {}

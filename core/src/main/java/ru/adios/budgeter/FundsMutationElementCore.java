@@ -30,6 +30,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     private FundsMutationEvent.Builder eventBuilder = FundsMutationEvent.builder();
     private Optional<BigDecimal> customRateRef = Optional.empty();
     private Optional<BigDecimal> naturalRateRef = Optional.empty();
+    private boolean mutateFunds = true;
     private BigDecimal calculatedNaturalRate;
 
     public FundsMutationElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
@@ -111,6 +112,24 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         eventBuilder.setTimestamp(timestamp);
     }
 
+    public void setMutateFunds(boolean mutateFunds) {
+        this.mutateFunds = mutateFunds;
+    }
+
+    public void setAgent(FundsMutationAgent agent) {
+        eventBuilder.setAgent(agent);
+    }
+
+    public void setAgentString(String agentStr) {
+        final FundsMutationAgentRepository repo = accounter.fundsMutationAgentRepo();
+        final Optional<FundsMutationAgent> byName = repo.findByName(agentStr);
+        eventBuilder.setAgent(byName.orElseGet(() -> {
+            final FundsMutationAgent agent = FundsMutationAgent.builder().setName(agentStr).build();
+            repo.addAgent(agent);
+            return agent;
+        }));
+    }
+
     public void submit() {
         checkState(directionRef.isPresent(), "No direction set");
         final MutationDirection direction = directionRef.get();
@@ -160,7 +179,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                 }
 
                 final FundsMutationEvent event = eventBuilder.setAmount(amount).build();
-                direction.register(accounter, treasury, event);
+                direction.register(accounter, treasury, event, mutateFunds);
                 accounter.registerCurrencyExchange(
                         CurrencyExchangeEvent.builder()
                                 .setRate(actualRate)
@@ -175,7 +194,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
             amount = amountWrapper.getAmount();
         }
 
-        direction.register(accounter, treasury, eventBuilder.setAmount(amount).build());
+        direction.register(accounter, treasury, eventBuilder.setAmount(amount).build(), mutateFunds);
     }
 
     private BigDecimal calculateNaturalRate(CurrencyUnit amountUnit, CurrencyUnit payedUnit) {

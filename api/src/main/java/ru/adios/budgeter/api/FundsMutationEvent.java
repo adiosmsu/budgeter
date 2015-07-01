@@ -26,13 +26,15 @@ public final class FundsMutationEvent {
     public final int quantity;
     public final FundsMutationSubject subject;
     public final OffsetDateTime timestamp;
+    public final FundsMutationAgent agent;
 
     private FundsMutationEvent(Builder builder) {
         this.amount = builder.amount;
         this.quantity = builder.quantity;
         this.subject = builder.subject;
         this.timestamp = builder.timestamp;
-        checkArgument(amount != null && subject != null && quantity > 0, "Bad data, possibly uninitialized");
+        this.agent = builder.agent;
+        checkArgument(amount != null && subject != null && quantity > 0 && timestamp != null && agent != null, "Bad data, possibly uninitialized");
     }
 
     @Override
@@ -64,9 +66,9 @@ public final class FundsMutationEvent {
         private int quantity;
         private FundsMutationSubject subject;
         private OffsetDateTime timestamp = OffsetDateTime.now();
+        private FundsMutationAgent agent;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder setFundsMutationEvent(FundsMutationEvent fundsMutationEvent) {
             amount = fundsMutationEvent.amount;
@@ -93,6 +95,11 @@ public final class FundsMutationEvent {
 
         public Builder setTimestamp(OffsetDateTime timestamp) {
             this.timestamp = checkNotNull(timestamp);
+            return this;
+        }
+
+        public Builder setAgent(FundsMutationAgent agent) {
+            this.agent = agent;
             return this;
         }
 
