@@ -186,7 +186,7 @@ public class ExchangeRatesLoader {
         private static final String CBR_ADDRESS = "http://www.cbr.ru/scripts/XML_daily.asp?date_req=";
         private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-        public CbrLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, CbrParser cbrParser) {
+        private CbrLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, CbrParser cbrParser) {
             super(currenciesRepo, mainUnit, cbrParser);
         }
 
@@ -298,7 +298,7 @@ public class ExchangeRatesLoader {
         private static final String CODE_UBTC = "µBTC";
         private static final DateTimeFormatter CSV_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withChronology(IsoChronology.INSTANCE);
 
-        public BtcLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, BtcParser btcParser) {
+        private BtcLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, BtcParser btcParser) {
             super(currenciesRepo, mainUnit, btcParser);
         }
 
