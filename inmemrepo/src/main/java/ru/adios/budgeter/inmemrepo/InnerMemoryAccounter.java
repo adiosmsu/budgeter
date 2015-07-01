@@ -47,13 +47,13 @@ public final class InnerMemoryAccounter implements Accounter {
     }
 
     @Override
-    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit origin, Optional<BigDecimal> customRate) {
-        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(mutationEvent, origin, customRate);
+    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(mutationEvent, payedUnit, customRate);
     }
 
     @Override
-    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit ourCurrency, Optional<BigDecimal> customRate) {
-        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableLoss(mutationEvent, ourCurrency, customRate);
+    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableLoss(mutationEvent, payedUnit, customRate);
     }
 
     @Override

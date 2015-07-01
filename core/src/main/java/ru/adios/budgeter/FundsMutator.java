@@ -8,7 +8,6 @@ import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.Treasury;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Optional;
 
 /**
@@ -25,7 +24,7 @@ public interface FundsMutator {
 
     CurrenciesExchangeService getRatesService();
 
-    static void registerExchangeDifference(FundsMutator mutator, Money naturalAmount, Money customAmount, MutationDirection directionIfCustomMore, int quantity) {
+    static void registerExchangeDifference(FundsMutator mutator, Money naturalAmount, Money customAmount, MutationDirection direction, int quantity) {
         final int customVsNatural = customAmount.compareTo(naturalAmount);
         if (customVsNatural != 0) {
             final Accounter accounter = mutator.getAccounter();
@@ -33,7 +32,7 @@ public interface FundsMutator {
             rec.setQuantity(1);
             rec.setAmount(customAmount.minus(naturalAmount).abs().multipliedBy(quantity));
             rec.setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()));
-            rec.setDirection(customVsNatural > 0 ? directionIfCustomMore : directionIfCustomMore.other());
+            rec.setDirection(direction.getExchangeDifferenceDirection(customVsNatural > 0));
             rec.submit();
         }
     }
@@ -48,28 +47,13 @@ public interface FundsMutator {
             }
 
             @Override
-            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit convUnit, Optional<BigDecimal> customRate) {
-                accounter.rememberPostponedExchangeableBenefit(event, convUnit, customRate);
+            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+                accounter.rememberPostponedExchangeableBenefit(event, payedUnit, customRate);
             }
 
             @Override
-            Money getActualAmount(Money amount, CurrencyUnit convUnit, BigDecimal rate) {
-                return amount;
-            }
-
-            @Override
-            Money getOtherPartyAmount(Money amount, CurrencyUnit convUnit, BigDecimal rate) {
-                return amount.convertedTo(convUnit, rate, RoundingMode.HALF_DOWN);
-            }
-
-            @Override
-            Money getConvertedAmount(Money actualAmount, Money otherPartyAmount) {
-                return otherPartyAmount;
-            }
-
-            @Override
-            MutationDirection other() {
-                return LOSS;
+            MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural) {
+                return customMoreThanNatural ? BENEFIT : LOSS;
             }
         },
         LOSS {
@@ -80,42 +64,21 @@ public interface FundsMutator {
             }
 
             @Override
-            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit convUnit, Optional<BigDecimal> customRate) {
-                accounter.rememberPostponedExchangeableLoss(event, convUnit, customRate);
+            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+                accounter.rememberPostponedExchangeableLoss(event, payedUnit, customRate);
             }
 
             @Override
-            Money getActualAmount(Money amount, CurrencyUnit convUnit, BigDecimal rate) {
-                return amount.convertedTo(convUnit, rate, RoundingMode.HALF_DOWN);
-            }
-
-            @Override
-            Money getOtherPartyAmount(Money amount, CurrencyUnit convUnit, BigDecimal rate) {
-                return amount;
-            }
-
-            @Override
-            Money getConvertedAmount(Money actualAmount, Money otherPartyAmount) {
-                return actualAmount;
-            }
-
-            @Override
-            MutationDirection other() {
-                return BENEFIT;
+            MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural) {
+                return customMoreThanNatural ? LOSS : BENEFIT;
             }
         };
 
         abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent event);
 
-        abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit convUnit, Optional<BigDecimal> customRate);
+        abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate);
 
-        abstract Money getActualAmount(Money amount, CurrencyUnit convUnit, BigDecimal rate);
-
-        abstract Money getOtherPartyAmount(Money amount, CurrencyUnit convUnit, BigDecimal rate);
-
-        abstract Money getConvertedAmount(Money actualAmount, Money otherPartyAmount);
-
-        abstract MutationDirection other();
+        abstract MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural);
 
     }
 

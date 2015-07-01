@@ -52,13 +52,13 @@ public class AccounterMock implements Accounter {
     }
 
     @Override
-    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit origin, Optional<BigDecimal> customRate) {
-        postponedFundsMutationEventRepository.rememberPostponedExchangeableBenefit(mutationEvent, origin, customRate);
+    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+        postponedFundsMutationEventRepository.rememberPostponedExchangeableBenefit(mutationEvent, payedUnit, customRate);
     }
 
     @Override
-    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit ourCurrency, Optional<BigDecimal> customRate) {
-        postponedFundsMutationEventRepository.rememberPostponedExchangeableLoss(mutationEvent, ourCurrency, customRate);
+    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+        postponedFundsMutationEventRepository.rememberPostponedExchangeableLoss(mutationEvent, payedUnit, customRate);
     }
 
     @Override

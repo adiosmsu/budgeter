@@ -96,6 +96,10 @@ public final class FundsMutationEvent {
             return this;
         }
 
+        public OffsetDateTime getTimestamp() {
+            return timestamp;
+        }
+
         public Money getAmount() {
             return amount;
         }

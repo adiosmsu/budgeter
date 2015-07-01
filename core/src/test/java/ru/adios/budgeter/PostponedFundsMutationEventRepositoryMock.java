@@ -21,13 +21,13 @@ public class PostponedFundsMutationEventRepositoryMock implements PostponedFunds
     private final PostponedFundsMutationEventPseudoTable table = PostponedFundsMutationEventPseudoTable.INSTANCE;
 
     @Override
-    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit origin, Optional<BigDecimal> customRate) {
-        table.rememberPostponedExchangeableBenefit(mutationEvent, origin, customRate);
+    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+        table.rememberPostponedExchangeableBenefit(mutationEvent, payedUnit, customRate);
     }
 
     @Override
-    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit ourCurrency, Optional<BigDecimal> customRate) {
-        table.rememberPostponedExchangeableLoss(mutationEvent, ourCurrency, customRate);
+    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
+        table.rememberPostponedExchangeableLoss(mutationEvent, payedUnit, customRate);
     }
 
     @Override

@@ -51,6 +51,19 @@ public final class MoneyWrapperBean implements MoneySettable {
         return amountRef.orElseGet(this::initAmount);
     }
 
+    public CurrencyUnit getAmountUnit() {
+        checkState(isUnitSet(), "Unit unknown in %s", name);
+        return amountUnitRef.orElseGet(() -> amountRef.get().getCurrencyUnit());
+    }
+
+    public boolean isAmountSet() {
+        return amountRef.isPresent() || amountDecimalRef.isPresent();
+    }
+
+    public boolean isUnitSet() {
+        return amountRef.isPresent() || amountUnitRef.isPresent();
+    }
+
     private Money initAmount() {
         checkState(amountDecimalRef.isPresent() && amountUnitRef.isPresent(),
                 "Unable to initialize money instance (%s) without decimal amount and currency unit", name);
