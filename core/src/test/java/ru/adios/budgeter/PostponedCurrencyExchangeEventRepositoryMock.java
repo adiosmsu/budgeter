@@ -31,4 +31,8 @@ public class PostponedCurrencyExchangeEventRepositoryMock implements PostponedCu
         return table.streamRememberedExchanges(day, oneOf, secondOf);
     }
 
+    public void clear() {
+        table.clear();
+    }
+
 }

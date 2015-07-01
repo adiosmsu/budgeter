@@ -26,10 +26,11 @@ public class CurrenciesExchangeServiceTest {
 
     private final CurrencyRatesRepositoryMock ratesRepository = new CurrencyRatesRepositoryMock();
     private final TreasuryMock treasury = new TreasuryMock();
+    private final AccounterMock accounter = new AccounterMock();
     private CurrenciesExchangeService service = new CurrenciesExchangeService(
             new TransactionalSupportMock(),
             ratesRepository,
-            new AccounterMock(),
+            accounter,
             treasury,
             ExchangeRatesLoader.createBtcLoader(treasury),
             ExchangeRatesLoader.createCbrLoader(treasury)
@@ -42,6 +43,7 @@ public class CurrenciesExchangeServiceTest {
     public void setUp() {
         treasury.clear();
         ratesRepository.clear();
+        accounter.clear();
 
         treasury.registerCurrency(Units.RUB);
         treasury.registerCurrency(CurrencyUnit.USD);
@@ -92,20 +94,29 @@ public class CurrenciesExchangeServiceTest {
 
     @Test
     public void testProcessAllPostponedEvents() throws Exception {
-//        final PostponedCurrencyExchangeEventRepositoryMock curExchRepo = new PostponedCurrencyExchangeEventRepositoryMock();
-//        final PostponedFundsMutationEventRepositoryMock fundsMutationRepo = new PostponedFundsMutationEventRepositoryMock();
-//        final FundsMutationSubjectRepositoryMock subjRepo = new FundsMutationSubjectRepositoryMock();
-//
-//        final FundsMutationSubject jobSubj = FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.SubjectType.SERVICE).setName("Job").build();
-//        subjRepo.addSubject(jobSubj);
-//
-//        curExchRepo.rememberPostponedExchange(Money.of(Units.RUB, BigDecimal.valueOf(1000)), CurrencyUnit.USD, Optional.of(BigDecimal.valueOf(54.0)), YESTERDAY.inner);
-//        fundsMutationRepo.rememberPostponedExchangeableBenefit(
-//                FundsMutationEvent.builder().setAmount(Money.of(CurrencyUnit.EUR, 1000.0)).setQuantity(1).setSubject(jobSubj).setTimestamp(TODAY.inner).build(),
-//                Units.RUB,
-//                Optional.empty()
-//        );
-//
+        /*TODO: write CORE classes tests first
+        final FundsMutationSubjectRepository subjRepo = accounter.fundsMutationSubjectRepo();
+        final FundsMutationSubject jobSubj = FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.SubjectType.SERVICE).setName("Job").build();
+        subjRepo.addSubject(jobSubj);
+
+        accounter.rememberPostponedExchange(Money.of(Units.RUB, BigDecimal.valueOf(60000)), CurrencyUnit.EUR, Optional.of(BigDecimal.valueOf(60.0)), YESTERDAY.inner);
+        accounter.rememberPostponedExchangeableBenefit(
+                FundsMutationEvent.builder().setAmount(Money.of(Units.RUB, 110000.0)).setQuantity(1).setSubject(jobSubj).setTimestamp(TODAY.inner).build(),
+                CurrencyUnit.EUR,
+                Optional.empty()
+        );
+
+        ratesRepository.addRate(YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
+        ratesRepository.addRate(TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+
+        service.processAllPostponedEvents();
+
+        final Optional<FundsMutationEvent> todayFirst = accounter.streamMutationsForDay(TODAY).findFirst();
+        assertTrue("No remembered mutation event", todayFirst.isPresent());
+
+        final Optional<CurrencyExchangeEvent> yesterdayFirst = accounter.streamExchangesForDay(YESTERDAY).findFirst();
+        assertTrue("No remembered exchange event", yesterdayFirst.isPresent());
+        */
     }
 
 }

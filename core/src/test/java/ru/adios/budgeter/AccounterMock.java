@@ -86,4 +86,20 @@ public class AccounterMock implements Accounter {
         return accounter.streamAllPostponingReasons();
     }
 
+    public Stream<FundsMutationEvent> streamMutationsForDay(UtcDay day) {
+        return fundsMutationEventRepository.streamForDay(day);
+    }
+
+    public Stream<CurrencyExchangeEvent> streamExchangesForDay(UtcDay day) {
+        return currencyExchangeEventRepository.streamForDay(day);
+    }
+
+    public void clear() {
+        fundsMutationSubjectRepository.clear();
+        fundsMutationEventRepository.clear();
+        currencyExchangeEventRepository.clear();
+        postponedFundsMutationEventRepository.clear();
+        postponedCurrencyExchangeEventRepository.clear();
+    }
+
 }

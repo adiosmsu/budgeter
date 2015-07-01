@@ -40,4 +40,8 @@ public class PostponedFundsMutationEventRepositoryMock implements PostponedFunds
         return table.streamRememberedLosses(day, oneOf, secondOf);
     }
 
+    public void clear() {
+        table.clear();
+    }
+
 }

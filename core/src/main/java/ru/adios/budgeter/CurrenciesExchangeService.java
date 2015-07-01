@@ -128,7 +128,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
             final Optional<BigDecimal> rubToFrom = conversionMultiplierFor(cbrLoader, day, from, rubUnit, rubUnit, from, tasksBuilder, attemptToLoadFromRepo);
             final Optional<BigDecimal> rubToTo = conversionMultiplierFor(cbrLoader, day, to, rubUnit, rubUnit, to, tasksBuilder, attemptToLoadFromRepo);
             if (rubToFrom.isPresent() && rubToTo.isPresent()) {
-                return Optional.of(CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(rubToFrom.get(), rubToTo.get()));
+                return Optional.of(CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(rubToFrom.get(), rubToTo.get())); // TODO: process postponed for arbitrary pair
             }
 
             return Optional.empty(); // nothing worked :(
@@ -138,6 +138,8 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
                 executor.submit(() -> runWithTransaction(tasks.reverse()));
         }
     }
+
+    //TODO: addRate method to add custom rates
 
     @Override
     public final BigDecimal getLatestConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {

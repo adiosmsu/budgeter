@@ -5,6 +5,7 @@ import org.joda.money.Money;
 import ru.adios.budgeter.api.FundsMutationEvent;
 import ru.adios.budgeter.api.FundsMutationEventRepository;
 import ru.adios.budgeter.api.FundsMutationSubject;
+import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nonnull;
 import java.time.OffsetDateTime;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -59,6 +61,13 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     @Override
     ConcurrentHashMap<Integer, StoredFundsMutationEvent> innerTable() {
         return table;
+    }
+
+    public Stream<FundsMutationEvent> streamForDay(final UtcDay day) {
+        return table.values()
+                .stream()
+                .filter(event -> new UtcDay(event.obj.timestamp).equals(day))
+                .map(storedFundsMutationEvent -> storedFundsMutationEvent.obj);
     }
 
 }

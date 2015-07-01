@@ -53,4 +53,8 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
         pseudoTable.updateChildFlag(id);
     }
 
+    public void clear() {
+        pseudoTable.clear();
+    }
+
 }

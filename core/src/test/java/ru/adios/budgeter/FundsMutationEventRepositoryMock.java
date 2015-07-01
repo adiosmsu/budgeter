@@ -4,11 +4,13 @@ import org.joda.money.Money;
 import ru.adios.budgeter.api.FundsMutationEvent;
 import ru.adios.budgeter.api.FundsMutationEventRepository;
 import ru.adios.budgeter.api.FundsMutationSubject;
+import ru.adios.budgeter.api.UtcDay;
 import ru.adios.budgeter.inmemrepo.FundsMutationEventPseudoTable;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Date: 6/15/15
@@ -38,6 +40,14 @@ public class FundsMutationEventRepositoryMock implements FundsMutationEventRepos
     @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till) {
         return table.getStatsInTimePeriod(from, till);
+    }
+
+    public Stream<FundsMutationEvent> streamForDay(UtcDay day) {
+        return table.streamForDay(day);
+    }
+
+    public void clear() {
+        table.clear();
     }
 
 }
