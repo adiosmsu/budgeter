@@ -53,7 +53,7 @@ import java.util.zip.GZIPInputStream;
  * @author Mikhail Kulikov
  */
 @ThreadSafe
-public abstract class ExchangeRatesLoader {
+public class ExchangeRatesLoader {
 
     public static ExchangeRatesLoader.CbrLoader createCbrLoader(CurrenciesRepository currenciesRepo) {
         return new CbrLoader(currenciesRepo, CurrencyUnit.of(CbrLoader.CODE_RUB), new CbrParser());
@@ -162,7 +162,9 @@ public abstract class ExchangeRatesLoader {
         return loadCurrencies(true, dayRef, problematicsRef);
     }
 
-    abstract boolean isFetchingAllSupportedProblematic(UtcDay day);
+    boolean isFetchingAllSupportedProblematic(UtcDay day) {
+        return false;
+    }
 
 
     private interface Parser {
@@ -186,11 +188,6 @@ public abstract class ExchangeRatesLoader {
 
         public CbrLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, CbrParser cbrParser) {
             super(currenciesRepo, mainUnit, cbrParser);
-        }
-
-        @Override
-        boolean isFetchingAllSupportedProblematic(UtcDay day) {
-            return false;
         }
 
     }
