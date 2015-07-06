@@ -60,6 +60,18 @@ public final class FundsMutationSubject {
     }
 
     @Override
+    public String toString() {
+        return "FundsMutationSubject{" +
+                "id=" + id +
+                ", parentId=" + parentId +
+                ", rootId=" + rootId +
+                ", childFlag=" + childFlag +
+                ", type=" + type +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         return this == o
                 || !(o == null || getClass() != o.getClass())
@@ -152,13 +164,12 @@ public final class FundsMutationSubject {
 
     }
 
-    public static final int CUR_CONV_DIFF_ID = 101;
     public static final String CUR_CONV_DIFF_NAME = "Разница при конвертации валют";
     public static final int CUR_CONV_DIFF_TYPE_ORDINAL = 2;
 
     public static FundsMutationSubject getCurrencyConversionDifference(FundsMutationSubjectRepository repository) {
         return FundsMutationSubject.builder(repository)
-                .setId(CUR_CONV_DIFF_ID)
+                .setId(repository.getIdForRateSubject())
                 .setName(CUR_CONV_DIFF_NAME)
                 .setType(SubjectType.values()[CUR_CONV_DIFF_TYPE_ORDINAL])
                 .build();

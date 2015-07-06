@@ -26,6 +26,13 @@ public final class FundsMutationAgent {
     }
 
     @Override
+    public String toString() {
+        return "FundsMutationAgent{" +
+                "name='" + name + '\'' +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         return this == o
                 || !(o == null || getClass() != o.getClass())

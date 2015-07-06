@@ -26,15 +26,28 @@ public final class CurrencyExchangeEvent {
     private CurrencyExchangeEvent(Builder builder) {
         this.bought = builder.bought;
         this.sold = builder.sold;
-        this.rate = builder.rate;
+        this.rate = builder.rate.stripTrailingZeros();
         this.timestamp = builder.timestamp;
-        checkArgument(bought != null && sold != null && rate != null, "Bad data, possibly uninitialized");
+        this.agent = builder.agent;
+        checkArgument(bought != null && sold != null && rate != null && agent != null, "Bad data, possibly uninitialized");
     }
 
     public final Money sold;
     public final Money bought;
     public final BigDecimal rate;
     public final OffsetDateTime timestamp;
+    public final FundsMutationAgent agent;
+
+    @Override
+    public String toString() {
+        return "CurrencyExchangeEvent{" +
+                "sold=" + sold +
+                ", bought=" + bought +
+                ", rate=" + rate +
+                ", timestamp=" + timestamp +
+                ", agent=" + agent +
+                '}';
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -65,9 +78,9 @@ public final class CurrencyExchangeEvent {
         private Money bought;
         private BigDecimal rate;
         private OffsetDateTime timestamp = OffsetDateTime.now();
+        private FundsMutationAgent agent;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder setBought(Money bought) {
             this.bought = bought;
@@ -86,6 +99,11 @@ public final class CurrencyExchangeEvent {
 
         public Builder setTimestamp(OffsetDateTime timestamp) {
             this.timestamp = checkNotNull(timestamp);
+            return this;
+        }
+
+        public Builder setAgent(FundsMutationAgent agent) {
+            this.agent = agent;
             return this;
         }
 

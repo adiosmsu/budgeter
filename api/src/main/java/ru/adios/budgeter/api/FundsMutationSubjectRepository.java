@@ -38,6 +38,8 @@ public interface FundsMutationSubjectRepository {
 
     int idSeqNext();
 
+    int getIdForRateSubject();
+
     void updateChildFlag(int id);
 
 }

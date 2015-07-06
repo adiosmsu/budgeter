@@ -1,5 +1,6 @@
 package ru.adios.budgeter;
 
+import com.google.common.base.Preconditions;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.*;
@@ -27,6 +28,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     private Optional<BigDecimal> customRateRef = Optional.empty();
     private Optional<BigDecimal> naturalRateRef = Optional.empty();
     private Optional<OffsetDateTime> timestampRef = Optional.of(OffsetDateTime.now());
+    private Optional<FundsMutationAgent> agentRef = Optional.empty();
     private BigDecimal calculatedNaturalRate;
 
     public ExchangeCurrenciesElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
@@ -63,6 +65,10 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         sellAmountWrapper.setAmountDecimal(sellAmount);
     }
 
+    public void setSellAmount(int coins, int cents) {
+        sellAmountWrapper.setAmount(coins, cents);
+    }
+
     public void setSellAmount(Money sellAmount) {
         sellAmountWrapper.setAmount(sellAmount);
     }
@@ -75,23 +81,29 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         this.timestampRef = Optional.of(timestamp);
     }
 
+    public void setAgent(FundsMutationAgent agent) {
+        agentRef = Optional.of(agent);
+    }
+
     @Override
     public void submit() {
+        Preconditions.checkState(agentRef.isPresent(), "Agent not set");
+
         final CurrencyUnit buyUnit = buyAmountWrapper.getAmountUnit();
         final CurrencyUnit sellUnit = sellAmountWrapper.getAmountUnit();
 
         if (!customRateRef.isPresent() && buyAmountWrapper.isAmountSet() && sellAmountWrapper.isAmountSet()) {
-            customRateRef = Optional.of(buyAmountWrapper.getAmount().getAmount().divide(sellAmountWrapper.getAmount().getAmount(), RoundingMode.HALF_DOWN));
+            customRateRef = Optional.of(CurrencyRatesProvider.calculateRate(buyAmountWrapper.getAmount().getAmount(), sellAmountWrapper.getAmount().getAmount()));
         }
 
         final Money buyAmount, sellAmount;
         final BigDecimal actualRate = customRateRef.orElseGet(() -> calculateNaturalRate(buyUnit, sellUnit));
         if (!buyAmountWrapper.isAmountSet()) {
             sellAmount = sellAmountWrapper.getAmount();
-            buyAmount = sellAmount.convertedTo(buyUnit, actualRate, RoundingMode.HALF_DOWN);
+            buyAmount = sellAmount.convertedTo(buyUnit, CurrencyRatesProvider.reverseRate(actualRate), RoundingMode.HALF_DOWN);
         } else if (!sellAmountWrapper.isAmountSet()) {
             buyAmount = buyAmountWrapper.getAmount();
-            sellAmount = buyAmount.convertedTo(sellUnit, CurrencyRatesProvider.reverseRate(actualRate), RoundingMode.HALF_DOWN);
+            sellAmount = buyAmount.convertedTo(sellUnit, actualRate, RoundingMode.HALF_DOWN);
         } else {
             buyAmount = buyAmountWrapper.getAmount();
             sellAmount = sellAmountWrapper.getAmount();
@@ -106,7 +118,15 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
 
         if (customRateRef.isPresent()) {
             // that will introduce exchange difference between money hypothetically exchanged by default rate and money exchanged by custom rate
-            FundsMutator.registerExchangeDifference(this, sellAmount.convertedTo(buyUnit, naturalRate, RoundingMode.HALF_DOWN), buyAmount, MutationDirection.BENEFIT, 1);
+            FundsMutator.registerExchangeDifference(
+                    this,
+                    buyAmount.convertedTo(sellUnit, CurrencyRatesProvider.reverseRate(naturalRate), RoundingMode.HALF_DOWN),
+                    sellAmount,
+                    MutationDirection.BENEFIT,
+                    agentRef.get(),
+                    timestampRef.get(),
+                    1
+            );
         }
 
         accounter.registerCurrencyExchange(
@@ -115,6 +135,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                         .setSold(sellAmount)
                         .setRate(actualRate)
                         .setTimestamp(timestampRef.get())
+                        .setAgent(agentRef.get())
                         .build()
         );
     }

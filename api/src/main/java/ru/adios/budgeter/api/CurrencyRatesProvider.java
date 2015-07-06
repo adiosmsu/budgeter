@@ -5,6 +5,7 @@ import com.google.common.math.IntMath;
 import org.joda.money.CurrencyUnit;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Optional;
@@ -72,11 +73,15 @@ public interface CurrencyRatesProvider {
     boolean isRateStale(CurrencyUnit to);
 
     static BigDecimal getConversionMultiplierFromIntermediateMultipliers(BigDecimal interToFirst, BigDecimal interToSecond) {
-        return interToFirst.divide(interToSecond, RATES_SCALE, BigDecimal.ROUND_HALF_DOWN).stripTrailingZeros();
+        return interToFirst.divide(interToSecond, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
     }
 
     static BigDecimal reverseRate(BigDecimal rate) {
-        return BigDecimal.ONE.divide(rate, CurrencyRatesProvider.RATES_SCALE, BigDecimal.ROUND_HALF_DOWN).stripTrailingZeros();
+        return BigDecimal.ONE.divide(rate, CurrencyRatesProvider.RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
+    }
+
+    static BigDecimal calculateRate(BigDecimal bought, BigDecimal sold) {
+        return sold.divide(bought, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
     }
 
     static Stream<ConversionPair> streamConversionPairs(Set<CurrencyUnit> unitsSet) {

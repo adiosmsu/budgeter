@@ -31,7 +31,7 @@ public interface PostponedFundsMutationEventRepository {
         public final Optional<BigDecimal> customRate;
 
         public PostponedMutationEvent(FundsMutationEvent mutationEvent, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate) {
-            this.customRate = customRate;
+            this.customRate = customRate.isPresent() ? Optional.of(customRate.get().stripTrailingZeros()) : Optional.empty();
             this.mutationEvent = mutationEvent;
             this.conversionUnit = conversionUnit;
         }

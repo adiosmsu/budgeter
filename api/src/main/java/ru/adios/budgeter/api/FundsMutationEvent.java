@@ -38,6 +38,17 @@ public final class FundsMutationEvent {
     }
 
     @Override
+    public String toString() {
+        return "FundsMutationEvent{" +
+                "amount=" + amount +
+                ", quantity=" + quantity +
+                ", subject=" + subject +
+                ", timestamp=" + timestamp +
+                ", agent=" + agent +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -109,6 +120,10 @@ public final class FundsMutationEvent {
 
         public Money getAmount() {
             return amount;
+        }
+
+        public FundsMutationAgent getAgent() {
+            return agent;
         }
 
         public int getQuantity() {

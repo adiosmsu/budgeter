@@ -2,12 +2,10 @@ package ru.adios.budgeter;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
-import ru.adios.budgeter.api.Accounter;
-import ru.adios.budgeter.api.FundsMutationEvent;
-import ru.adios.budgeter.api.FundsMutationSubject;
-import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.*;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 /**
@@ -24,7 +22,15 @@ public interface FundsMutator {
 
     CurrenciesExchangeService getRatesService();
 
-    static void registerExchangeDifference(FundsMutator mutator, Money naturalAmount, Money customAmount, MutationDirection direction, int quantity) {
+    static void registerExchangeDifference(
+            FundsMutator mutator,
+            Money naturalAmount,
+            Money customAmount,
+            MutationDirection direction,
+            FundsMutationAgent agent,
+            OffsetDateTime timestamp,
+            int quantity
+    ) {
         final int customVsNatural = customAmount.compareTo(naturalAmount);
         if (customVsNatural != 0) {
             final Accounter accounter = mutator.getAccounter();
@@ -33,6 +39,8 @@ public interface FundsMutator {
             rec.setAmount(customAmount.minus(naturalAmount).abs().multipliedBy(quantity));
             rec.setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()));
             rec.setDirection(direction.getExchangeDifferenceDirection(customVsNatural > 0));
+            rec.setTimestamp(timestamp);
+            rec.setAgent(agent);
             rec.submit();
         }
     }
@@ -41,7 +49,8 @@ public interface FundsMutator {
 
         BENEFIT {
             @Override
-            void register(Accounter accounter, Treasury treasury, FundsMutationEvent event, boolean mutateFunds) {
+            void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
+                final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount : amount.negated()).build();
                 if (mutateFunds) {
                     accounter.registerBenefit(event);
                 }
@@ -60,7 +69,8 @@ public interface FundsMutator {
         },
         LOSS {
             @Override
-            void register(Accounter accounter, Treasury treasury, FundsMutationEvent event, boolean mutateFunds) {
+            void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
+                final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount.negated() : amount).build();
                 if (mutateFunds) {
                     accounter.registerLoss(event);
                 }
@@ -78,7 +88,7 @@ public interface FundsMutator {
             }
         };
 
-        abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent event, boolean mutateFunds);
+        abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
 
         abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate);
 

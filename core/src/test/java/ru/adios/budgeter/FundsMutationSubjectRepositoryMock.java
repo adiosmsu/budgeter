@@ -44,6 +44,11 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
+    public int getIdForRateSubject() {
+        return pseudoTable.getIdForRateSubject();
+    }
+
+    @Override
     public void rawAddition(FundsMutationSubject subject) {
         pseudoTable.rawAddition(subject);
     }

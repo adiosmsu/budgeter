@@ -17,7 +17,7 @@ public final class Schema {
     public static final CurrencyRatesPseudoTable CURRENCY_RATES = CurrencyRatesPseudoTable.INSTANCE;
     public static final FundsMutationAgentPseudoTable FUNDS_MUTATION_AGENTS = FundsMutationAgentPseudoTable.INSTANCE;
 
-    static void clearSchema() {
+    public static void clearSchema() {
         FUNDS_MUTATION_SUBJECTS.clear();
         CURRENCY_EXCHANGE_EVENTS.clear();
         FUNDS_MUTATION_EVENTS.clear();

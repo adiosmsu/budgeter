@@ -143,7 +143,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
             if (!customRateRef.isPresent() && payeeAccountMoneyWrapper.isAmountSet() && amountWrapper.isAmountSet()) {
                 // we know about payed money and actual amount both therefore we must calculate custom rate which with 99% chance will differ from natural rate
-                customRateRef = Optional.of(amountWrapper.getAmount().getAmount().divide(payeeAccountMoneyWrapper.getAmount().getAmount(), RoundingMode.HALF_DOWN));
+                customRateRef = Optional.of(CurrencyRatesProvider.calculateRate(amountWrapper.getAmount().getAmount(), payeeAccountMoneyWrapper.getAmount().getAmount()));
             }
 
             if (!amountWrapper.isAmountSet()) {
@@ -175,17 +175,24 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     final Money naturalAmount = soldAmount.convertedTo(amountUnit, naturalRate, RoundingMode.HALF_DOWN);
                     final Money convertedAmount = soldAmount.convertedTo(amountUnit, customRateRef.get(), RoundingMode.HALF_DOWN);
 
-                    FundsMutator.registerExchangeDifference(this, naturalAmount, convertedAmount, direction, eventBuilder.getQuantity());
+                    FundsMutator.registerExchangeDifference(
+                            this,
+                            naturalAmount,
+                            convertedAmount,
+                            direction,
+                            eventBuilder.getAgent(),
+                            eventBuilder.getTimestamp(),
+                            eventBuilder.getQuantity()
+                    );
                 }
 
-                final FundsMutationEvent event = eventBuilder.setAmount(amount).build();
-                direction.register(accounter, treasury, event, mutateFunds);
+                direction.register(accounter, treasury, eventBuilder, amount, mutateFunds);
                 accounter.registerCurrencyExchange(
                         CurrencyExchangeEvent.builder()
                                 .setRate(actualRate)
                                 .setBought(amount)
                                 .setSold(soldAmount)
-                                .setTimestamp(event.timestamp)
+                                .setTimestamp(eventBuilder.getTimestamp())
                                 .build()
                 );
                 return;
@@ -194,7 +201,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
             amount = amountWrapper.getAmount();
         }
 
-        direction.register(accounter, treasury, eventBuilder.setAmount(amount).build(), mutateFunds);
+        direction.register(accounter, treasury, eventBuilder, amount, mutateFunds);
     }
 
     private BigDecimal calculateNaturalRate(CurrencyUnit amountUnit, CurrencyUnit payedUnit) {

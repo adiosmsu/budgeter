@@ -27,7 +27,8 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
         INSTANCE.addSubject(FundsMutationSubject.getCurrencyConversionDifference(INSTANCE));
     }
 
-    final AtomicInteger idSequence = new AtomicInteger(0);
+    final AtomicInteger idSequence = new AtomicInteger(1);
+    private final static int RATES_ID = 1;
 
     private final ConcurrentHashMap<Integer, FundsMutationSubject> table = new ConcurrentHashMap<>(100, 0.75f, 4);
     private final ConcurrentHashMap<String, Integer> nameUniqueIndex = new ConcurrentHashMap<>(100, 0.75f, 4);
@@ -38,6 +39,11 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     @Override
     public int idSeqNext() {
         return idSequence.incrementAndGet();
+    }
+
+    @Override
+    public int getIdForRateSubject() {
+        return RATES_ID;
     }
 
     @Override
@@ -106,6 +112,7 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
         table.clear();
         nameUniqueIndex.clear();
         parentIndex.clear();
+        addSubject(FundsMutationSubject.getCurrencyConversionDifference(INSTANCE));
     }
 
 }

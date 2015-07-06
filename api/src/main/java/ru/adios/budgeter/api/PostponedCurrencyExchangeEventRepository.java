@@ -30,7 +30,7 @@ public interface PostponedCurrencyExchangeEventRepository {
         public final OffsetDateTime timestamp;
 
         public PostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp) {
-            this.customRate = customRate;
+            this.customRate = customRate.isPresent() ? Optional.of(customRate.get().stripTrailingZeros()) : Optional.empty();
             this.toBuy = toBuy;
             this.unitSell = unitSell;
             this.timestamp = timestamp;
