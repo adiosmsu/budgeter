@@ -37,6 +37,14 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         this.ratesService = ratesService;
     }
 
+    public void setPostponedEvent(PostponedCurrencyExchangeEventRepository.PostponedExchange event, BigDecimal naturalRate) {
+        setBuyAmount(event.toBuy);
+        setSellAmountUnit(event.unitSell);
+        setCustomRate(event.customRate.orElse(null));
+        setNaturalRate(naturalRate);
+        setTimestamp(event.timestamp);
+    }
+
     public void setNaturalRate(BigDecimal naturalRate) {
         this.naturalRateRef = Optional.ofNullable(naturalRate);
     }
@@ -56,9 +64,16 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     public void setBuyAmountUnit(String buyAmountUnitName) {
         buyAmountWrapper.setAmountUnit(buyAmountUnitName);
     }
+    public void setBuyAmountUnit(CurrencyUnit buyUnit) {
+        buyAmountWrapper.setAmountUnit(buyUnit);
+    }
 
     public void setSellAmountUnit(CurrencyUnit sellUnit) {
         sellAmountWrapper.setAmountUnit(sellUnit);
+    }
+
+    public void setSellAmountUnit(String sellAmountUnitName) {
+        sellAmountWrapper.setAmountUnit(sellAmountUnitName);
     }
 
     public void setSellAmountDecimal(BigDecimal sellAmount) {
@@ -85,6 +100,9 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         agentRef = Optional.of(agent);
     }
 
+    /**
+     * Orientation is: [buy amount] = [sell amount] * rate.
+     */
     @Override
     public void submit() {
         Preconditions.checkState(agentRef.isPresent(), "Agent not set");
@@ -97,19 +115,19 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         }
 
         final Money buyAmount, sellAmount;
-        final BigDecimal actualRate = customRateRef.orElseGet(() -> calculateNaturalRate(buyUnit, sellUnit));
+        final BigDecimal actualRate = customRateRef.orElseGet(() -> calculateNaturalRate(sellUnit, buyUnit));
         if (!buyAmountWrapper.isAmountSet()) {
             sellAmount = sellAmountWrapper.getAmount();
-            buyAmount = sellAmount.convertedTo(buyUnit, CurrencyRatesProvider.reverseRate(actualRate), RoundingMode.HALF_DOWN);
+            buyAmount = sellAmount.convertedTo(buyUnit, actualRate, RoundingMode.HALF_DOWN);
         } else if (!sellAmountWrapper.isAmountSet()) {
             buyAmount = buyAmountWrapper.getAmount();
-            sellAmount = buyAmount.convertedTo(sellUnit, actualRate, RoundingMode.HALF_DOWN);
+            sellAmount = buyAmount.convertedTo(sellUnit, CurrencyRatesProvider.reverseRate(actualRate), RoundingMode.HALF_DOWN);
         } else {
             buyAmount = buyAmountWrapper.getAmount();
             sellAmount = sellAmountWrapper.getAmount();
         }
 
-        final BigDecimal naturalRate = calculateNaturalRate(buyUnit, sellUnit);
+        final BigDecimal naturalRate = calculateNaturalRate(sellUnit, buyUnit);
         if (naturalRate == null) {
             // we don't have rates in question for today yet, conserve operation to commit later
             accounter.rememberPostponedExchange(buyAmount, sellUnit, customRateRef, timestampRef.get());
@@ -120,8 +138,8 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
             // that will introduce exchange difference between money hypothetically exchanged by default rate and money exchanged by custom rate
             FundsMutator.registerExchangeDifference(
                     this,
-                    buyAmount.convertedTo(sellUnit, CurrencyRatesProvider.reverseRate(naturalRate), RoundingMode.HALF_DOWN),
-                    sellAmount,
+                    sellAmount.convertedTo(buyUnit, naturalRate, RoundingMode.HALF_DOWN),
+                    buyAmount,
                     MutationDirection.BENEFIT,
                     agentRef.get(),
                     timestampRef.get(),
@@ -140,9 +158,9 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         );
     }
 
-    private BigDecimal calculateNaturalRate(CurrencyUnit buyUnit, CurrencyUnit sellUnit) {
+    private BigDecimal calculateNaturalRate(CurrencyUnit sellUnit, CurrencyUnit buyUnit) {
         if (calculatedNaturalRate == null) {
-            calculatedNaturalRate = naturalRateRef.orElseGet(() -> ratesService.getConversionMultiplier(new UtcDay(timestampRef.get()), buyUnit, sellUnit).orElse(null));
+            calculatedNaturalRate = naturalRateRef.orElseGet(() -> ratesService.getConversionMultiplier(new UtcDay(timestampRef.get()), sellUnit, buyUnit).orElse(null));
         }
         return calculatedNaturalRate;
     }

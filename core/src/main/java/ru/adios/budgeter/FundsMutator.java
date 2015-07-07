@@ -88,6 +88,10 @@ public interface FundsMutator {
             }
         };
 
+        static MutationDirection forEvent(FundsMutationEvent event) {
+            return event.amount.getAmount().signum() >= 0 ? MutationDirection.BENEFIT : MutationDirection.LOSS;
+        }
+
         abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
 
         abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate);

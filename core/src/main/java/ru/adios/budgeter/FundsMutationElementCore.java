@@ -39,6 +39,16 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         this.treasury = treasury;
     }
 
+    public void setPostponedEvent(PostponedFundsMutationEventRepository.PostponedMutationEvent event, BigDecimal naturalRate) {
+        setEvent(event.mutationEvent);
+        setAmount(event.mutationEvent.amount);
+        setDirection(MutationDirection.forEvent(event.mutationEvent));
+        setPayeeAccountUnit(event.conversionUnit);
+        setCustomRate(event.customRate);
+        setNaturalRate(naturalRate);
+        setTimestamp(event.mutationEvent.timestamp);
+    }
+
     public void setDirection(MutationDirection direction) {
         this.directionRef = Optional.of(direction);
     }
@@ -130,6 +140,10 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         }));
     }
 
+    /**
+     * Orientation is: [buy amount] = [sell amount] * rate.
+     */
+    @Override
     public void submit() {
         checkState(directionRef.isPresent(), "No direction set");
         final MutationDirection direction = directionRef.get();

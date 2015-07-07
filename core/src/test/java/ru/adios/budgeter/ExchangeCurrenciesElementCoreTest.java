@@ -10,8 +10,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Date: 03.07.15
@@ -42,7 +41,7 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setSellAmount(Money.of(Units.RUB, 56000.0, RoundingMode.HALF_DOWN));
         core.setTimestamp(TestUtils.JULY_3RD_2015.inner);
         core.setAgent(agentExchanger);
-        ratesRepo.addRate(TestUtils.JULY_3RD_2015, Units.RUB, CurrencyUnit.USD, BigDecimal.valueOf(55.5)); // to know exact value we set "natural" rate ourselves
+        ratesRepo.addRate(TestUtils.JULY_3RD_2015, Units.RUB, CurrencyUnit.USD, CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(55.5))); // to know exact value we set "natural" rate ourselves
         core.submit();
         final Optional<CurrencyExchangeEvent> dollarsExc = accounter.streamExchangesForDay(TestUtils.JULY_3RD_2015).findFirst();
         assertTrue("No dollars exchange found", dollarsExc.isPresent());
@@ -51,7 +50,7 @@ public class ExchangeCurrenciesElementCoreTest {
                 CurrencyExchangeEvent.builder()
                         .setBought(Money.of(CurrencyUnit.USD, 1000.0, RoundingMode.HALF_DOWN))
                         .setSold(Money.of(Units.RUB, 56000.0, RoundingMode.HALF_DOWN))
-                        .setRate(BigDecimal.valueOf(56.))
+                        .setRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(56.)))
                         .setTimestamp(TestUtils.JULY_3RD_2015.inner)
                         .setAgent(agentExchanger)
                         .build(),
@@ -62,7 +61,7 @@ public class ExchangeCurrenciesElementCoreTest {
         assertEquals(
                 "Bad dollars exchange LOSS mutation values",
                 FundsMutationEvent.builder()
-                        .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(500L)))
+                        .setAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(-9.01)))
                         .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.JULY_3RD_2015.inner)
@@ -78,8 +77,8 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setBuyAmountUnit("RUB");
         core.setTimestamp(TestUtils.DAY_BF_YESTER.inner);
         core.setAgent(agentExchanger);
-        core.setCustomRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(64.)));
-        ratesRepo.addRate(TestUtils.DAY_BF_YESTER, Units.RUB, CurrencyUnit.EUR, BigDecimal.valueOf(62.)); // to know exact value we set "natural" rate ourselves
+        core.setCustomRate(BigDecimal.valueOf(64.));
+        ratesRepo.addRate(TestUtils.DAY_BF_YESTER, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.)); // to know exact value we set "natural" rate ourselves
         core.submit();
         final Optional<CurrencyExchangeEvent> euroExc = accounter.streamExchangesForDay(TestUtils.DAY_BF_YESTER).findFirst();
         assertTrue("No euros exchange found", euroExc.isPresent());
@@ -88,18 +87,18 @@ public class ExchangeCurrenciesElementCoreTest {
                 CurrencyExchangeEvent.builder()
                         .setBought(Money.of(Units.RUB, 64000.0, RoundingMode.HALF_DOWN))
                         .setSold(Money.of(CurrencyUnit.EUR, 1000.0, RoundingMode.HALF_DOWN))
-                        .setRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(64.)))
+                        .setRate(BigDecimal.valueOf(64.))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
                         .setAgent(agentExchanger)
                         .build(),
                 euroExc.get()
         );
         final Optional<FundsMutationEvent> eurosExcMutation = accounter.streamMutationsForDay(TestUtils.DAY_BF_YESTER).findFirst();
-        assertTrue("No euros exchange LOSS mutation found", eurosExcMutation.isPresent());
+        assertTrue("No euros exchange BENEFIT mutation found", eurosExcMutation.isPresent());
         assertEquals(
-                "Bad euros exchange LOSS mutation values",
+                "Bad euros exchange BENEFIT mutation values",
                 FundsMutationEvent.builder()
-                        .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(500L)))
+                        .setAmount(Money.of(Units.RUB, 2000))
                         .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
@@ -107,6 +106,70 @@ public class ExchangeCurrenciesElementCoreTest {
                         .build(),
                 eurosExcMutation.get()
         );
+
+        core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
+        // we buy some bitcoins from a dude
+        core.setBuyAmountDecimal(BigDecimal.valueOf(1000.));
+        core.setBuyAmountUnit(Units.BTC);
+        core.setSellAmountUnit("USD");
+        core.setTimestamp(TestUtils.DAY_BF_YESTER.inner);
+        core.setAgent(agentExchanger);
+        core.setCustomRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(260.)));
+        ratesRepo.addRate(TestUtils.DAY_BF_YESTER, CurrencyUnit.USD, Units.BTC, CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(250.))); // to know exact value we set "natural" rate ourselves
+        core.submit();
+        final Optional<CurrencyExchangeEvent> btcExc = accounter.streamExchangesForDay(TestUtils.DAY_BF_YESTER)
+                .reduce((event, event2) -> event.bought.getCurrencyUnit().equals(Units.BTC) && event.sold.getCurrencyUnit().equals(CurrencyUnit.USD) ? event : event2);
+        assertTrue("No btc exchange found", btcExc.isPresent());
+        assertEquals(
+                "Bad btc exchange values",
+                CurrencyExchangeEvent.builder()
+                        .setBought(Money.of(Units.BTC, 1000.0, RoundingMode.HALF_DOWN))
+                        .setSold(Money.of(CurrencyUnit.USD, 260000.0, RoundingMode.HALF_DOWN))
+                        .setRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(260.)))
+                        .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setAgent(agentExchanger)
+                        .build(),
+                btcExc.get()
+        );
+        final Optional<FundsMutationEvent> btcExcMutation = accounter.streamMutationsForDay(TestUtils.DAY_BF_YESTER)
+                .reduce((event, event2) -> event.amount.getCurrencyUnit().equals(Units.BTC) ? event : event2);
+        assertTrue("No btc exchange LOSS mutation found", btcExcMutation.isPresent());
+        assertEquals(
+                "Bad btc exchange LOSS mutation values",
+                FundsMutationEvent.builder()
+                        .setAmount(Money.of(Units.BTC, -40))
+                        .setQuantity(1)
+                        .setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()))
+                        .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setAgent(agentExchanger)
+                        .build(),
+                btcExcMutation.get()
+        );
+
+        core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
+        // we sell some bitcoins at exchange for a fair price
+        core.setBuyAmountUnit(CurrencyUnit.USD);
+        core.setSellAmountUnit(Units.BTC);
+        core.setSellAmountDecimal(BigDecimal.valueOf(1000.));
+        core.setTimestamp(TestUtils.YESTERDAY.inner);
+        core.setAgent(agentExchanger);
+        ratesRepo.addRate(TestUtils.YESTERDAY, Units.BTC, CurrencyUnit.USD, BigDecimal.valueOf(265.)); // to know exact value we set "natural" rate ourselves
+        core.submit();
+        final Optional<CurrencyExchangeEvent> btcExc2 = accounter.streamExchangesForDay(TestUtils.YESTERDAY).findFirst();
+        assertTrue("No btc2 exchange found", btcExc2.isPresent());
+        assertEquals(
+                "Bad btc2 exchange values",
+                CurrencyExchangeEvent.builder()
+                        .setBought(Money.of(CurrencyUnit.USD, 265000.0, RoundingMode.HALF_DOWN))
+                        .setSold(Money.of(Units.BTC, 1000.0, RoundingMode.HALF_DOWN))
+                        .setRate(BigDecimal.valueOf(265.))
+                        .setTimestamp(TestUtils.YESTERDAY.inner)
+                        .setAgent(agentExchanger)
+                        .build(),
+                btcExc2.get()
+        );
+        final Optional<FundsMutationEvent> btcExcMutation2 = accounter.streamMutationsForDay(TestUtils.YESTERDAY).findFirst();
+        assertFalse("btc2 exchange LOSS mutation found", btcExcMutation2.isPresent());
     }
 
 }

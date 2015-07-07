@@ -80,8 +80,14 @@ public interface CurrencyRatesProvider {
         return BigDecimal.ONE.divide(rate, CurrencyRatesProvider.RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
     }
 
+    /**
+     * Orientation is: [buy amount] = [sell amount] * rate.
+     * @param bought amount bought
+     * @param sold amount sold
+     * @return conversion rate
+     */
     static BigDecimal calculateRate(BigDecimal bought, BigDecimal sold) {
-        return sold.divide(bought, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
+        return bought.divide(sold, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
     }
 
     static Stream<ConversionPair> streamConversionPairs(Set<CurrencyUnit> unitsSet) {
