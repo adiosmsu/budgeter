@@ -170,6 +170,10 @@ public class ExchangeCurrenciesElementCoreTest {
         );
         final Optional<FundsMutationEvent> btcExcMutation2 = accounter.streamMutationsForDay(TestUtils.YESTERDAY).findFirst();
         assertFalse("btc2 exchange LOSS mutation found", btcExcMutation2.isPresent());
+
+        assertEquals("Treasury USD register failed", Money.of(CurrencyUnit.USD, -9.01), treasury.amount(CurrencyUnit.USD).get());
+        assertEquals("Treasury RUB register failed", Money.of(Units.RUB, 2000), treasury.amount(Units.RUB).get());
+        assertEquals("Treasury BTC register failed", Money.of(Units.BTC, -40), treasury.amount(Units.BTC).get());
     }
 
 }

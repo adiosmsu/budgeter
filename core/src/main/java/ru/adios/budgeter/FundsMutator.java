@@ -74,7 +74,7 @@ public interface FundsMutator {
                 if (mutateFunds) {
                     accounter.registerLoss(event);
                 }
-                treasury.addAmount(event.amount.multipliedBy(event.quantity).negated());
+                treasury.addAmount(event.amount.multipliedBy(event.quantity));
             }
 
             @Override
