@@ -7,6 +7,8 @@ import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Units;
 import ru.adios.budgeter.api.UtcDay;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -72,8 +74,11 @@ public class CurrencyRatesPseudoTableTest {
         } catch (Exception ignored) {}
         try {
             CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), REG_UNITS.get(0), Units.RUB, BigDecimal.ONE);
-            fail("Double insert passed");
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            final StringWriter writer = new StringWriter();
+            ignored.printStackTrace(new PrintWriter(writer));
+            fail("Symmetric insert failed: " + writer.toString());
+        }
     }
 
     @Test
@@ -92,7 +97,7 @@ public class CurrencyRatesPseudoTableTest {
     public void testGetLatestOptionalConversionMultiplier() throws Exception {
         CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), CurrencyUnit.EUR, CurrencyUnit.USD, BigDecimal.valueOf(1234));
         assertEquals(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(1234)),
-                CurrencyRatesPseudoTable.INSTANCE.getLatestOptionalConversionMultiplier(CurrencyUnit.USD, CurrencyUnit.EUR).get());
+                CurrencyRatesPseudoTable.INSTANCE.getLatestOptionalConversionMultiplierBidirectional(CurrencyUnit.USD, CurrencyUnit.EUR).get());
     }
 
     @Test
