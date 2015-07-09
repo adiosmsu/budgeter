@@ -24,7 +24,7 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
 
     static {
         INSTANCE = new FundsMutationSubjectPseudoTable();
-        INSTANCE.addSubject(FundsMutationSubject.getCurrencyConversionDifference(INSTANCE));
+        INSTANCE.addSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(INSTANCE));
     }
 
     final AtomicInteger idSequence = new AtomicInteger(1);
@@ -112,7 +112,7 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
         table.clear();
         nameUniqueIndex.clear();
         parentIndex.clear();
-        addSubject(FundsMutationSubject.getCurrencyConversionDifference(INSTANCE));
+        addSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(INSTANCE));
     }
 
 }

@@ -63,7 +63,7 @@ public class ExchangeCurrenciesElementCoreTest {
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(-9.01)))
                         .setQuantity(1)
-                        .setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()))
+                        .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.JULY_3RD_2015.inner)
                         .setAgent(agentExchanger)
                         .build(),
@@ -100,7 +100,7 @@ public class ExchangeCurrenciesElementCoreTest {
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.RUB, 2000))
                         .setQuantity(1)
-                        .setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()))
+                        .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
                         .setAgent(agentExchanger)
                         .build(),
@@ -139,7 +139,7 @@ public class ExchangeCurrenciesElementCoreTest {
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.BTC, -40))
                         .setQuantity(1)
-                        .setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()))
+                        .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
                         .setAgent(agentExchanger)
                         .build(),

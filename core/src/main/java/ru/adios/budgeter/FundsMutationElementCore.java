@@ -98,6 +98,10 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         payeeAccountMoneyWrapper.setAmount(money);
     }
 
+    public void setPayeeAmount(int coins, int cents) {
+        payeeAccountMoneyWrapper.setAmount(coins, cents);
+    }
+
     public void setPayeeAmount(BigDecimal amount) {
         payeeAccountMoneyWrapper.setAmountDecimal(amount);
     }
@@ -203,6 +207,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                 direction.register(accounter, treasury, eventBuilder, amount, mutateFunds);
                 accounter.registerCurrencyExchange(
                         CurrencyExchangeEvent.builder()
+                                .setAgent(eventBuilder.getAgent())
                                 .setRate(actualRate)
                                 .setBought(amount)
                                 .setSold(soldAmount)

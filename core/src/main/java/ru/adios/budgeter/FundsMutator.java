@@ -37,7 +37,7 @@ public interface FundsMutator {
             final FundsMutationElementCore rec = new FundsMutationElementCore(accounter, mutator.getTreasury(), mutator.getRatesService());
             rec.setQuantity(1);
             rec.setAmount(customAmount.minus(naturalAmount).abs().multipliedBy(quantity));
-            rec.setSubject(FundsMutationSubject.getCurrencyConversionDifference(accounter.fundsMutationSubjectRepo()));
+            rec.setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()));
             rec.setDirection(direction.getExchangeDifferenceDirection(customVsNatural > 0));
             rec.setTimestamp(timestamp);
             rec.setAgent(agent);
@@ -51,10 +51,10 @@ public interface FundsMutator {
             @Override
             void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount : amount.negated()).build();
+                accounter.registerBenefit(event);
                 if (mutateFunds) {
-                    accounter.registerBenefit(event);
+                    treasury.addAmount(event.amount.multipliedBy(event.quantity));
                 }
-                treasury.addAmount(event.amount.multipliedBy(event.quantity));
             }
 
             @Override
@@ -71,10 +71,10 @@ public interface FundsMutator {
             @Override
             void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount.negated() : amount).build();
+                accounter.registerLoss(event);
                 if (mutateFunds) {
-                    accounter.registerLoss(event);
+                    treasury.addAmount(event.amount.multipliedBy(event.quantity));
                 }
-                treasury.addAmount(event.amount.multipliedBy(event.quantity));
             }
 
             @Override

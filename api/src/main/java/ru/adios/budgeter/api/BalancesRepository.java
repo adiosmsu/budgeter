@@ -15,6 +15,10 @@ public interface BalancesRepository {
 
     Optional<Money> amount(CurrencyUnit unit);
 
+    default Money amountForHumans(CurrencyUnit unit) {
+        return amount(unit).orElse(Money.zero(unit));
+    }
+
     Money totalAmount(CurrencyUnit unit, CurrencyRatesProvider ratesProvider);
 
     void addAmount(Money amount);

@@ -74,7 +74,7 @@ public final class FundsMutationEvent {
     public static final class Builder {
 
         private Money amount;
-        private int quantity;
+        private int quantity = 1;
         private FundsMutationSubject subject;
         private OffsetDateTime timestamp = OffsetDateTime.now();
         private FundsMutationAgent agent;
