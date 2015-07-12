@@ -84,7 +84,11 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
 
     @Override
     public Optional<FundsMutationSubject> findByName(String name) {
-        return Optional.ofNullable(table.get(nameUniqueIndex.get(name)));
+        final Integer id = nameUniqueIndex.get(name);
+        if (id == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(table.get(id));
     }
 
     @Override

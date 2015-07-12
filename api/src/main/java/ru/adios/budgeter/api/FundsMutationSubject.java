@@ -36,7 +36,7 @@ public final class FundsMutationSubject {
     public final int parentId;
     public final int rootId;
     public final boolean childFlag;
-    public final SubjectType type;
+    public final Type type;
     public final String name;
 
     private final FundsMutationSubjectRepository repository;
@@ -63,23 +63,35 @@ public final class FundsMutationSubject {
     public String toString() {
         return "FundsMutationSubject{" +
                 "name='" + name + '\'' +
+                ", parentId=" + parentId +
+                ", rootId=" + rootId +
                 ", type=" + type +
                 '}';
     }
 
     @Override
     public boolean equals(Object o) {
-        return this == o
-                || !(o == null || getClass() != o.getClass())
-                && name.equals(((FundsMutationSubject) o).name);
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FundsMutationSubject that = (FundsMutationSubject) o;
+
+        return parentId == that.parentId
+                && rootId == that.rootId
+                && type == that.type
+                && name.equals(that.name);
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        int result = parentId;
+        result = 31 * result + rootId;
+        result = 31 * result + type.hashCode();
+        result = 31 * result + name.hashCode();
+        return result;
     }
 
-    public enum SubjectType {
+    public enum Type {
         PRODUCT,
         SERVICE,
         OCCASION
@@ -92,7 +104,7 @@ public final class FundsMutationSubject {
         private int parentId;
         private int rootId;
         public boolean childFlag = false;
-        private SubjectType type;
+        private Type type;
         private String name;
 
         private final FundsMutationSubjectRepository repository;
@@ -123,7 +135,7 @@ public final class FundsMutationSubject {
             return this;
         }
 
-        public Builder setType(SubjectType type) {
+        public Builder setType(Type type) {
             this.type = type;
             return this;
         }
@@ -167,7 +179,7 @@ public final class FundsMutationSubject {
         return FundsMutationSubject.builder(repository)
                 .setId(repository.getIdForRateSubject())
                 .setName(CUR_CONV_DIFF_NAME)
-                .setType(SubjectType.values()[CUR_CONV_DIFF_TYPE_ORDINAL])
+                .setType(Type.values()[CUR_CONV_DIFF_TYPE_ORDINAL])
                 .build();
     }
 

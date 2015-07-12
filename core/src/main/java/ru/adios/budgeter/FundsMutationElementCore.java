@@ -1,5 +1,6 @@
 package ru.adios.budgeter;
 
+import org.joda.money.BigMoney;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.*;
@@ -44,7 +45,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         setAmount(event.mutationEvent.amount);
         setDirection(MutationDirection.forEvent(event.mutationEvent));
         setPayeeAccountUnit(event.conversionUnit);
-        setCustomRate(event.customRate);
+        setCustomRate(event.customRate.orElse(null));
         setNaturalRate(naturalRate);
         setTimestamp(event.mutationEvent.timestamp);
     }
@@ -106,8 +107,8 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         payeeAccountMoneyWrapper.setAmountDecimal(amount);
     }
 
-    public void setCustomRate(Optional<BigDecimal> customRateRef) {
-        this.customRateRef = customRateRef;
+    public void setCustomRate(BigDecimal customRate) {
+        this.customRateRef = Optional.ofNullable(customRate);
     }
 
     public void setQuantity(int quantity) {
@@ -145,7 +146,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     /**
-     * Orientation is: [buy amount] = [sell amount] * rate.
+     * Orientation is: [amount] = [payed amount] * rate.
      */
     @Override
     public void submit() {
@@ -153,7 +154,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         final MutationDirection direction = directionRef.get();
         final CurrencyUnit amountUnit = amountWrapper.getAmountUnit();
 
-        final Money amount;
+        final BigMoney amount;
         if (payeeAccountMoneyWrapper.isUnitSet()) {
             // and so actual account of payment was set (even if only as a currency)
             final CurrencyUnit payedUnit = payeeAccountMoneyWrapper.getAmountUnit(); // therefore we know it for sure
@@ -166,37 +167,49 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
             if (!amountWrapper.isAmountSet()) {
                 // actual amount wasn't set explicitly so we must calculate it from payed amount and rate (custom or natural) which must have been provided
-                final Money payedAmount = payeeAccountMoneyWrapper.getAmount();
+                final BigMoney payedAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
                 amount = (sameUnits)
                         ? payedAmount
-                        : payedAmount.convertedTo(amountUnit, customRateRef.orElseGet(() -> calculateNaturalRate(amountUnit, payedUnit)), RoundingMode.HALF_DOWN);
+                        : payedAmount.convertedTo(amountUnit, customRateRef.orElseGet(() -> calculateNaturalRate(payedUnit, amountUnit)));
             } else {
                 // actual amount was set explicitly
-                amount = amountWrapper.getAmount();
+                amount = amountWrapper.getAmount().toBigMoney();
             }
 
             if (!sameUnits) {
                 // currency conversion to be
-                final BigDecimal naturalRate = calculateNaturalRate(amountUnit, payedUnit);
+                final BigDecimal naturalRate = calculateNaturalRate(payedUnit, amountUnit);
+                final Money amountSmallMoney = amount.toMoney(RoundingMode.HALF_DOWN);
                 if (naturalRate == null) {
                     // we don't have today's rates yet, do accounting later
-                    direction.remember(accounter, eventBuilder.setAmount(amount).build(), payedUnit, customRateRef);
+                    direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), payedUnit, customRateRef);
                     return;
                 }
 
                 final BigDecimal actualRate = customRateRef.orElse(naturalRate);
-                final Money soldAmount = payeeAccountMoneyWrapper.isAmountSet()
-                        ? payeeAccountMoneyWrapper.getAmount()
-                        : amount.convertedTo(payedUnit, CurrencyRatesProvider.reverseRate(actualRate), RoundingMode.HALF_DOWN);
+                final BigMoney soldAmount = payeeAccountMoneyWrapper.isAmountSet()
+                        ? payeeAccountMoneyWrapper.getAmount().toBigMoney()
+                        : amount.convertedTo(payedUnit, CurrencyRatesProvider.reverseRate(actualRate));
+
+                final Money soldAmountSmallMoney = soldAmount.toMoney(RoundingMode.HALF_DOWN);
+                final Money appropriateMutationAmount = direction.getAppropriateMutationAmount(amountSmallMoney, soldAmountSmallMoney);
+
                 if (customRateRef.isPresent()) {
                     // custom exchange rate present, will need to calculate difference and account it
-                    final Money naturalAmount = soldAmount.convertedTo(amountUnit, naturalRate, RoundingMode.HALF_DOWN);
-                    final Money convertedAmount = soldAmount.convertedTo(amountUnit, customRateRef.get(), RoundingMode.HALF_DOWN);
+                    final BigMoney naturalAmount;
+                    final BigMoney convertedAmount;
+                    if (appropriateMutationAmount.getCurrencyUnit().equals(amountUnit)) {
+                        naturalAmount = soldAmount.convertedTo(amountUnit, naturalRate);
+                        convertedAmount = amount;
+                    } else {
+                        naturalAmount = amount.convertedTo(payedUnit, CurrencyRatesProvider.reverseRate(naturalRate));
+                        convertedAmount = soldAmount;
+                    }
 
                     FundsMutator.registerExchangeDifference(
                             this,
-                            naturalAmount,
-                            convertedAmount,
+                            naturalAmount.toMoney(RoundingMode.HALF_DOWN),
+                            convertedAmount.toMoney(RoundingMode.HALF_DOWN),
                             direction,
                             eventBuilder.getAgent(),
                             eventBuilder.getTimestamp(),
@@ -204,28 +217,28 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     );
                 }
 
-                direction.register(accounter, treasury, eventBuilder, amount, mutateFunds);
+                direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
                 accounter.registerCurrencyExchange(
                         CurrencyExchangeEvent.builder()
                                 .setAgent(eventBuilder.getAgent())
                                 .setRate(actualRate)
-                                .setBought(amount)
-                                .setSold(soldAmount)
+                                .setBought(amountSmallMoney)
+                                .setSold(soldAmountSmallMoney)
                                 .setTimestamp(eventBuilder.getTimestamp())
                                 .build()
                 );
                 return;
             }
         } else {
-            amount = amountWrapper.getAmount();
+            amount = amountWrapper.getAmount().toBigMoney();
         }
 
-        direction.register(accounter, treasury, eventBuilder, amount, mutateFunds);
+        direction.register(accounter, treasury, eventBuilder, amount.toMoney(), mutateFunds);
     }
 
-    private BigDecimal calculateNaturalRate(CurrencyUnit amountUnit, CurrencyUnit payedUnit) {
+    private BigDecimal calculateNaturalRate(CurrencyUnit payedUnit, CurrencyUnit amountUnit) {
         if (calculatedNaturalRate == null) {
-            calculatedNaturalRate = naturalRateRef.orElseGet(() -> ratesService.getConversionMultiplier(new UtcDay(eventBuilder.getTimestamp()), amountUnit, payedUnit).orElse(null));
+            calculatedNaturalRate = naturalRateRef.orElseGet(() -> ratesService.getConversionMultiplier(new UtcDay(eventBuilder.getTimestamp()), payedUnit, amountUnit).orElse(null));
         }
         return calculatedNaturalRate;
     }

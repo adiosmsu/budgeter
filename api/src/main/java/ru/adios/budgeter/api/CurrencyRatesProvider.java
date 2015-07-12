@@ -23,7 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public interface CurrencyRatesProvider {
 
-    int RATES_SCALE = 12;
+    int RATES_SCALE = 24;
 
     default Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
         final Optional<BigDecimal> straight = getConversionMultiplierBidirectional(day, from, to);

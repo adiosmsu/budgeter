@@ -16,7 +16,6 @@ public final class SubjectAdditionElementCore implements Submitter {
 
     private final FundsMutationSubject.Builder subjectBuilder;
     private final FundsMutationSubjectRepository repository;
-    private Optional<FundsMutationSubject> parentRef = Optional.empty();
 
     public SubjectAdditionElementCore(FundsMutationSubjectRepository repository) {
         this.repository = repository;
@@ -35,7 +34,7 @@ public final class SubjectAdditionElementCore implements Submitter {
     }
 
     public boolean setParentName(String parentName) {
-        parentRef = repository.findByName(parentName);
+        final Optional<FundsMutationSubject> parentRef = repository.findByName(parentName);
         if (parentRef.isPresent()) {
             final OptionalInt idParentRef = parentRef.get().id;
             if (idParentRef.isPresent()) {
@@ -46,15 +45,21 @@ public final class SubjectAdditionElementCore implements Submitter {
         return false;
     }
 
-    public void setType(int typeOrdinal) {
-        subjectBuilder.setType(FundsMutationSubject.SubjectType.values()[typeOrdinal]);
+    public boolean setType(int typeOrdinal) {
+        final FundsMutationSubject.Type[] values = FundsMutationSubject.Type.values();
+        if (typeOrdinal >= 0 && typeOrdinal < values.length) {
+            subjectBuilder.setType(values[typeOrdinal]);
+            return true;
+        }
+        return false;
+    }
+
+    public void setType(FundsMutationSubject.Type subjectType) {
+        subjectBuilder.setType(subjectType);
     }
 
     @Override
     public void submit() {
-        if (parentRef.isPresent()) {
-            subjectBuilder.setRootId(parentRef.get().rootId);
-        }
         repository.addSubject(subjectBuilder.build());
     }
 

@@ -28,7 +28,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
         FundsMutationSubject food;
         try {
-            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
+            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
             Schema.FUNDS_MUTATION_SUBJECTS.addSubject(food);
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
@@ -51,7 +51,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
         FundsMutationSubject food;
         try {
-            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
+            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
             Schema.FUNDS_MUTATION_SUBJECTS.addSubject(food);
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
@@ -74,7 +74,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
         FundsMutationSubject food;
         try {
-            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
+            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
             Schema.FUNDS_MUTATION_SUBJECTS.addSubject(food);
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
@@ -115,7 +115,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
         FundsMutationSubject food;
         try {
-            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
+            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
             Schema.FUNDS_MUTATION_SUBJECTS.addSubject(food);
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));

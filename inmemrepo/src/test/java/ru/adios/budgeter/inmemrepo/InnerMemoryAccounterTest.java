@@ -30,7 +30,7 @@ public class InnerMemoryAccounterTest {
 
         FundsMutationSubject food;
         try {
-            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
+            food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
             Schema.FUNDS_MUTATION_SUBJECTS.addSubject(food);
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
@@ -46,7 +46,7 @@ public class InnerMemoryAccounterTest {
 
         innerMemoryAccounter.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.empty());
 
-        FundsMutationSubject game = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Game").setType(FundsMutationSubject.SubjectType.PRODUCT).build();
+        FundsMutationSubject game = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Game").setType(FundsMutationSubject.Type.PRODUCT).build();
         final FundsMutationEvent gameBuy = FundsMutationEvent.builder()
                 .setQuantity(1)
                 .setSubject(game)

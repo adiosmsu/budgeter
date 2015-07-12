@@ -41,6 +41,7 @@ public interface FundsMutator {
             rec.setDirection(direction.getExchangeDifferenceDirection(customVsNatural > 0));
             rec.setTimestamp(timestamp);
             rec.setAgent(agent);
+            rec.setMutateFunds(false);
             rec.submit();
         }
     }
@@ -66,6 +67,11 @@ public interface FundsMutator {
             MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural) {
                 return customMoreThanNatural ? BENEFIT : LOSS;
             }
+
+            @Override
+            Money getAppropriateMutationAmount(Money amount, Money payedAmount) {
+                return amount;
+            }
         },
         LOSS {
             @Override
@@ -86,6 +92,11 @@ public interface FundsMutator {
             MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural) {
                 return customMoreThanNatural ? LOSS : BENEFIT;
             }
+
+            @Override
+            Money getAppropriateMutationAmount(Money amount, Money payedAmount) {
+                return payedAmount;
+            }
         };
 
         static MutationDirection forEvent(FundsMutationEvent event) {
@@ -97,6 +108,8 @@ public interface FundsMutator {
         abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate);
 
         abstract MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural);
+
+        abstract Money getAppropriateMutationAmount(Money amount, Money payedAmount);
 
     }
 
