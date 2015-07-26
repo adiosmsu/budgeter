@@ -1,6 +1,8 @@
 package ru.adios.budgeter;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +36,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
     });
 
     static {
-        executor.submit(() -> logger.info("Executor started"));
+        executor.submit(() -> logger.debug("Executor started"));
     }
 
     @Autowired private volatile CurrencyRatesRepository ratesRepository;
@@ -75,19 +77,29 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
     }
 
     private void runRunnables(ImmutableList<Runnable> runnables) {
-        runnables.forEach(java.lang.Runnable::run);
+        try {
+            for (final Runnable r : runnables) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Running end-runnable: " + r);
+                }
+                r.run();
+            }
+        } catch (Throwable th) {
+            logger.error("Execution of currencies exchange service tasks error", th);
+            throw Throwables.propagate(th);
+        }
     }
 
     public final void processAllPostponedEvents() {
         accounter.streamAllPostponingReasons().forEach(
                 postponingReasons -> CurrencyRatesProvider.streamConversionPairs(postponingReasons.sufferingUnits)
-                        .forEach(conversionPair -> getConversionMultiplier(postponingReasons.dayUtc, conversionPair.from, conversionPair.to, false))
+                        .forEach(conversionPair -> getConversionMultiplier(postponingReasons.dayUtc, conversionPair.from, conversionPair.to, true))
         );
     }
 
     @Override
     public final Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
-        return getConversionMultiplier(day, from, to, true);
+        return getConversionMultiplier(day, from, to, false);
     }
 
     @Override
@@ -95,7 +107,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
         return getConversionMultiplier(day, from, to);
     }
 
-    private Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to, boolean attemptToLoadFromRepo) {
+    private Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to, boolean processPostponedForExistingRates) {
         final ImmutableList.Builder<Runnable> tasksBuilder = ImmutableList.builder();
 
         try {
@@ -111,7 +123,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
                     return loadResult(btcLoader, day, other, btcUnit, from, to, tasksBuilder);
                 }
 
-                return conversionMultiplierFor(btcLoader, day, other, btcUnit, from, to, tasksBuilder, attemptToLoadFromRepo);
+                return conversionMultiplierFor(btcLoader, day, other, btcUnit, from, to, tasksBuilder, processPostponedForExistingRates);
             }
 
             final CurrencyUnit rubUnit = cbrLoader.getMainUnit();
@@ -121,12 +133,12 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
                         ? to
                         : from;
 
-                return conversionMultiplierFor(cbrLoader, day, other, rubUnit, from, to, tasksBuilder, attemptToLoadFromRepo);
+                return conversionMultiplierFor(cbrLoader, day, other, rubUnit, from, to, tasksBuilder, processPostponedForExistingRates);
             }
 
             // arbitrary case
-            final Optional<BigDecimal> rubToFrom = conversionMultiplierFor(cbrLoader, day, from, rubUnit, rubUnit, from, tasksBuilder, attemptToLoadFromRepo);
-            final Optional<BigDecimal> rubToTo = conversionMultiplierFor(cbrLoader, day, to, rubUnit, rubUnit, to, tasksBuilder, attemptToLoadFromRepo);
+            final Optional<BigDecimal> rubToFrom = conversionMultiplierFor(cbrLoader, day, from, rubUnit, rubUnit, from, tasksBuilder, processPostponedForExistingRates);
+            final Optional<BigDecimal> rubToTo = conversionMultiplierFor(cbrLoader, day, to, rubUnit, rubUnit, to, tasksBuilder, processPostponedForExistingRates);
             if (rubToFrom.isPresent() && rubToTo.isPresent()) {
                 return Optional.of(CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(rubToFrom.get(), rubToTo.get())); // TODO: process postponed for arbitrary pair
             }
@@ -157,13 +169,21 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
     }
 
     private Optional<BigDecimal> conversionMultiplierFor(
-            ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other, CurrencyUnit mainUnit, CurrencyUnit from, CurrencyUnit to, ImmutableList.Builder<Runnable> tasksBuilder, boolean attempt
-    )
-    {
-        if (attempt) {
-            final Optional<BigDecimal> resultRef = ratesRepository.getConversionMultiplier(day, from, to);
-            if (resultRef.isPresent())
-                return resultRef;
+            ExchangeRatesLoader loader,
+            UtcDay day,
+            CurrencyUnit other,
+            CurrencyUnit mainUnit,
+            CurrencyUnit from,
+            CurrencyUnit to,
+            ImmutableList.Builder<Runnable> tasksBuilder,
+            boolean processPostponedForExistingRates
+    ) {
+        final Optional<BigDecimal> resultRef = ratesRepository.getConversionMultiplier(day, from, to);
+        if (resultRef.isPresent()) {
+            if (processPostponedForExistingRates) {
+                addPostponedTask(ImmutableMap.of(to, resultRef.get()), day, from, tasksBuilder);
+            }
+            return resultRef;
         }
 
         return fromNetToRepo(loader, day, other, mainUnit, from, to, tasksBuilder);
@@ -175,7 +195,13 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
         final Optional<BigDecimal> result = loadResult(loader, day, other, mainUnit, from, to, tasksBuilder);
         result.ifPresent(
                 bigDecimal -> tasksBuilder.add(
-                        () -> ratesRepository.addRate(day, from, to, bigDecimal)
+                        () -> {
+                            try {
+                                ratesRepository.addRate(day, from, to, bigDecimal);
+                            } catch (Throwable th) {
+                                logger.error("Rate addition (the one requested) after load from net failed", th);
+                            }
+                        }
                 )
         );
         return result;
@@ -202,28 +228,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
         if (rates.isEmpty())
             return Optional.empty();
 
-        tasksBuilder.add(() -> {
-            for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
-                final BigDecimal rate = entry.getValue();
-                final BigDecimal rateReversed = CurrencyRatesProvider.reverseRate(rate);
-                final CurrencyUnit toUnit = entry.getKey();
-                accounter.streamRememberedBenefits(day, forRates, toUnit).forEach(postponedMutationEvent -> {
-                    final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
-                    core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
-                    core.submit();
-                });
-                accounter.streamRememberedLosses(day, forRates, toUnit).forEach(postponedMutationEvent -> {
-                    final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
-                    core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
-                    core.submit();
-                });
-                accounter.streamRememberedExchanges(day, forRates, toUnit).forEach(postponedExchange -> {
-                    final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
-                    core.setPostponedEvent(postponedExchange, postponedExchange.unitSell.equals(forRates) ? rate : rateReversed);
-                    core.submit();
-                });
-            }
-        });
+        addPostponedTask(rates, day, forRates, tasksBuilder);
 
         try {
             if (from.equals(forRates)) {
@@ -236,9 +241,47 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
             }
         } finally {
             for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
-                tasksBuilder.add(() -> ratesRepository.addRate(day, forRates, entry.getKey(), entry.getValue()));
+                tasksBuilder.add(() -> {
+                    try {
+                        ratesRepository.addRate(day, forRates, entry.getKey(), entry.getValue());
+                    } catch (Throwable th) {
+                        logger.error("Rate addition after load from net failed", th);
+                        Throwables.propagate(th);
+                    }
+                });
             }
         }
+    }
+
+    private void addPostponedTask(Map<CurrencyUnit, BigDecimal> rates, UtcDay day, CurrencyUnit forRates, ImmutableList.Builder<Runnable> tasksBuilder) {
+        final ImmutableMap<CurrencyUnit, BigDecimal> ratesSnapshot = ImmutableMap.copyOf(rates);
+        tasksBuilder.add(() -> {
+            try {
+                for (final Map.Entry<CurrencyUnit, BigDecimal> entry : ratesSnapshot.entrySet()) {
+                    final BigDecimal rate = entry.getValue();
+                    final BigDecimal rateReversed = CurrencyRatesProvider.reverseRate(rate);
+                    final CurrencyUnit toUnit = entry.getKey();
+                    accounter.streamRememberedBenefits(day, forRates, toUnit).forEach(postponedMutationEvent -> {
+                        final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
+                        core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
+                        core.submit();
+                    });
+                    accounter.streamRememberedLosses(day, forRates, toUnit).forEach(postponedMutationEvent -> {
+                        final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
+                        core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
+                        core.submit();
+                    });
+                    accounter.streamRememberedExchanges(day, forRates, toUnit).forEach(postponedExchange -> {
+                        final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
+                        core.setPostponedEvent(postponedExchange, postponedExchange.unitSell.equals(forRates) ? rate : rateReversed);
+                        core.submit();
+                    });
+                }
+            } catch (Throwable th) {
+                logger.error("Postponed tasks reenactment error", th);
+                Throwables.propagate(th);
+            }
+        });
     }
 
 }

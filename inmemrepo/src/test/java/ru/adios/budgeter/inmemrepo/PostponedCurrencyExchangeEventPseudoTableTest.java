@@ -2,7 +2,9 @@ package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.junit.Before;
 import org.junit.Test;
+import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.UtcDay;
 
 import java.math.BigDecimal;
@@ -20,10 +22,18 @@ import static org.junit.Assert.assertEquals;
  */
 public class PostponedCurrencyExchangeEventPseudoTableTest {
 
+    private final FundsMutationAgent agent = FundsMutationAgent.builder().setName("Tesy").build();
+
+    @Before
+    public void setUp() {
+        Schema.clearSchema();
+        Schema.FUNDS_MUTATION_AGENTS.addAgent(agent);
+    }
+
     @Test
     public void testRememberPostponedExchange() throws Exception {
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS
-                .rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), CurrencyUnit.USD, Optional.of(BigDecimal.valueOf(0.89)), OffsetDateTime.now());
+                .rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), CurrencyUnit.USD, Optional.of(BigDecimal.valueOf(0.89)), OffsetDateTime.now(), agent);
         final int id = Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.idSequence.get();
         assertEquals("Money don't match", Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.get(id).obj.toBuy);
     }
@@ -32,7 +42,7 @@ public class PostponedCurrencyExchangeEventPseudoTableTest {
     public void testStreamRememberedExchanges() throws Exception {
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS
                 .rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)), CurrencyUnit.USD, Optional.of(BigDecimal.valueOf(0.89)),
-                        OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC));
+                        OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC), agent);
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS
                 .streamRememberedExchanges(new UtcDay(OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.EUR, CurrencyUnit.USD)
                 .forEach(postponedExchange -> assertEquals("Wrong stream: " + postponedExchange.toBuy, Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)), postponedExchange.toBuy));

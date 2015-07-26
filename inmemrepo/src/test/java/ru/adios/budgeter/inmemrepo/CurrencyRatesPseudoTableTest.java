@@ -68,10 +68,8 @@ public class CurrencyRatesPseudoTableTest {
                     indexed.stream().map(CurrencyRatesPseudoTable.INSTANCE::get).filter(rate -> rate.second.equals(unit)).findFirst().isPresent());
         }
 
-        try {
-            CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), Units.RUB, REG_UNITS.get(0), BigDecimal.ONE);
-            fail("Double insert passed");
-        } catch (Exception ignored) {}
+        assertFalse("Double insert passed", CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), Units.RUB, REG_UNITS.get(0), BigDecimal.ONE));
+
         try {
             CurrencyRatesPseudoTable.INSTANCE.addRate(new UtcDay(), REG_UNITS.get(0), Units.RUB, BigDecimal.ONE);
         } catch (Exception ignored) {

@@ -56,7 +56,7 @@ public class InnerMemoryAccounterTest {
 
         innerMemoryAccounter.rememberPostponedExchangeableLoss(gameBuy, Units.RUB, Optional.empty());
 
-        innerMemoryAccounter.rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(100L)), Units.RUB, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now());
+        innerMemoryAccounter.rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(100L)), Units.RUB, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now(), agent);
 
         final List<Accounter.PostponingReasons> collected = innerMemoryAccounter.streamAllPostponingReasons().collect(Collectors.toList());
         assertEquals("Too large list: " + collected.size(), 1, collected.size());

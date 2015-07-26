@@ -20,8 +20,8 @@ public class CurrencyRatesRepositoryMock implements CurrencyRatesRepository {
     private final CurrencyRatesPseudoTable table = Schema.CURRENCY_RATES;
 
     @Override
-    public void addRate(UtcDay dayUtc, CurrencyUnit from, CurrencyUnit to, BigDecimal rate) {
-        table.addRate(dayUtc, from, to, rate);
+    public boolean addRate(UtcDay dayUtc, CurrencyUnit from, CurrencyUnit to, BigDecimal rate) {
+        return table.addRate(dayUtc, from, to, rate);
     }
 
     @Override

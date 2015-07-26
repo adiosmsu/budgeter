@@ -34,7 +34,7 @@ public final class FundsMutationEvent {
         this.subject = builder.subject;
         this.timestamp = builder.timestamp;
         this.agent = builder.agent;
-        checkArgument(amount != null && subject != null && quantity > 0 && timestamp != null && agent != null, "Bad data, possibly uninitialized");
+        checkArgument(amount != null && subject != null && quantity > 0 && timestamp != null && agent != null, "Bad data, possibly uninitialized %s", builder);
     }
 
     @Override
@@ -82,11 +82,23 @@ public final class FundsMutationEvent {
         private Builder() {}
 
         public Builder setFundsMutationEvent(FundsMutationEvent fundsMutationEvent) {
+            agent = fundsMutationEvent.agent;
             amount = fundsMutationEvent.amount;
             quantity = fundsMutationEvent.quantity;
             subject = fundsMutationEvent.subject;
             timestamp = fundsMutationEvent.timestamp;
             return this;
+        }
+
+        @Override
+        public String toString() {
+            return "FundsMutationEvent$Builder{" +
+                    "amount=" + amount +
+                    ", quantity=" + quantity +
+                    ", subject=" + subject +
+                    ", timestamp=" + timestamp +
+                    ", agent=" + agent +
+                    '}';
         }
 
         public Builder setAmount(Money amount) {

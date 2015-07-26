@@ -11,8 +11,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.google.common.base.Preconditions.checkState;
-
 /**
  * Date: 6/15/15
  * Time: 7:17 PM
@@ -31,15 +29,17 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
     private CurrencyRatesPseudoTable() {}
 
     @Override
-    public void addRate(final UtcDay dayUtc, final CurrencyUnit from, final CurrencyUnit to, final BigDecimal rate) {
+    public boolean addRate(final UtcDay dayUtc, final CurrencyUnit from, final CurrencyUnit to, final BigDecimal rate) {
+        final Object[] mutableFlag = new Object[] {this};
         PseudoTable.nonUniqueIndexedInsert(
                 table,
                 dayIndex,
                 idSequence.incrementAndGet(),
                 id -> new StoredCurrencyRate(id, dayUtc, from, to, rate),
                 Optional.of(dayUtc),
-                Optional.of(scr -> checkState(!(scr.first.equals(from) && scr.second.equals(to)), "Such rate already present (%s,%s,%s)", dayUtc, from, to))
+                Optional.of(scr -> { if (scr.first.equals(from) && scr.second.equals(to)) mutableFlag[0] = null; })
         );
+        return mutableFlag[0] != null;
     }
 
     @Override

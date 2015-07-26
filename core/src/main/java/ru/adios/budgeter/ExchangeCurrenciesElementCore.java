@@ -40,6 +40,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     }
 
     public void setPostponedEvent(PostponedCurrencyExchangeEventRepository.PostponedExchange event, BigDecimal naturalRate) {
+        setAgent(event.agent);
         setBuyAmount(event.toBuy);
         setSellAmountUnit(event.unitSell);
         setCustomRate(event.customRate.orElse(null));
@@ -113,6 +114,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     @Override
     public void submit() {
         Preconditions.checkState(agentRef.isPresent(), "Agent not set");
+        final FundsMutationAgent agent = agentRef.get();
 
         final CurrencyUnit buyUnit = buyAmountWrapper.getAmountUnit();
         final CurrencyUnit sellUnit = sellAmountWrapper.getAmountUnit();
@@ -138,7 +140,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         final BigDecimal naturalRate = calculateNaturalRate(sellUnit, buyUnit);
         if (naturalRate == null) {
             // we don't have rates in question for today yet, conserve operation to commit later
-            accounter.rememberPostponedExchange(buyAmountSmallMoney, sellUnit, customRateRef, timestampRef.get());
+            accounter.rememberPostponedExchange(buyAmountSmallMoney, sellUnit, customRateRef, timestampRef.get(), agent);
             return;
         }
 
@@ -149,7 +151,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                     sellAmount.convertedTo(buyUnit, naturalRate).toMoney(RoundingMode.HALF_DOWN),
                     buyAmountSmallMoney,
                     MutationDirection.BENEFIT,
-                    agentRef.get(),
+                    agent,
                     timestampRef.get(),
                     1
             );
@@ -162,7 +164,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                         .setSold(sellAmountSmallMoney)
                         .setRate(actualRate)
                         .setTimestamp(timestampRef.get())
-                        .setAgent(agentRef.get())
+                        .setAgent(agent)
                         .build()
         );
 

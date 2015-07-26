@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  */
 public interface PostponedCurrencyExchangeEventRepository {
 
-    void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp);
+    void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent);
 
     Stream<PostponedExchange> streamRememberedExchanges(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf);
 
@@ -28,8 +28,10 @@ public interface PostponedCurrencyExchangeEventRepository {
         public final CurrencyUnit unitSell;
         public final Optional<BigDecimal> customRate;
         public final OffsetDateTime timestamp;
+        public final FundsMutationAgent agent;
 
-        public PostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp) {
+        public PostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent) {
+            this.agent = agent;
             this.customRate = customRate.isPresent() ? Optional.of(customRate.get().stripTrailingZeros()) : Optional.empty();
             this.toBuy = toBuy;
             this.unitSell = unitSell;

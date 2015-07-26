@@ -2,6 +2,7 @@ package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository;
 import ru.adios.budgeter.api.UtcDay;
 
@@ -35,10 +36,10 @@ public final class PostponedCurrencyExchangeEventPseudoTable
     private PostponedCurrencyExchangeEventPseudoTable() {}
 
     @Override
-    public void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp) {
+    public void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent) {
         final int id = idSequence.incrementAndGet();
         checkState(
-                table.computeIfAbsent(id, integer -> new Stored<>(id, new PostponedExchange(toBuy, unitSell, customRate, timestamp)))
+                table.computeIfAbsent(id, integer -> new Stored<>(id, new PostponedExchange(toBuy, unitSell, customRate, timestamp, agent)))
                         .id == id
         );
     }

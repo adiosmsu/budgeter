@@ -1,11 +1,11 @@
 package ru.adios.budgeter;
 
 import org.joda.money.CurrencyUnit;
+import org.joda.money.Money;
 import org.junit.Before;
 import org.junit.Test;
-import ru.adios.budgeter.api.CurrencyRatesProvider;
-import ru.adios.budgeter.api.Units;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -37,9 +37,7 @@ public class CurrenciesExchangeServiceTest {
 
     @Before
     public void setUp() {
-        treasury.clear();
-        ratesRepository.clear();
-        accounter.clear();
+        Schema.clearSchema();
 
         treasury.registerCurrency(Units.RUB);
         treasury.registerCurrency(CurrencyUnit.USD);
@@ -89,30 +87,50 @@ public class CurrenciesExchangeServiceTest {
     }
 
     @Test
-    public void testProcessAllPostponedEvents() throws Exception {
-        /*TODO: write CORE classes tests first
-        final FundsMutationSubjectRepository subjRepo = accounter.fundsMutationSubjectRepo();
-        final FundsMutationSubject jobSubj = FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.SubjectType.SERVICE).setName("Job").build();
-        subjRepo.addSubject(jobSubj);
+    public void testProcessAllPostponedEventsWithManualRates() throws Exception {
+        prepareForPostponed();
 
-        accounter.rememberPostponedExchange(Money.of(Units.RUB, BigDecimal.valueOf(60000)), CurrencyUnit.EUR, Optional.of(BigDecimal.valueOf(60.0)), YESTERDAY.inner);
-        accounter.rememberPostponedExchangeableBenefit(
-                FundsMutationEvent.builder().setAmount(Money.of(Units.RUB, 110000.0)).setQuantity(1).setSubject(jobSubj).setTimestamp(TODAY.inner).build(),
-                CurrencyUnit.EUR,
-                Optional.empty()
-        );
-
-        ratesRepository.addRate(YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
-        ratesRepository.addRate(TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+        ratesRepository.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
+        ratesRepository.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
 
         service.processAllPostponedEvents();
 
-        final Optional<FundsMutationEvent> todayFirst = accounter.streamMutationsForDay(TODAY).findFirst();
+        Thread.sleep(100);
+        testPostponed();
+    }
+
+    @Test
+    public void testProcessAllPostponedEventsWithRequest() throws Exception {
+        prepareForPostponed();
+
+        service.processAllPostponedEvents();
+
+        Thread.sleep(100);
+        testPostponed();
+    }
+
+    private void prepareForPostponed() {
+        final FundsMutationSubjectRepository subjRepo = accounter.fundsMutationSubjectRepo();
+        final FundsMutationSubject jobSubj = FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.Type.SERVICE).setName("Job").build();
+        subjRepo.addSubject(jobSubj);
+
+        final FundsMutationAgent testAgent = FundsMutationAgent.builder().setName("Test").build();
+        accounter.fundsMutationAgentRepo().addAgent(testAgent);
+
+        accounter.rememberPostponedExchange(Money.of(Units.RUB, BigDecimal.valueOf(60000)), CurrencyUnit.EUR, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent);
+        accounter.rememberPostponedExchangeableBenefit(
+                FundsMutationEvent.builder().setAmount(Money.of(Units.RUB, 110000.0)).setQuantity(1).setSubject(jobSubj).setTimestamp(TestUtils.TODAY.inner).setAgent(testAgent).build(),
+                CurrencyUnit.EUR,
+                Optional.empty()
+        );
+    }
+
+    private void testPostponed() {
+        final Optional<FundsMutationEvent> todayFirst = accounter.streamMutationsForDay(TestUtils.TODAY).findFirst();
         assertTrue("No remembered mutation event", todayFirst.isPresent());
 
-        final Optional<CurrencyExchangeEvent> yesterdayFirst = accounter.streamExchangesForDay(YESTERDAY).findFirst();
+        final Optional<CurrencyExchangeEvent> yesterdayFirst = accounter.streamExchangesForDay(TestUtils.YESTERDAY).findFirst();
         assertTrue("No remembered exchange event", yesterdayFirst.isPresent());
-        */
     }
 
 }
