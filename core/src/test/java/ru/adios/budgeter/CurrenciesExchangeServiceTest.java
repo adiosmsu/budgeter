@@ -87,6 +87,18 @@ public class CurrenciesExchangeServiceTest {
     }
 
     @Test
+    public void testAddRates() throws Exception {
+        prepareForPostponed();
+
+        service.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
+        service.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+
+        Thread.sleep(100);
+
+        testPostponed();
+    }
+
+    @Test
     public void testProcessAllPostponedEventsWithManualRates() throws Exception {
         prepareForPostponed();
 

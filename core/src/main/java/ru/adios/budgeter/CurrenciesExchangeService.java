@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
  * @author Mikhail Kulikov
  */
 @ThreadSafe
-public class CurrenciesExchangeService implements CurrencyRatesProvider {
+public class CurrenciesExchangeService implements CurrencyRatesRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrenciesExchangeService.class);
 
@@ -120,7 +120,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
 
                 if (day.equals(new UtcDay())) {
                     // only momentary rates for btc, return right away
-                    return loadResult(btcLoader, day, other, btcUnit, from, to, tasksBuilder);
+                    return loadFromNet(btcLoader, day, other, btcUnit, from, to, tasksBuilder);
                 }
 
                 return conversionMultiplierFor(btcLoader, day, other, btcUnit, from, to, tasksBuilder, processPostponedForExistingRates);
@@ -140,18 +140,38 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
             final Optional<BigDecimal> rubToFrom = conversionMultiplierFor(cbrLoader, day, from, rubUnit, rubUnit, from, tasksBuilder, processPostponedForExistingRates);
             final Optional<BigDecimal> rubToTo = conversionMultiplierFor(cbrLoader, day, to, rubUnit, rubUnit, to, tasksBuilder, processPostponedForExistingRates);
             if (rubToFrom.isPresent() && rubToTo.isPresent()) {
-                return Optional.of(CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(rubToFrom.get(), rubToTo.get())); // TODO: process postponed for arbitrary pair
+                final BigDecimal arbitraryRate = CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(rubToFrom.get(), rubToTo.get());
+                addPostponedTask(ImmutableMap.of(from, arbitraryRate), day, to, tasksBuilder);
+                return Optional.of(arbitraryRate);
             }
 
             return Optional.empty(); // nothing worked :(
         } finally {
-            final ImmutableList<Runnable> tasks = tasksBuilder.build();
-            if (tasks.size() > 0)
-                executor.submit(() -> runWithTransaction(tasks.reverse()));
+            scheduleTasks(tasksBuilder);
         }
     }
 
-    //TODO: addRate method to add custom rates
+    private void scheduleTasks(ImmutableList.Builder<Runnable> tasksBuilder) {
+        final ImmutableList<Runnable> tasks = tasksBuilder.build();
+        if (tasks.size() > 0)
+            executor.submit(() -> runWithTransaction(tasks.reverse()));
+    }
+
+    @Override
+    public boolean addRate(UtcDay dayUtc, CurrencyUnit from, CurrencyUnit to, BigDecimal rate) {
+        final boolean success = ratesRepository.addRate(dayUtc, from, to, rate);
+
+        if (success) {
+            final ImmutableList.Builder<Runnable> tasksBuilder = new ImmutableList.Builder<>();
+            try {
+                addPostponedTask(ImmutableMap.of(from, rate), dayUtc, to, tasksBuilder);
+            } finally {
+                scheduleTasks(tasksBuilder);
+            }
+        }
+
+        return success;
+    }
 
     @Override
     public final BigDecimal getLatestConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {
@@ -181,7 +201,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
         final Optional<BigDecimal> resultRef = ratesRepository.getConversionMultiplier(day, from, to);
         if (resultRef.isPresent()) {
             if (processPostponedForExistingRates) {
-                addPostponedTask(ImmutableMap.of(to, resultRef.get()), day, from, tasksBuilder);
+                addPostponedTask(ImmutableMap.of(from, resultRef.get()), day, to, tasksBuilder);
             }
             return resultRef;
         }
@@ -192,7 +212,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
     private Optional<BigDecimal> fromNetToRepo(
             ExchangeRatesLoader loader, final UtcDay day, CurrencyUnit other, CurrencyUnit mainUnit, final CurrencyUnit from, final CurrencyUnit to, ImmutableList.Builder<Runnable> tasksBuilder
     ) {
-        final Optional<BigDecimal> result = loadResult(loader, day, other, mainUnit, from, to, tasksBuilder);
+        final Optional<BigDecimal> result = loadFromNet(loader, day, other, mainUnit, from, to, tasksBuilder);
         result.ifPresent(
                 bigDecimal -> tasksBuilder.add(
                         () -> {
@@ -207,7 +227,7 @@ public class CurrenciesExchangeService implements CurrencyRatesProvider {
         return result;
     }
 
-    private Optional<BigDecimal> loadResult(
+    private Optional<BigDecimal> loadFromNet(
             ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other, CurrencyUnit mainUnit, CurrencyUnit from, CurrencyUnit to, ImmutableList.Builder<Runnable> tasksBuilder
     ) {
         final Map<CurrencyUnit, BigDecimal> rates = loadCurrencies(loader, day, other);
