@@ -20,7 +20,7 @@ public interface BalancesRepository {
             this.balancesRepository = balancesRepository;
         }
 
-        Money amountForHumans(CurrencyUnit unit) {
+        public Money amountForHumans(CurrencyUnit unit) {
             return balancesRepository.amount(unit).orElse(Money.zero(unit));
         }
     }
