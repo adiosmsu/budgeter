@@ -12,6 +12,7 @@
         <module>core</module>
         <module>inmemrepo</module>
         <module>api-java6</module>
+        <module>core-java6</module>
     </modules>
 
 </project>

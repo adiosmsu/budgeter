@@ -28,7 +28,7 @@ public interface CurrencyRatesProvider {
 
     final class Static {
 
-        static Optional<BigDecimal> getConversionMultiplierInBidirectionalWay(BiFunction<CurrencyUnit, CurrencyUnit, Optional<BigDecimal>> straightGetter, CurrencyUnit from, CurrencyUnit to) {
+        public static Optional<BigDecimal> getConversionMultiplierInBidirectionalWay(BiFunction<CurrencyUnit, CurrencyUnit, Optional<BigDecimal>> straightGetter, CurrencyUnit from, CurrencyUnit to) {
             Optional<BigDecimal> result = straightGetter.apply(from, to);
 
             if (result.isPresent()) {
@@ -44,11 +44,11 @@ public interface CurrencyRatesProvider {
             return Optional.empty();
         }
 
-        static BigDecimal getConversionMultiplierFromIntermediateMultipliers(BigDecimal interToFirst, BigDecimal interToSecond) {
+        public static BigDecimal getConversionMultiplierFromIntermediateMultipliers(BigDecimal interToFirst, BigDecimal interToSecond) {
             return interToFirst.divide(interToSecond, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
         }
 
-        static BigDecimal reverseRate(BigDecimal rate) {
+        public static BigDecimal reverseRate(BigDecimal rate) {
             return BigDecimal.ONE.divide(rate, CurrencyRatesProvider.RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
         }
 
@@ -58,11 +58,11 @@ public interface CurrencyRatesProvider {
          * @param sold amount sold
          * @return conversion rate
          */
-        static BigDecimal calculateRate(BigDecimal bought, BigDecimal sold) {
+        public static BigDecimal calculateRate(BigDecimal bought, BigDecimal sold) {
             return bought.divide(sold, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
         }
 
-        static Stream<ConversionPair> streamConversionPairs(Set<CurrencyUnit> unitsSet) {
+        public static Stream<ConversionPair> streamConversionPairs(Set<CurrencyUnit> unitsSet) {
             final int sizeUnits = unitsSet.size();
             if (sizeUnits <= 1)
                 return StreamSupport.empty();
