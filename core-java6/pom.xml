@@ -79,17 +79,21 @@
             <version>1.7.10</version>
             <scope>test</scope>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>ru.adios.budgeter</groupId>-->
-            <!--<artifactId>inmemrepo-api-impl</artifactId>-->
-            <!--<version>1.0-SNAPSHOT</version>-->
-            <!--<scope>test</scope>-->
-            <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<groupId>ru.adios.budgeter</groupId>-->
-                    <!--<artifactId>api</artifactId>-->
-                <!--</exclusion>-->
-            <!--</exclusions>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>ru.adios.budgeter</groupId>
+            <artifactId>inmemrepo-api-impl-java6</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>ru.adios.budgeter</groupId>
+                    <artifactId>api-java6</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ru.adios.budgeter</groupId>
+                    <artifactId>chm-java6-port</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 </project>
