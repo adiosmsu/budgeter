@@ -77,8 +77,14 @@ public final class InnerMemoryAccounter implements Accounter {
     }
 
     @Override
-    public void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent) {
-        Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.rememberPostponedExchange(toBuy, unitSell, customRate, timestamp, agent);
+    public void rememberPostponedExchange(BigDecimal toBuy,
+                                          Treasury.BalanceAccount toBuyAccount,
+                                          Treasury.BalanceAccount sellAccount,
+                                          Optional<BigDecimal> customRate,
+                                          OffsetDateTime timestamp,
+                                          FundsMutationAgent agent)
+    {
+        Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.rememberPostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent);
     }
 
     @Override
@@ -93,8 +99,8 @@ public final class InnerMemoryAccounter implements Accounter {
             @Override
             public void accept(PostponedExchange postponedExchange) {
                 final HashSet<CurrencyUnit> units = getUnitsAcc(accumulator, new UtcDay(postponedExchange.timestamp));
-                units.add(postponedExchange.toBuy.getCurrencyUnit());
-                units.add(postponedExchange.unitSell);
+                units.add(postponedExchange.toBuyAccount.getUnit());
+                units.add(postponedExchange.sellAccount.getUnit());
             }
         });
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.streamAll().forEach(new Consumer<PostponedMutationEvent>() {
@@ -105,13 +111,12 @@ public final class InnerMemoryAccounter implements Accounter {
                 units.add(postponedMutationEvent.conversionUnit);
             }
         });
-        return StreamSupport.stream(accumulator.entrySet())
-                .map(new Function<Map.Entry<UtcDay, HashSet<CurrencyUnit>>, PostponingReasons>() {
-                    @Override
-                    public PostponingReasons apply(Map.Entry<UtcDay, HashSet<CurrencyUnit>> entry) {
-                        return new PostponingReasons(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
-                    }
-                });
+        return StreamSupport.stream(accumulator.entrySet()).map(new Function<Map.Entry<UtcDay, HashSet<CurrencyUnit>>, PostponingReasons>() {
+            @Override
+            public PostponingReasons apply(Map.Entry<UtcDay, HashSet<CurrencyUnit>> entry) {
+                return new PostponingReasons(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
+            }
+        });
     }
 
     @Override

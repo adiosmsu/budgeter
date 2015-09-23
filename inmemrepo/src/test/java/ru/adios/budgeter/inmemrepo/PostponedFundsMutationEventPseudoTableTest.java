@@ -2,6 +2,7 @@ package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.junit.Before;
 import org.junit.Test;
 import ru.adios.budgeter.api.*;
 
@@ -22,6 +23,11 @@ import static org.junit.Assert.assertEquals;
  */
 public class PostponedFundsMutationEventPseudoTableTest {
 
+    @Before
+    public void setUp() {
+        Schema.clearSchema();
+    }
+
     @Test
     public void testRememberPostponedExchangeableBenefit() throws Exception {
         final FundsMutationAgent agent = TestUtils.prepareTestAgent();
@@ -38,6 +44,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(666L)))
+                .setRelevantBalance(TestUtils.prepareBalance(Units.RUB))
                 .setAgent(agent)
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
@@ -57,10 +64,12 @@ public class PostponedFundsMutationEventPseudoTableTest {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
 
+        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(CurrencyUnit.USD);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(777L)))
+                .setRelevantBalance(accountUsd)
                 .setAgent(agent)
                 .build();
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableLoss(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
@@ -79,12 +88,15 @@ public class PostponedFundsMutationEventPseudoTableTest {
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
+        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(Units.RUB);
+        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(CurrencyUnit.USD);
 
         final OffsetDateTime ts = OffsetDateTime.of(1998, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(888L)))
+                .setRelevantBalance(accountRub)
                 .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
@@ -92,6 +104,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(999L)))
+                .setRelevantBalance(accountUsd)
                 .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
@@ -120,12 +133,15 @@ public class PostponedFundsMutationEventPseudoTableTest {
         } catch (Exception ignore) {
             food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
+        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(Units.RUB);
+        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(CurrencyUnit.USD);
 
         final OffsetDateTime ts = OffsetDateTime.of(1997, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(1000L)))
+                .setRelevantBalance(accountRub)
                 .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
@@ -133,6 +149,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(1001L)))
+                .setRelevantBalance(accountUsd)
                 .setAgent(agent)
                 .setTimestamp(ts)
                 .build();

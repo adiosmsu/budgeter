@@ -77,8 +77,14 @@ public class AccounterMock implements Accounter {
     }
 
     @Override
-    public void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent) {
-        postponedCurrencyExchangeEventRepository.rememberPostponedExchange(toBuy, unitSell, customRate, timestamp, agent);
+    public void rememberPostponedExchange(BigDecimal toBuy,
+                                          Treasury.BalanceAccount toBuyAccount,
+                                          Treasury.BalanceAccount sellAccount,
+                                          Optional<BigDecimal> customRate,
+                                          OffsetDateTime timestamp,
+                                          FundsMutationAgent agent)
+    {
+        postponedCurrencyExchangeEventRepository.rememberPostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent);
     }
 
     @Override

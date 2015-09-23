@@ -23,6 +23,7 @@ public final class FundsMutationEvent {
     }
 
     public final Money amount;
+    public final Treasury.BalanceAccount relevantBalance;
     public final int quantity;
     public final FundsMutationSubject subject;
     public final OffsetDateTime timestamp;
@@ -30,17 +31,19 @@ public final class FundsMutationEvent {
 
     private FundsMutationEvent(Builder builder) {
         this.amount = builder.amount;
+        this.relevantBalance = builder.relevantBalance;
         this.quantity = builder.quantity;
         this.subject = builder.subject;
         this.timestamp = builder.timestamp;
         this.agent = builder.agent;
-        checkArgument(amount != null && subject != null && quantity > 0 && timestamp != null && agent != null, "Bad data, possibly uninitialized %s", builder);
+        checkArgument(amount != null && relevantBalance != null && subject != null && quantity > 0 && timestamp != null && agent != null, "Bad data, possibly uninitialized %s", builder);
     }
 
     @Override
     public String toString() {
         return "FundsMutationEvent{" +
                 "amount=" + amount +
+                ", relevantBalance=" + relevantBalance +
                 ", quantity=" + quantity +
                 ", subject=" + subject +
                 ", timestamp=" + timestamp +
@@ -57,6 +60,7 @@ public final class FundsMutationEvent {
 
         return quantity == that.quantity
                 && amount.equals(that.amount)
+                && relevantBalance.equals(that.relevantBalance)
                 && subject.equals(that.subject)
                 && timestamp.equals(that.timestamp);
     }
@@ -65,6 +69,7 @@ public final class FundsMutationEvent {
     public int hashCode() {
         int result = amount.hashCode();
         result = 31 * result + quantity;
+        result = 31 * result + relevantBalance.hashCode();
         result = 31 * result + subject.hashCode();
         result = 31 * result + timestamp.hashCode();
         return result;
@@ -74,6 +79,7 @@ public final class FundsMutationEvent {
     public static final class Builder {
 
         private Money amount;
+        private Treasury.BalanceAccount relevantBalance;
         private int quantity = 1;
         private FundsMutationSubject subject;
         private OffsetDateTime timestamp = OffsetDateTime.now();
@@ -84,6 +90,7 @@ public final class FundsMutationEvent {
         public Builder setFundsMutationEvent(FundsMutationEvent fundsMutationEvent) {
             agent = fundsMutationEvent.agent;
             amount = fundsMutationEvent.amount;
+            relevantBalance = fundsMutationEvent.relevantBalance;
             quantity = fundsMutationEvent.quantity;
             subject = fundsMutationEvent.subject;
             timestamp = fundsMutationEvent.timestamp;
@@ -92,8 +99,9 @@ public final class FundsMutationEvent {
 
         @Override
         public String toString() {
-            return "FundsMutationEvent$Builder{" +
+            return "FundsMutationEvent.Builder{" +
                     "amount=" + amount +
+                    ", relevantBalance=" + relevantBalance +
                     ", quantity=" + quantity +
                     ", subject=" + subject +
                     ", timestamp=" + timestamp +
@@ -103,6 +111,11 @@ public final class FundsMutationEvent {
 
         public Builder setAmount(Money amount) {
             this.amount = amount;
+            return this;
+        }
+
+        public Builder setRelevantBalance(Treasury.BalanceAccount relevantBalance) {
+            this.relevantBalance = relevantBalance;
             return this;
         }
 
@@ -144,6 +157,10 @@ public final class FundsMutationEvent {
 
         public FundsMutationSubject getSubject() {
             return subject;
+        }
+
+        public Treasury.BalanceAccount getRelevantBalance() {
+            return relevantBalance;
         }
 
         public FundsMutationEvent build() {

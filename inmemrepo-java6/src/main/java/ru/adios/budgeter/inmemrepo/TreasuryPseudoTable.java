@@ -4,20 +4,19 @@ import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
 import java8.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
-import ru.adios.budgeter.api.BalancesRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Treasury;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -26,94 +25,41 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @author Mikhail Kulikov
  */
-public final class TreasuryPseudoTable extends AbstractPseudoTable<Stored<Money>, Money> implements Treasury {
+public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalanceAccount, Money> implements Treasury {
 
     public static final TreasuryPseudoTable INSTANCE = new TreasuryPseudoTable();
+    private static final Logger logger = LoggerFactory.getLogger(TreasuryPseudoTable.class);
 
     final AtomicInteger idSequence = new AtomicInteger(0);
 
-    private final ConcurrentHashMap<Integer, Stored<Money>> table = new ConcurrentHashMap<Integer, Stored<Money>>(15, 0.75f, 4);
-    private final ConcurrentHashMap<CurrencyUnit, Integer> unitUniqueIndex = new ConcurrentHashMap<CurrencyUnit, Integer>(15, 0.75f, 4);
+    private final ConcurrentHashMap<Integer, StoredBalanceAccount> table = new ConcurrentHashMap<Integer, StoredBalanceAccount>(15, 0.75f, 4);
+    private final ConcurrentHashMap<CurrencyUnit, ImmutableList<Integer>> unitIndex = new ConcurrentHashMap<CurrencyUnit, ImmutableList<Integer>>(15, 0.75f, 4);
+    private final ConcurrentHashMap<String, Integer> nameUniqueIndex = new ConcurrentHashMap<String, Integer>(15, 0.75f, 4);
 
-    private final BalancesRepository.Default brDef = new BalancesRepository.Default(this);
-    private final Treasury.Default tDef = new Treasury.Default(this);
+    private final Default tDef = new Default(this);
 
     private TreasuryPseudoTable() {}
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public void addAmount(Money amount) {
-        final CurrencyUnit unit = amount.getCurrencyUnit();
-        Integer id = unitUniqueIndex.get(unit);
-        if (id == null) {
-            id = idSequence.incrementAndGet();
-        }
-        final long start = System.currentTimeMillis();
-        Stored<Money> moneyStored;
-        final Object[] fresh = new Object[1];
-        //noinspection EqualsBetweenInconvertibleTypes
-        do {
-            moneyStored = table.get(id);
-            fresh[0] = moneyStored != null
-                    ? new Stored<Money>(id, moneyStored.obj.plus(amount))
-                    : new Stored<Money>(id, amount);
-            checkState(System.currentTimeMillis() - start < 5000, "Row insert/update timeout");
-        } while (moneyStored != null ? !table.replace(id, moneyStored, (Stored<Money>) fresh[0]) : !table.computeIfAbsent(id, new Function<Integer, Stored<Money>>() {
-            @Override
-            public Stored<Money> apply(Integer key) {
-                checkState(unitUniqueIndex.putIfAbsent(unit, key) == null, "Not unique unit %s", unit);
-                return (Stored<Money>) fresh[0];
-            }
-        }).equals(fresh[0]));
-    }
-
-    @Override
-    public Stream<CurrencyUnit> getRegisteredCurrencies() {
-        return StreamSupport.stream(table.values().getSpliterator(), false).map(new Function<Stored<Money>, CurrencyUnit>() {
-            @Override
-            public CurrencyUnit apply(Stored<Money> moneyStored) {
-                return moneyStored.obj.getCurrencyUnit();
-            }
-        });
-    }
-
-    @Override
-    public void registerCurrency(CurrencyUnit unit) {
-        final int id = idSequence.incrementAndGet();
-        checkState(unitUniqueIndex.computeIfAbsent(unit, new Function<CurrencyUnit, Integer>() {
-            @Override
-            public Integer apply(CurrencyUnit unit) {
-                table.put(id, new Stored<Money>(id, Money.zero(unit)));
-                return id;
-            }
-        }).equals(id), "Not unique unit %s", unit);
-    }
-
-    @Override
-    public ImmutableList<CurrencyUnit> searchCurrenciesByString(final String str) {
-        final List<CurrencyUnit> collected =
-                StreamSupport.stream(unitUniqueIndex.keySet().getSpliterator(), false)
-                        .filter(new Predicate<CurrencyUnit>() {
-                            @Override
-                            public boolean test(CurrencyUnit unit) {
-                                return unit.getCode().toUpperCase().startsWith(str.toUpperCase());
-                            }
-                        })
-                        .collect(Collectors.<CurrencyUnit>toList());
-        return ImmutableList.copyOf(collected);
-    }
-
     @Override
     public Optional<Money> amount(CurrencyUnit unit) {
-        final Integer i = unitUniqueIndex.get(unit);
-        if (i == null)
+        final ImmutableList<Integer> idsList = unitIndex.get(unit);
+
+        if (idsList == null || idsList.isEmpty()) {
             return Optional.empty();
-        return Optional.ofNullable(table.get(i).obj);
+        }
+
+        Money sum = Money.zero(unit);
+        for (final Integer id : idsList) {
+            final Stored<Money> stored = table.get(id);
+            checkNotNull(stored, "Record indexed but not stored (unit: %s, id: %s)", unit, id);
+            sum = sum.plus(stored.obj);
+        }
+        return Optional.of(sum);
     }
 
     @Override
     public Money amountForHumans(CurrencyUnit unit) {
-        return brDef.amountForHumans(unit);
+        return tDef.amountForHumans(unit);
     }
 
     @Override
@@ -121,16 +67,173 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<Stored<Money>
         return tDef.totalAmount(unit, ratesProvider);
     }
 
+    @Override
+    public Optional<Money> accountBalance(String accountName) {
+        final Integer id = nameUniqueIndex.get(accountName);
+        if (id == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(table.get(id).obj);
+    }
+
+    @Override
+    public Optional<Money> accountBalance(BalanceAccount account) {
+        return tDef.accountBalance(account);
+    }
+
+    @Override
+    public void addAmount(Money amount, String accountName) {
+        _addAmount(amount, accountName, false);
+    }
+
+    @Override
+    public void addAmount(Money amount, BalanceAccount account) {
+        tDef.addAmount(amount, account);
+    }
+
+    private void _addAmount(Money amount, String accountName, boolean createNew) {
+        checkNotNull(amount, "amount is null");
+        checkNotNull(accountName, "accountName is null");
+
+        Integer id = nameUniqueIndex.get(accountName);
+        if (id == null) {
+            id = idSequence.incrementAndGet();
+        } else {
+            checkState(!createNew, "Not unique name %s", accountName);
+        }
+
+        final CurrencyUnit unit = amount.getCurrencyUnit();
+
+        final long start = System.currentTimeMillis();
+        final Object[] freshValueContainer = new Object[1];
+        StoredBalanceAccount moneyStored;
+        do {
+            moneyStored = table.get(id);
+            checkState(moneyStored == null || amount.getCurrencyUnit().equals(moneyStored.obj.getCurrencyUnit()),
+                    "Account %s, trying to add %s", moneyStored, amount);
+
+            freshValueContainer[0] = (moneyStored != null)
+                    ? new StoredBalanceAccount(id, moneyStored.obj.plus(amount), accountName)
+                    : new StoredBalanceAccount(id, amount, accountName);
+
+            checkState(System.currentTimeMillis() - start < 5000, "Row insert/update timeout");
+        } while (moneyStored != null
+                ? replaceStoredFailed(id, moneyStored, freshValueContainer)
+                : insertNewStoredFailed(accountName, id, unit, start, freshValueContainer, createNew));
+    }
+
+    private boolean replaceStoredFailed(Integer id, StoredBalanceAccount moneyStored, Object[] fresh) {
+        final StoredBalanceAccount newValue = (StoredBalanceAccount) fresh[0];
+
+        final boolean success = table.replace(id, moneyStored, newValue);
+        if (logger.isDebugEnabled()) {
+            if (success) {
+                logger.debug("Replaced stored balance account {} with {}", moneyStored, newValue);
+            } else {
+                logger.debug("Was too late to replace of stored balance account {} with {}", moneyStored, newValue);
+            }
+        }
+        return !success;
+    }
+
+    private boolean insertNewStoredFailed(final String accountName, final Integer id, final CurrencyUnit unit, final long start, final Object[] fresh, final boolean createNew) {
+        final StoredBalanceAccount insertedValue = table.computeIfAbsent(id, new Function<Integer, StoredBalanceAccount>() {
+            @Override
+            public StoredBalanceAccount apply(Integer key) {
+                final StoredBalanceAccount toStore = (StoredBalanceAccount) fresh[0];
+                if (nameUniqueIndex.putIfAbsent(accountName, key) != null) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Not unique name {} for {}", accountName, toStore);
+                    }
+                    checkState(!createNew, "Not unique name %s for %s", accountName, toStore);
+                    return null;
+                }
+
+                ImmutableList<Integer> idsForUnit;
+                ImmutableList.Builder<Integer> builder;
+                do {
+                    idsForUnit = unitIndex.get(unit);
+                    builder = ImmutableList.builder();
+                    if (idsForUnit != null) {
+                        for (final Integer idFu : idsForUnit) {
+                            builder.add(idFu);
+                        }
+                    }
+                    builder.add(key);
+                    checkState(System.currentTimeMillis() - start < 5000, "Row insert/update timeout");
+                } while (idsForUnit != null
+                        ? !unitIndex.replace(unit, idsForUnit, builder.build())
+                        : unitIndex.putIfAbsent(unit, builder.build()) != null);
+
+                return toStore;
+            }
+        });
+
+        final boolean success =
+                insertedValue != null && insertedValue.equals(fresh[0]);
+        if (logger.isDebugEnabled()) {
+            final StoredBalanceAccount toStore = (StoredBalanceAccount) fresh[0];
+            if (success) {
+                logger.debug("Inserted stored balance account " + toStore);
+            } else {
+                logger.debug("Was too late to store balance account " + toStore);
+            }
+        }
+        return !success;
+    }
+
+    @Override
+    public void registerBalanceAccount(BalanceAccount account) {
+        _addAmount(Money.zero(account.getUnit()), account.name, true);
+    }
+
+    @Override
+    public Stream<CurrencyUnit> streamRegisteredCurrencies() {
+        return StreamSupport.stream(unitIndex.keySet());
+    }
+
+    @Override
+    public Stream<BalanceAccount> streamAccountsByCurrency(final CurrencyUnit unit) {
+        return StreamSupport.stream(unitIndex.get(unit)).map(new Function<Integer, BalanceAccount>() {
+            @Override
+            public BalanceAccount apply(Integer id) {
+                final StoredBalanceAccount stored = table.get(id);
+                checkNotNull(stored, "Indexed unit %s not stored for id %s", unit, id);
+                return new BalanceAccount(id.longValue(), stored.name, stored.obj);
+            }
+        });
+    }
+
+    @Override
+    public Stream<BalanceAccount> streamRegisteredAccounts() {
+        return StreamSupport.stream(table.values()).map(new Function<StoredBalanceAccount, BalanceAccount>() {
+            @Override
+            public BalanceAccount apply(StoredBalanceAccount stored) {
+                return new BalanceAccount((long) stored.id, stored.name, stored.obj);
+            }
+        });
+    }
+
+    @Override
+    public BalanceAccount getAccountWithId(BalanceAccount account) {
+        if (account.id != null) {
+            return account;
+        }
+        final Integer key = nameUniqueIndex.get(account.name);
+        return new BalanceAccount(key.longValue(), account.name, accountBalance(account.name).get());
+    }
+
     @Nonnull
     @Override
-    ConcurrentHashMap<Integer, Stored<Money>> innerTable() {
+    ConcurrentHashMap<Integer, StoredBalanceAccount> innerTable() {
         return table;
     }
 
     @Override
     public void clear() {
         table.clear();
-        unitUniqueIndex.clear();
+        unitIndex.clear();
+        nameUniqueIndex.clear();
     }
 
 }

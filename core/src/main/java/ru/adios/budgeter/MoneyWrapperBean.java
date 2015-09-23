@@ -6,6 +6,7 @@ import org.joda.money.Money;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -18,9 +19,9 @@ public final class MoneyWrapperBean implements MoneySettable {
 
     public final String name;
 
-    public Optional<BigDecimal> amountDecimalRef = Optional.empty();
-    public Optional<CurrencyUnit> amountUnitRef = Optional.empty();
-    public Optional<Money> amountRef = Optional.empty();
+    Optional<BigDecimal> amountDecimalRef = Optional.empty();
+    Optional<CurrencyUnit> amountUnitRef = Optional.empty();
+    Optional<Money> amountRef = Optional.empty();
 
     public MoneyWrapperBean(String name) {
         this.name = name;
@@ -33,17 +34,32 @@ public final class MoneyWrapperBean implements MoneySettable {
 
     @Override
     public void setAmountUnit(String code) {
-        amountUnitRef = Optional.of(CurrencyUnit.of(code));
+        setAmountUnit(CurrencyUnit.of(code));
     }
 
     @Override
     public void setAmountUnit(CurrencyUnit unit) {
+        checkNotNull(unit);
+        if (amountUnitRef.isPresent() && !unit.equals(amountUnitRef.get())) {
+            amountDecimalRef = Optional.empty();
+        }
+        if (amountRef.isPresent() && !unit.equals(amountRef.get().getCurrencyUnit())) {
+            amountRef = Optional.empty();
+        }
         amountUnitRef = Optional.of(unit);
     }
 
     @Override
     public void setAmount(Money amount) {
+        checkNotNull(amount);
         amountRef = Optional.of(amount);
+        amountDecimalRef = Optional.of(amount.getAmount());
+        amountUnitRef = Optional.of(amount.getCurrencyUnit());
+    }
+
+    @Override
+    public BigDecimal getAmountDecimal() {
+        return amountDecimalRef.orElseGet(() -> amountRef.isPresent() ? amountRef.get().getAmount() : BigDecimal.ZERO);
     }
 
     @Override
@@ -52,8 +68,7 @@ public final class MoneyWrapperBean implements MoneySettable {
     }
 
     public CurrencyUnit getAmountUnit() {
-        checkState(isUnitSet(), "Unit unknown in %s", name);
-        return amountUnitRef.orElseGet(() -> amountRef.get().getCurrencyUnit());
+        return amountUnitRef.orElseGet(() -> amountRef.isPresent() ? amountRef.get().getCurrencyUnit() : null);
     }
 
     public boolean isAmountSet() {
@@ -62,6 +77,10 @@ public final class MoneyWrapperBean implements MoneySettable {
 
     public boolean isUnitSet() {
         return amountRef.isPresent() || amountUnitRef.isPresent();
+    }
+
+    public boolean isInitiable() {
+        return amountRef.isPresent() || (amountDecimalRef.isPresent() && amountUnitRef.isPresent());
     }
 
     private Money initAmount() {

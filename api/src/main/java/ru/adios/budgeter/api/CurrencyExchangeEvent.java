@@ -26,14 +26,18 @@ public final class CurrencyExchangeEvent {
     private CurrencyExchangeEvent(Builder builder) {
         this.bought = builder.bought;
         this.sold = builder.sold;
+        this.boughtAccount = builder.boughtAccount;
+        this.soldAccount = builder.soldAccount;
         this.rate = builder.rate.stripTrailingZeros();
         this.timestamp = builder.timestamp;
         this.agent = builder.agent;
-        checkArgument(bought != null && sold != null && rate != null && agent != null, "Bad data, possibly uninitialized");
+        checkArgument(bought != null && sold != null && soldAccount != null && boughtAccount != null && rate != null && agent != null, "Bad data, possibly uninitialized");
     }
 
     public final Money sold;
     public final Money bought;
+    public final Treasury.BalanceAccount soldAccount;
+    public final Treasury.BalanceAccount boughtAccount;
     public final BigDecimal rate;
     public final OffsetDateTime timestamp;
     public final FundsMutationAgent agent;
@@ -43,6 +47,8 @@ public final class CurrencyExchangeEvent {
         return "CurrencyExchangeEvent{" +
                 "sold=" + sold +
                 ", bought=" + bought +
+                ", soldAccount=" + soldAccount +
+                ", boughtAccount=" + boughtAccount +
                 ", rate=" + rate +
                 ", timestamp=" + timestamp +
                 ", agent=" + agent +
@@ -56,18 +62,23 @@ public final class CurrencyExchangeEvent {
 
         CurrencyExchangeEvent that = (CurrencyExchangeEvent) o;
 
-        return sold.equals(that.sold)
-                && bought.equals(that.bought)
+        return sold.equals(that.sold) && bought.equals(that.bought)
+                && soldAccount.equals(that.soldAccount)
+                && boughtAccount.equals(that.boughtAccount)
                 && rate.equals(that.rate)
-                && timestamp.equals(that.timestamp);
+                && timestamp.equals(that.timestamp)
+                && agent.equals(that.agent);
     }
 
     @Override
     public int hashCode() {
         int result = sold.hashCode();
         result = 31 * result + bought.hashCode();
+        result = 31 * result + soldAccount.hashCode();
+        result = 31 * result + boughtAccount.hashCode();
         result = 31 * result + rate.hashCode();
         result = 31 * result + timestamp.hashCode();
+        result = 31 * result + agent.hashCode();
         return result;
     }
 
@@ -76,6 +87,8 @@ public final class CurrencyExchangeEvent {
 
         private Money sold;
         private Money bought;
+        private Treasury.BalanceAccount soldAccount;
+        private Treasury.BalanceAccount boughtAccount;
         private BigDecimal rate;
         private OffsetDateTime timestamp = OffsetDateTime.now();
         private FundsMutationAgent agent;
@@ -94,6 +107,16 @@ public final class CurrencyExchangeEvent {
 
         public Builder setSold(Money sold) {
             this.sold = sold;
+            return this;
+        }
+
+        public Builder setBoughtAccount(Treasury.BalanceAccount boughtAccount) {
+            this.boughtAccount = boughtAccount;
+            return this;
+        }
+
+        public Builder setSoldAccount(Treasury.BalanceAccount soldAccount) {
+            this.soldAccount = soldAccount;
             return this;
         }
 

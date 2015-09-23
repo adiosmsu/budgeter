@@ -35,13 +35,16 @@ public class CurrenciesExchangeServiceTest {
             ExchangeRatesLoader.createCbrLoader(treasury)
     );
 
+    private Treasury.BalanceAccount accountRub;
+    private Treasury.BalanceAccount accountEur;
+
     @Before
     public void setUp() {
         Schema.clearSchema();
 
-        treasury.registerCurrency(Units.RUB);
-        treasury.registerCurrency(CurrencyUnit.USD);
-        treasury.registerCurrency(CurrencyUnit.EUR);
+        accountRub = TestUtils.prepareBalance(Units.RUB);
+        TestUtils.prepareBalance(CurrencyUnit.USD);
+        accountEur = TestUtils.prepareBalance(CurrencyUnit.EUR);
     }
 
     @Test
@@ -129,9 +132,14 @@ public class CurrenciesExchangeServiceTest {
         final FundsMutationAgent testAgent = FundsMutationAgent.builder().setName("Test").build();
         accounter.fundsMutationAgentRepo().addAgent(testAgent);
 
-        accounter.rememberPostponedExchange(Money.of(Units.RUB, BigDecimal.valueOf(60000)), CurrencyUnit.EUR, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent);
+        accounter.rememberPostponedExchange(BigDecimal.valueOf(60000), accountRub, accountEur, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent);
         accounter.rememberPostponedExchangeableBenefit(
-                FundsMutationEvent.builder().setAmount(Money.of(Units.RUB, 110000.0)).setQuantity(1).setSubject(jobSubj).setTimestamp(TestUtils.TODAY.inner).setAgent(testAgent).build(),
+                FundsMutationEvent.builder()
+                        .setAmount(Money.of(Units.RUB, 110000.0))
+                        .setRelevantBalance(accountRub)
+                        .setSubject(jobSubj)
+                        .setTimestamp(TestUtils.TODAY.inner)
+                        .setAgent(testAgent).build(),
                 CurrencyUnit.EUR,
                 Optional.<BigDecimal>empty()
         );

@@ -37,6 +37,10 @@ public class FundsMutationElementCoreTest {
 
         Schema.clearSchema();
 
+        final Treasury.BalanceAccount rubAccount = TestUtils.prepareBalance(Units.RUB);
+        final Treasury.BalanceAccount usdAccount = TestUtils.prepareBalance(CurrencyUnit.USD);
+        final Treasury.BalanceAccount eurAccount = TestUtils.prepareBalance(CurrencyUnit.EUR);
+
         final FundsMutationAgent groceryAgent = FundsMutationAgent.builder().setName("Магазин").build();
         final FundsMutationAgent musicShopAgent = FundsMutationAgent.builder().setName("Music shop").build();
         final FundsMutationAgent inetAgent = FundsMutationAgent.builder().setName("Интернет").build();
@@ -74,7 +78,11 @@ public class FundsMutationElementCoreTest {
         core.setAmount(90, 0);
         core.setMutateFunds(false);
         core.setTimestamp(now);
-        core.submit();
+        core.setRelevantBalance(rubAccount);
+
+        Submitter.Result submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<FundsMutationEvent> savedBread = accounter.streamMutationsForDay(TestUtils.TODAY).findFirst();
         assertTrue("Bread purchase (not mutated) not found", savedBread.isPresent());
         assertEquals(
@@ -84,6 +92,7 @@ public class FundsMutationElementCoreTest {
                         .setAmount(Money.of(Units.RUB, -90.0))
                         .setSubject(breadSubj)
                         .setTimestamp(now)
+                        .setRelevantBalance(rubAccount)
                         .build(),
                 savedBread.get()
         );
@@ -98,7 +107,11 @@ public class FundsMutationElementCoreTest {
         core.setAmountUnit(Units.RUB);
         core.setPayedMoney(Money.of(CurrencyUnit.EUR, 100));
         core.setTimestamp(TestUtils.JULY_3RD_2015.inner);
-        core.submit();
+        core.setRelevantBalance(rubAccount);
+
+        submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<FundsMutationEvent> savedWorkHour = accounter.streamMutationsForDay(TestUtils.JULY_3RD_2015).filter(new Predicate<FundsMutationEvent>() {
             @Override
             public boolean test(FundsMutationEvent event) {
@@ -113,6 +126,7 @@ public class FundsMutationElementCoreTest {
                         .setAmount(Money.of(Units.RUB, 6500))
                         .setSubject(workSubj)
                         .setTimestamp(TestUtils.JULY_3RD_2015.inner)
+                        .setRelevantBalance(rubAccount)
                         .build(),
                 savedWorkHour.get()
         );
@@ -135,6 +149,8 @@ public class FundsMutationElementCoreTest {
                         .setRate(BigDecimal.valueOf(65.))
                         .setTimestamp(TestUtils.JULY_3RD_2015.inner)
                         .setAgent(inetAgent)
+                        .setSoldAccount(Treasury.Static.getTransitoryAccount(CurrencyUnit.EUR, treasury))
+                        .setBoughtAccount(rubAccount)
                         .build(),
                 workHourExchange.get()
         );
@@ -151,7 +167,11 @@ public class FundsMutationElementCoreTest {
         core.setPayeeAccountUnit(CurrencyUnit.USD);
         core.setCustomRate(BigDecimal.valueOf(58));
         core.setTimestamp(TestUtils.DAY_BF_YESTER.inner);
-        core.submit();
+        core.setRelevantBalance(rubAccount);
+
+        submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<FundsMutationEvent> savedCard = accounter.streamMutationsForDay(TestUtils.DAY_BF_YESTER).filter(new Predicate<FundsMutationEvent>() {
             @Override
             public boolean test(FundsMutationEvent event) {
@@ -166,6 +186,7 @@ public class FundsMutationElementCoreTest {
                         .setAmount(Money.of(Units.RUB, 10000))
                         .setSubject(cardSubj)
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setRelevantBalance(rubAccount)
                         .build(),
                 savedCard.get()
         );
@@ -186,6 +207,7 @@ public class FundsMutationElementCoreTest {
                         .setAmount(Money.of(Units.RUB, 344.83))
                         .setSubject(fundsMutSubj)
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setRelevantBalance(rubAccount)
                         .build(),
                 cardDelta.get()
         );
@@ -199,15 +221,17 @@ public class FundsMutationElementCoreTest {
                         .setRate(BigDecimal.valueOf(58.))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
                         .setAgent(inetAgent)
+                        .setBoughtAccount(rubAccount)
+                        .setSoldAccount(Treasury.Static.getTransitoryAccount(CurrencyUnit.USD, treasury))
                         .build(),
                 cardExchange.get()
         );
         assertEquals("Rubles account fault after card deal", Money.of(Units.RUB, 16500.0), treasury.amountForHumans(Units.RUB));
 
-        treasury.addAmount(Money.of(Units.RUB, 500000));
+        treasury.addAmount(Money.of(Units.RUB, 500000), "rub");
 
         Schema.CURRENCY_RATES.addRate(TestUtils.YESTERDAY, CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(55));
-        // let's sell our video card to a foreign dude paying in dollars with immediate conversion to rubles on a custom rate
+        // let's buy the guitar abroad using RUB debit card
         core = new FundsMutationElementCore(accounter, treasury, ratesService);
         core.setAgent(musicShopAgent);
         core.setDirection(FundsMutator.MutationDirection.LOSS);
@@ -216,8 +240,12 @@ public class FundsMutationElementCoreTest {
         core.setPayeeAccountUnit("RUB");
         core.setPayeeAmount(BigDecimal.valueOf(280000));
         core.setPayeeAmount(280000, 0);
+        core.setRelevantBalance(rubAccount);
         core.setTimestamp(TestUtils.YESTERDAY.inner);
-        core.submit();
+
+        submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<FundsMutationEvent> savedGuitar = accounter.streamMutationsForDay(TestUtils.YESTERDAY).filter(new Predicate<FundsMutationEvent>() {
             @Override
             public boolean test(FundsMutationEvent event) {
@@ -230,6 +258,7 @@ public class FundsMutationElementCoreTest {
                 FundsMutationEvent.builder()
                         .setAgent(musicShopAgent)
                         .setAmount(Money.of(Units.RUB, -280000))
+                        .setRelevantBalance(rubAccount)
                         .setSubject(guitarSubj)
                         .setTimestamp(TestUtils.YESTERDAY.inner)
                         .build(),
@@ -249,6 +278,7 @@ public class FundsMutationElementCoreTest {
                 FundsMutationEvent.builder()
                         .setAgent(musicShopAgent)
                         .setAmount(Money.of(Units.RUB, -5000))
+                        .setRelevantBalance(rubAccount)
                         .setSubject(fundsMutSubj)
                         .setTimestamp(TestUtils.YESTERDAY.inner)
                         .build(),
@@ -261,6 +291,8 @@ public class FundsMutationElementCoreTest {
                 CurrencyExchangeEvent.builder()
                         .setBought(Money.of(CurrencyUnit.USD, 5000.0))
                         .setSold(Money.of(Units.RUB, 280000.0))
+                        .setBoughtAccount(Treasury.Static.getTransitoryAccount(CurrencyUnit.USD, treasury))
+                        .setSoldAccount(rubAccount)
                         .setRate(CurrencyRatesProvider.Static.reverseRate(BigDecimal.valueOf(56.)))
                         .setTimestamp(TestUtils.YESTERDAY.inner)
                         .setAgent(musicShopAgent)

@@ -22,6 +22,7 @@ public interface FundsMutator {
                 FundsMutator mutator,
                 Money naturalAmount,
                 Money customAmount,
+                Treasury.BalanceAccount account,
                 MutationDirection direction,
                 FundsMutationAgent agent,
                 OffsetDateTime timestamp,
@@ -38,6 +39,7 @@ public interface FundsMutator {
                 rec.setTimestamp(timestamp);
                 rec.setAgent(agent);
                 rec.setMutateFunds(false);
+                rec.setRelevantBalance(account);
                 rec.submit();
             }
         }
@@ -58,7 +60,7 @@ public interface FundsMutator {
                 final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount : amount.negated()).build();
                 accounter.registerBenefit(event);
                 if (mutateFunds) {
-                    treasury.addAmount(event.amount.multipliedBy(event.quantity));
+                    treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                 }
             }
 
@@ -83,7 +85,7 @@ public interface FundsMutator {
                 final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount.negated() : amount).build();
                 accounter.registerLoss(event);
                 if (mutateFunds) {
-                    treasury.addAmount(event.amount.multipliedBy(event.quantity));
+                    treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                 }
             }
 

@@ -1,11 +1,9 @@
 package ru.adios.budgeter;
 
-import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
-import ru.adios.budgeter.api.BalancesRepository;
 import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.inmemrepo.Schema;
@@ -21,26 +19,15 @@ public class TreasuryMock implements Treasury {
 
     private final TreasuryPseudoTable table = Schema.TREASURY;
     private final Treasury.Default tDef = new Treasury.Default(this);
-    private final BalancesRepository.Default brDef = new BalancesRepository.Default(this);
 
     @Override
-    public Stream<CurrencyUnit> getRegisteredCurrencies() {
-        return table.getRegisteredCurrencies();
+    public Optional<Money> accountBalance(String accountName) {
+        return table.accountBalance(accountName);
     }
 
     @Override
-    public void registerCurrency(CurrencyUnit unit) {
-        table.registerCurrency(unit);
-    }
-
-    @Override
-    public ImmutableList<CurrencyUnit> searchCurrenciesByString(String str) {
-        return table.searchCurrenciesByString(str);
-    }
-
-    @Override
-    public void addAmount(Money amount) {
-        table.addAmount(amount);
+    public void addAmount(Money amount, String accountName) {
+        table.addAmount(amount, accountName);
     }
 
     @Override
@@ -49,13 +36,48 @@ public class TreasuryMock implements Treasury {
     }
 
     @Override
-    public Money totalAmount(CurrencyUnit unit, CurrencyRatesProvider ratesProvider) {
-        return tDef.totalAmount(unit, ratesProvider);
+    public Optional<Money> accountBalance(BalanceAccount account) {
+        return table.accountBalance(account);
+    }
+
+    @Override
+    public void addAmount(Money amount, BalanceAccount account) {
+        table.addAmount(amount, account);
     }
 
     @Override
     public Money amountForHumans(CurrencyUnit unit) {
-        return brDef.amountForHumans(unit);
+        return tDef.amountForHumans(unit);
+    }
+
+    @Override
+    public Money totalAmount(CurrencyUnit unit, CurrencyRatesProvider ratesProvider) {
+        return table.totalAmount(unit, ratesProvider);
+    }
+
+    @Override
+    public Stream<CurrencyUnit> streamRegisteredCurrencies() {
+        return table.streamRegisteredCurrencies();
+    }
+
+    @Override
+    public Stream<BalanceAccount> streamRegisteredAccounts() {
+        return table.streamRegisteredAccounts();
+    }
+
+    @Override
+    public Stream<BalanceAccount> streamAccountsByCurrency(CurrencyUnit unit) {
+        return table.streamAccountsByCurrency(unit);
+    }
+
+    @Override
+    public void registerBalanceAccount(BalanceAccount account) {
+        table.registerBalanceAccount(account);
+    }
+
+    @Override
+    public BalanceAccount getAccountWithId(BalanceAccount account) {
+        return table.getAccountWithId(account);
     }
 
     void clear() {

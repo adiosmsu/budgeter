@@ -1,9 +1,9 @@
 package ru.adios.budgeter;
 
 import org.joda.money.CurrencyUnit;
-import org.joda.money.Money;
 import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository;
+import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
 import ru.adios.budgeter.inmemrepo.PostponedCurrencyExchangeEventPseudoTable;
 
@@ -23,8 +23,14 @@ public class PostponedCurrencyExchangeEventRepositoryMock implements PostponedCu
     private final PostponedCurrencyExchangeEventPseudoTable table = PostponedCurrencyExchangeEventPseudoTable.INSTANCE;
 
     @Override
-    public void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent) {
-        table.rememberPostponedExchange(toBuy, unitSell, customRate, timestamp, agent);
+    public void rememberPostponedExchange(BigDecimal toBuy,
+                                          Treasury.BalanceAccount toBuyAccount,
+                                          Treasury.BalanceAccount sellAccount,
+                                          Optional<BigDecimal> customRate,
+                                          OffsetDateTime timestamp,
+                                          FundsMutationAgent agent)
+    {
+        table.rememberPostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent);
     }
 
     @Override

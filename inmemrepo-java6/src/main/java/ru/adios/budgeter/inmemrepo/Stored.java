@@ -16,4 +16,12 @@ class Stored<T> {
         this.obj = obj;
     }
 
+    @Override
+    public String toString() {
+        return "Stored{" +
+                "id=" + id +
+                ", obj=" + obj +
+                '}';
+    }
+
 }

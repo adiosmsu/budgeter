@@ -1,5 +1,6 @@
 package ru.adios.budgeter;
 
+import java8.util.Optional;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.Treasury;
@@ -17,6 +18,8 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
     private final Treasury treasury;
 
     private final MoneyWrapperBean amountWrapper = new MoneyWrapperBean("funds addition amount");
+
+    private Optional<Treasury.BalanceAccount> accountRef = Optional.empty();
 
     public FundsAdditionElementCore(Treasury treasury) {
         this.treasury = treasury;
@@ -47,14 +50,39 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
         amountWrapper.setAmountUnit(unit);
     }
 
+    public void setAccount(Treasury.BalanceAccount account) {
+        this.accountRef = Optional.of(account);
+        setAmountUnit(account.getUnit());
+    }
+
     @Override
     public void setAmount(int coins, int cents) {
         amountWrapper.setAmount(coins, cents);
     }
 
     @Override
-    public void submit() {
-        treasury.addAmount(getAmount());
+    public BigDecimal getAmountDecimal() {
+        return amountWrapper.getAmountDecimal();
+    }
+
+    @Override
+    public CurrencyUnit getAmountUnit() {
+        return amountWrapper.getAmountUnit();
+    }
+
+    @Override
+    public Result submit() {
+        final ResultBuilder resultBuilder = new ResultBuilder();
+        resultBuilder.addFieldErrorIfAbsent(accountRef, "account")
+                .addFieldErrorIfAbsent(amountWrapper.amountDecimalRef, "amountDecimal")
+                .addFieldErrorIfAbsent(amountWrapper.amountUnitRef, "amountUnit");
+        if (resultBuilder.toBuildError()) {
+            return resultBuilder.build();
+        }
+
+        treasury.addAmount(getAmount(), accountRef.get().name);
+
+        return Result.SUCCESS;
     }
 
 }

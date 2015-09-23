@@ -59,8 +59,9 @@ public final class SubjectAdditionElementCore implements Submitter {
     }
 
     @Override
-    public void submit() {
+    public Result submit() {
         repository.addSubject(subjectBuilder.build());
+        return Result.SUCCESS;
     }
 
 }

@@ -35,22 +35,23 @@ public class PostponedCurrencyExchangeEventPseudoTableTest {
     @Test
     public void testRememberPostponedExchange() throws Exception {
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS
-                .rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), CurrencyUnit.USD, Optional.of(BigDecimal.valueOf(0.89)), OffsetDateTime.now(), agent);
+                .rememberPostponedExchange(BigDecimal.valueOf(1034530L), TestUtils.prepareBalance(CurrencyUnit.EUR),
+                        TestUtils.prepareBalance(CurrencyUnit.USD), Optional.of(BigDecimal.valueOf(0.89)), OffsetDateTime.now(), agent);
         final int id = Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.idSequence.get();
-        assertEquals("Money don't match", Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.get(id).obj.toBuy);
+        assertEquals("Money don't match", Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1034530L)), Money.of(CurrencyUnit.EUR, Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.get(id).obj.toBuy));
     }
 
     @Test
     public void testStreamRememberedExchanges() throws Exception {
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS
-                .rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)), CurrencyUnit.USD, Optional.of(BigDecimal.valueOf(0.89)),
-                        OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC), agent);
+                .rememberPostponedExchange(BigDecimal.valueOf(1000L), TestUtils.prepareBalance(CurrencyUnit.EUR),
+                        TestUtils.prepareBalance(CurrencyUnit.USD), Optional.of(BigDecimal.valueOf(0.89)), OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC), agent);
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS
                 .streamRememberedExchanges(new UtcDay(OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.EUR, CurrencyUnit.USD)
                 .forEach(new Consumer<PostponedCurrencyExchangeEventRepository.PostponedExchange>() {
                     @Override
                     public void accept(PostponedCurrencyExchangeEventRepository.PostponedExchange postponedExchange) {
-                        assertEquals("Wrong stream: " + postponedExchange.toBuy, Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)), postponedExchange.toBuy);
+                        assertEquals("Wrong stream: " + postponedExchange.toBuy, Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)), Money.of(CurrencyUnit.EUR, postponedExchange.toBuy));
                     }
                 });
     }

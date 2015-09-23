@@ -6,6 +6,7 @@ import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,6 +18,7 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
+@NotThreadSafe
 public final class BalanceElementCore {
 
     private final Treasury treasury;
@@ -33,8 +35,12 @@ public final class BalanceElementCore {
         this.totalUnitRef = Optional.of(totalUnit);
     }
 
+    public CurrencyUnit getTotalUnit() {
+        return totalUnitRef.orElse(null);
+    }
+
     public Stream<Money> streamIndividualBalances() {
-        return treasury.getRegisteredCurrencies().map(unit -> {
+        return treasury.streamRegisteredCurrencies().map(unit -> {
             final Optional<Money> amount = treasury.amount(unit);
             return amount.orElse(Money.of(unit, SPECIAL));
         }).filter(money -> !money.getAmount().equals(SPECIAL));
@@ -48,7 +54,7 @@ public final class BalanceElementCore {
         final UtcDay today = new UtcDay();
         final CurrencyUnit main = totalUnitNonNull();
         final AtomicBoolean wasSomething = new AtomicBoolean(false);
-        final boolean foundNoRateCase = treasury.getRegisteredCurrencies().filter(unit -> {
+        final boolean foundNoRateCase = treasury.streamRegisteredCurrencies().filter(unit -> {
             wasSomething.set(true);
             return !main.equals(unit) && !provider.getConversionMultiplier(today, main, unit).isPresent();
         }).findFirst().isPresent();

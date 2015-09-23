@@ -1,9 +1,9 @@
 package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.CurrencyUnit;
-import org.joda.money.Money;
 import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository;
+import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nonnull;
@@ -36,10 +36,16 @@ public final class PostponedCurrencyExchangeEventPseudoTable
     private PostponedCurrencyExchangeEventPseudoTable() {}
 
     @Override
-    public void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent) {
+    public void rememberPostponedExchange(BigDecimal toBuy,
+                                          Treasury.BalanceAccount toBuyAccount,
+                                          Treasury.BalanceAccount sellAccount,
+                                          Optional<BigDecimal> customRate,
+                                          OffsetDateTime timestamp,
+                                          FundsMutationAgent agent)
+    {
         final int id = idSequence.incrementAndGet();
         checkState(
-                table.computeIfAbsent(id, integer -> new Stored<>(id, new PostponedExchange(toBuy, unitSell, customRate, timestamp, agent)))
+                table.computeIfAbsent(id, integer -> new Stored<>(id, new PostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent)))
                         .id == id
         );
     }
@@ -47,10 +53,11 @@ public final class PostponedCurrencyExchangeEventPseudoTable
     @Override
     public Stream<PostponedExchange> streamRememberedExchanges(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
         return table.values().stream().filter(event -> {
-            final CurrencyUnit cu = event.obj.toBuy.getCurrencyUnit();
+            final CurrencyUnit bu = event.obj.toBuyAccount.getUnit();
+            final CurrencyUnit su = event.obj.sellAccount.getUnit();
             return day.equals(new UtcDay(event.obj.timestamp))
-                    && (cu.equals(oneOf) || cu.equals(secondOf))
-                    && (event.obj.unitSell.equals(oneOf) || event.obj.unitSell.equals(secondOf));
+                    && (bu.equals(oneOf) || bu.equals(secondOf))
+                    && (su.equals(oneOf) || su.equals(secondOf));
         }).map(storedPostponedExchangeEvent -> storedPostponedExchangeEvent.obj);
     }
 

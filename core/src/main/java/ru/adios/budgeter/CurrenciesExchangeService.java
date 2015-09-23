@@ -12,6 +12,7 @@ import ru.adios.budgeter.api.*;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -284,17 +285,26 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                     accounter.streamRememberedBenefits(day, forRates, toUnit).forEach(postponedMutationEvent -> {
                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
-                        core.submit();
+                        final Submitter.Result res = core.submit();
+                        if (!res.isSuccessful()) {
+                            logger.info("Remembered benefits save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                        }
                     });
                     accounter.streamRememberedLosses(day, forRates, toUnit).forEach(postponedMutationEvent -> {
                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
-                        core.submit();
+                        final Submitter.Result res = core.submit();
+                        if (!res.isSuccessful()) {
+                            logger.info("Remembered losses save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                        }
                     });
                     accounter.streamRememberedExchanges(day, forRates, toUnit).forEach(postponedExchange -> {
                         final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
-                        core.setPostponedEvent(postponedExchange, postponedExchange.unitSell.equals(forRates) ? rate : rateReversed);
-                        core.submit();
+                        core.setPostponedEvent(postponedExchange, postponedExchange.sellAccount.getUnit().equals(forRates) ? rate : rateReversed);
+                        final Submitter.Result res = core.submit();
+                        if (!res.isSuccessful()) {
+                            logger.info("Remembered exchanges save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                        }
                     });
                 }
             } catch (Throwable th) {

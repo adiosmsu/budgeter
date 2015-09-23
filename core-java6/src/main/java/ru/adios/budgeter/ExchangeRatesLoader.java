@@ -30,7 +30,7 @@ import org.threeten.bp.format.DateTimeFormatter;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-import ru.adios.budgeter.api.CurrenciesRepository;
+import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -63,11 +63,11 @@ public class ExchangeRatesLoader {
 
     public static final int CORES_NUM = Runtime.getRuntime().availableProcessors();
 
-    public static ExchangeRatesLoader.CbrLoader createCbrLoader(CurrenciesRepository currenciesRepo) {
+    public static ExchangeRatesLoader.CbrLoader createCbrLoader(Treasury currenciesRepo) {
         return new CbrLoader(currenciesRepo, CurrencyUnit.of(CbrLoader.CODE_RUB), new CbrParser());
     }
 
-    public static ExchangeRatesLoader.BtcLoader createBtcLoader(CurrenciesRepository currenciesRepo) {
+    public static ExchangeRatesLoader.BtcLoader createBtcLoader(Treasury currenciesRepo) {
         return new BtcLoader(currenciesRepo, CurrencyUnit.of(BtcLoader.CODE_BTC), new BtcParser());
     }
 
@@ -76,13 +76,13 @@ public class ExchangeRatesLoader {
     private static final int HTTP_TIMEOUT_MS = 15000;
 
 
-    private final CurrenciesRepository currenciesRepo;
+    private final Treasury currenciesRepo;
     private final CopyOnWriteArrayList<CurrencyUnit> supportedCurrencies = new CopyOnWriteArrayList<CurrencyUnit>();
     private final CurrencyUnit mainUnit;
 
     private final Parser parser;
 
-    private ExchangeRatesLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, Parser parser) {
+    private ExchangeRatesLoader(Treasury currenciesRepo, CurrencyUnit mainUnit, Parser parser) {
         this.currenciesRepo = currenciesRepo;
         this.mainUnit = mainUnit;
         this.parser = parser;
@@ -93,7 +93,7 @@ public class ExchangeRatesLoader {
     }
 
     public final void updateSupportedCurrencies() {
-        currenciesRepo.getRegisteredCurrencies().forEach(new Consumer<CurrencyUnit>() {
+        currenciesRepo.streamRegisteredCurrencies().forEach(new Consumer<CurrencyUnit>() {
             @Override
             public void accept(CurrencyUnit unit) {
                 supportedCurrencies.addIfAbsent(unit);
@@ -204,7 +204,7 @@ public class ExchangeRatesLoader {
         private static final String CBR_ADDRESS = "http://www.cbr.ru/scripts/XML_daily.asp?date_req=";
         private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-        private CbrLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, CbrParser cbrParser) {
+        private CbrLoader(Treasury currenciesRepo, CurrencyUnit mainUnit, CbrParser cbrParser) {
             super(currenciesRepo, mainUnit, cbrParser);
         }
 
@@ -328,7 +328,7 @@ public class ExchangeRatesLoader {
         private static final String CODE_UBTC = "µBTC";
         private static final DateTimeFormatter CSV_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withChronology(IsoChronology.INSTANCE);
 
-        private BtcLoader(CurrenciesRepository currenciesRepo, CurrencyUnit mainUnit, BtcParser btcParser) {
+        private BtcLoader(Treasury currenciesRepo, CurrencyUnit mainUnit, BtcParser btcParser) {
             super(currenciesRepo, mainUnit, btcParser);
         }
 

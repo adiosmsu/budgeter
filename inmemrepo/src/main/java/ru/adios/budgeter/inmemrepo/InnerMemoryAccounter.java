@@ -72,8 +72,14 @@ public final class InnerMemoryAccounter implements Accounter {
     }
 
     @Override
-    public void rememberPostponedExchange(Money toBuy, CurrencyUnit unitSell, Optional<BigDecimal> customRate, OffsetDateTime timestamp, FundsMutationAgent agent) {
-        Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.rememberPostponedExchange(toBuy, unitSell, customRate, timestamp, agent);
+    public void rememberPostponedExchange(BigDecimal toBuy,
+                                          Treasury.BalanceAccount toBuyAccount,
+                                          Treasury.BalanceAccount sellAccount,
+                                          Optional<BigDecimal> customRate,
+                                          OffsetDateTime timestamp,
+                                          FundsMutationAgent agent)
+    {
+        Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.rememberPostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent);
     }
 
     @Override
@@ -86,8 +92,8 @@ public final class InnerMemoryAccounter implements Accounter {
         final HashMap<UtcDay, HashSet<CurrencyUnit>> accumulator = new HashMap<>(100);
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.streamAll().forEach(postponedExchange -> {
             final HashSet<CurrencyUnit> units = getUnitsAcc(accumulator, new UtcDay(postponedExchange.timestamp));
-            units.add(postponedExchange.toBuy.getCurrencyUnit());
-            units.add(postponedExchange.unitSell);
+            units.add(postponedExchange.toBuyAccount.getUnit());
+            units.add(postponedExchange.sellAccount.getUnit());
         });
         Schema.POSTPONED_FUNDS_MUTATION_EVENTS.streamAll().forEach(postponedMutationEvent -> {
             final HashSet<CurrencyUnit> units = getUnitsAcc(accumulator, new UtcDay(postponedMutationEvent.mutationEvent.timestamp));

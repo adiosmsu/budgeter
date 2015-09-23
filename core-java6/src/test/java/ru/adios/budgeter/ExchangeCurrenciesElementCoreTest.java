@@ -35,10 +35,14 @@ public class ExchangeCurrenciesElementCoreTest {
         final FundsMutationAgent agentExchanger = FundsMutationAgent.builder().setName("Обменник").build();
         accounter.fundsMutationAgentRepo().addAgent(agentExchanger);
 
-        treasury.addAmount(Money.of(CurrencyUnit.USD, 300000));
-        treasury.addAmount(Money.of(CurrencyUnit.EUR, 1000));
-        treasury.addAmount(Money.of(Units.RUB, 1000000));
-        treasury.addAmount(Money.of(Units.BTC, 100));
+        treasury.addAmount(Money.of(CurrencyUnit.USD, 300000), "usd");
+        treasury.addAmount(Money.of(CurrencyUnit.EUR, 1000), "eur");
+        treasury.addAmount(Money.of(Units.RUB, 1000000), "rub");
+        treasury.addAmount(Money.of(Units.BTC, 100), "btc");
+        final Treasury.BalanceAccount usdAccount = new Treasury.BalanceAccount("usd", CurrencyUnit.USD);
+        final Treasury.BalanceAccount eurAccount = new Treasury.BalanceAccount("eur", CurrencyUnit.EUR);
+        final Treasury.BalanceAccount rubAccount = new Treasury.BalanceAccount("rub", Units.RUB);
+        final Treasury.BalanceAccount btcAccount = new Treasury.BalanceAccount("btc", Units.BTC);
 
         ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
 
@@ -48,10 +52,15 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setSellAmount(Money.of(Units.RUB, 56000.0, RoundingMode.HALF_DOWN));
         core.setTimestamp(TestUtils.JULY_3RD_2015.inner);
         core.setAgent(agentExchanger);
+        core.setBuyAccount(usdAccount);
+        core.setSellAccount(rubAccount);
         ratesRepo.addRate(TestUtils.JULY_3RD_2015, Units.RUB, CurrencyUnit.USD,
                 CurrencyRatesProvider.Static.reverseRate(BigDecimal.valueOf(55.5))); // to know exact value we set "natural" rate ourselves
         core.setPersonalMoneyExchange(true);
-        core.submit();
+
+        Submitter.Result submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<CurrencyExchangeEvent> dollarsExc = accounter.streamExchangesForDay(TestUtils.JULY_3RD_2015).findFirst();
         assertTrue("No dollars exchange found", dollarsExc.isPresent());
         assertEquals(
@@ -62,6 +71,8 @@ public class ExchangeCurrenciesElementCoreTest {
                         .setRate(CurrencyRatesProvider.Static.reverseRate(BigDecimal.valueOf(56.)))
                         .setTimestamp(TestUtils.JULY_3RD_2015.inner)
                         .setAgent(agentExchanger)
+                        .setBoughtAccount(usdAccount)
+                        .setSoldAccount(rubAccount)
                         .build(),
                 dollarsExc.get()
         );
@@ -75,6 +86,7 @@ public class ExchangeCurrenciesElementCoreTest {
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.JULY_3RD_2015.inner)
                         .setAgent(agentExchanger)
+                        .setRelevantBalance(usdAccount)
                         .build(),
                 dollarsExcMutation.get()
         );
@@ -87,9 +99,14 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setTimestamp(TestUtils.DAY_BF_YESTER.inner);
         core.setAgent(agentExchanger);
         core.setCustomRate(BigDecimal.valueOf(64.));
+        core.setBuyAccount(rubAccount);
+        core.setSellAccount(eurAccount);
         ratesRepo.addRate(TestUtils.DAY_BF_YESTER, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.)); // to know exact value we set "natural" rate ourselves
         core.setPersonalMoneyExchange(true);
-        core.submit();
+
+        submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<CurrencyExchangeEvent> euroExc = accounter.streamExchangesForDay(TestUtils.DAY_BF_YESTER).findFirst();
         assertTrue("No euros exchange found", euroExc.isPresent());
         assertEquals(
@@ -100,6 +117,8 @@ public class ExchangeCurrenciesElementCoreTest {
                         .setRate(BigDecimal.valueOf(64.))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
                         .setAgent(agentExchanger)
+                        .setBoughtAccount(rubAccount)
+                        .setSoldAccount(eurAccount)
                         .build(),
                 euroExc.get()
         );
@@ -113,6 +132,7 @@ public class ExchangeCurrenciesElementCoreTest {
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
                         .setAgent(agentExchanger)
+                        .setRelevantBalance(rubAccount)
                         .build(),
                 eurosExcMutation.get()
         );
@@ -125,10 +145,15 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setTimestamp(TestUtils.DAY_BF_YESTER.inner);
         core.setAgent(agentExchanger);
         core.setCustomRate(CurrencyRatesProvider.Static.reverseRate(BigDecimal.valueOf(260.)));
+        core.setBuyAccount(btcAccount);
+        core.setSellAccount(usdAccount);
         ratesRepo.addRate(TestUtils.DAY_BF_YESTER, CurrencyUnit.USD, Units.BTC,
                 CurrencyRatesProvider.Static.reverseRate(BigDecimal.valueOf(250.))); // to know exact value we set "natural" rate ourselves
         core.setPersonalMoneyExchange(true);
-        core.submit();
+
+        submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<CurrencyExchangeEvent> btcExc = accounter.streamExchangesForDay(TestUtils.DAY_BF_YESTER)
                 .reduce(new BinaryOperator<CurrencyExchangeEvent>() {
                     @Override
@@ -144,6 +169,8 @@ public class ExchangeCurrenciesElementCoreTest {
                         .setSold(Money.of(CurrencyUnit.USD, 260000.0, RoundingMode.HALF_DOWN))
                         .setRate(CurrencyRatesProvider.Static.reverseRate(BigDecimal.valueOf(260.)))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setSoldAccount(usdAccount)
+                        .setBoughtAccount(btcAccount)
                         .setAgent(agentExchanger)
                         .build(),
                 btcExc.get()
@@ -164,6 +191,7 @@ public class ExchangeCurrenciesElementCoreTest {
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
                         .setAgent(agentExchanger)
+                        .setRelevantBalance(btcAccount)
                         .build(),
                 btcExcMutation.get()
         );
@@ -175,9 +203,14 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setSellAmountDecimal(BigDecimal.valueOf(1000.));
         core.setTimestamp(TestUtils.YESTERDAY.inner);
         core.setAgent(agentExchanger);
+        core.setBuyAccount(usdAccount);
+        core.setSellAccount(btcAccount);
         ratesRepo.addRate(TestUtils.YESTERDAY, Units.BTC, CurrencyUnit.USD, BigDecimal.valueOf(265.)); // to know exact value we set "natural" rate ourselves
         core.setPersonalMoneyExchange(false);
-        core.submit();
+
+        submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         final Optional<CurrencyExchangeEvent> btcExc2 = accounter.streamExchangesForDay(TestUtils.YESTERDAY).findFirst();
         assertTrue("No btc2 exchange found", btcExc2.isPresent());
         assertEquals(
@@ -188,6 +221,8 @@ public class ExchangeCurrenciesElementCoreTest {
                         .setRate(BigDecimal.valueOf(265.))
                         .setTimestamp(TestUtils.YESTERDAY.inner)
                         .setAgent(agentExchanger)
+                        .setBoughtAccount(usdAccount)
+                        .setSoldAccount(btcAccount)
                         .build(),
                 btcExc2.get()
         );

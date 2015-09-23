@@ -34,19 +34,22 @@ public class InnerMemoryAccounterTest {
             food = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
             Schema.FUNDS_MUTATION_SUBJECTS.addSubject(food);
         } catch (final Exception ignore) {
-            food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(new Supplier<IllegalStateException>() {
+            food = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").orElseThrow(new Supplier<Exception>() {
                 @Override
-                public IllegalStateException get() {
+                public Exception get() {
                     return new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore);
                 }
             });
         }
 
         final FundsMutationAgent agent = TestUtils.prepareTestAgent();
+        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(Units.RUB);
+        final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(CurrencyUnit.EUR);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
+                .setRelevantBalance(accountRub)
                 .setAgent(agent)
                 .build();
 
@@ -57,12 +60,13 @@ public class InnerMemoryAccounterTest {
                 .setQuantity(1)
                 .setSubject(game)
                 .setAmount(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(10L)))
+                .setRelevantBalance(accountRub)
                 .setAgent(agent)
                 .build();
 
         innerMemoryAccounter.rememberPostponedExchangeableLoss(gameBuy, Units.RUB, Optional.<BigDecimal>empty());
 
-        innerMemoryAccounter.rememberPostponedExchange(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(100L)), Units.RUB, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now(), agent);
+        innerMemoryAccounter.rememberPostponedExchange(BigDecimal.valueOf(100L), accountEur, accountRub, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now(), agent);
 
         final List<Accounter.PostponingReasons> collected = innerMemoryAccounter.streamAllPostponingReasons().collect(Collectors.<Accounter.PostponingReasons>toList());
         assertEquals("Too large list: " + collected.size(), 1, collected.size());

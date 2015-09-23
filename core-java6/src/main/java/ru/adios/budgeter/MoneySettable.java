@@ -48,9 +48,13 @@ public interface MoneySettable {
 
     void setAmountDecimal(BigDecimal amountDecimal);
 
+    BigDecimal getAmountDecimal();
+
     void setAmountUnit(String code);
 
     void setAmountUnit(CurrencyUnit unit);
+
+    CurrencyUnit getAmountUnit();
 
     void setAmount(Money amount);
 

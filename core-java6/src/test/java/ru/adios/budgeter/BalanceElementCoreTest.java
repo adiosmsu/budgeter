@@ -35,8 +35,8 @@ public class BalanceElementCoreTest {
     @Test
     public void testStreamIndividualBalances() throws Exception {
         treasury.clear();
-        treasury.addAmount(Money.of(CurrencyUnit.USD, 1000));
-        treasury.addAmount(Money.of(CurrencyUnit.EUR, 500));
+        treasury.addAmount(Money.of(CurrencyUnit.USD, 1000), "usd");
+        treasury.addAmount(Money.of(CurrencyUnit.EUR, 500), "eur");
         core.streamIndividualBalances().forEach(new Consumer<Money>() {
             @Override
             public void accept(Money money) {
@@ -51,8 +51,8 @@ public class BalanceElementCoreTest {
     public void testGetTotalBalance() throws Exception {
         treasury.clear();
         ratesRepository.clear();
-        treasury.addAmount(Money.of(CurrencyUnit.USD, 1000));
-        treasury.addAmount(Money.of(CurrencyUnit.EUR, 500));
+        treasury.addAmount(Money.of(CurrencyUnit.USD, 1000), "usd");
+        treasury.addAmount(Money.of(CurrencyUnit.EUR, 500), "eur");
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(55));
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(65));
         core.setTotalUnit(Units.RUB);
@@ -63,8 +63,8 @@ public class BalanceElementCoreTest {
     public void testNoTodayRate() throws Exception {
         ratesRepository.clear();
         treasury.clear();
-        treasury.addAmount(Money.of(CurrencyUnit.USD, 1000));
-        treasury.addAmount(Money.of(CurrencyUnit.EUR, 500));
+        treasury.addAmount(Money.of(CurrencyUnit.USD, 1000), "usd");
+        treasury.addAmount(Money.of(CurrencyUnit.EUR, 500), "eur");
         assertTrue("Miraculously rates present", core.noTodayRate());
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(55));
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(65));

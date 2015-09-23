@@ -35,8 +35,12 @@ public final class BalanceElementCore {
         this.totalUnitRef = Optional.of(totalUnit);
     }
 
+    public CurrencyUnit getTotalUnit() {
+        return totalUnitRef.orElse(null);
+    }
+
     public Stream<Money> streamIndividualBalances() {
-        return treasury.getRegisteredCurrencies().map(new Function<CurrencyUnit, Money>() {
+        return treasury.streamRegisteredCurrencies().map(new Function<CurrencyUnit, Money>() {
             @Override
             public Money apply(CurrencyUnit unit) {
                 final Optional<Money> amount = treasury.amount(unit);
@@ -58,7 +62,7 @@ public final class BalanceElementCore {
         final UtcDay today = new UtcDay();
         final CurrencyUnit main = totalUnitNonNull();
         final AtomicBoolean wasSomething = new AtomicBoolean(false);
-        final boolean foundNoRateCase = treasury.getRegisteredCurrencies().filter(new Predicate<CurrencyUnit>() {
+        final boolean foundNoRateCase = treasury.streamRegisteredCurrencies().filter(new Predicate<CurrencyUnit>() {
             @Override
             public boolean test(CurrencyUnit unit) {
                 wasSomething.set(true);

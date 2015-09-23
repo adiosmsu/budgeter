@@ -22,6 +22,7 @@ public class CurrencyExchangeEventPseudoTableTest {
 
     @Test
     public void testRegisterCurrencyExchange() throws Exception {
+        Schema.clearSchema();
         final OffsetDateTime ts = OffsetDateTime.now();
         Schema.FUNDS_MUTATION_AGENTS.clear();
         final FundsMutationAgent agent = FundsMutationAgent.builder().setName("Test").build();
@@ -29,6 +30,8 @@ public class CurrencyExchangeEventPseudoTableTest {
         CurrencyExchangeEvent exchangeEvent = CurrencyExchangeEvent.builder()
                 .setBought(Money.of(Units.RUB, BigDecimal.valueOf(30000L)))
                 .setSold(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(1000L)))
+                .setBoughtAccount(TestUtils.prepareBalance(Units.RUB))
+                .setSoldAccount(TestUtils.prepareBalance(CurrencyUnit.USD))
                 .setRate(BigDecimal.valueOf(30L))
                 .setTimestamp(ts)
                 .setAgent(agent)

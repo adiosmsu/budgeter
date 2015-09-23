@@ -5,12 +5,11 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Date: 6/13/15
@@ -18,6 +17,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @author Mikhail Kulikov
  */
+@NotThreadSafe
 public final class FundsMutationElementCore implements MoneySettable, FundsMutator, Submitter {
 
     private final Accounter accounter;
@@ -27,7 +27,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     private final MoneyWrapperBean amountWrapper = new MoneyWrapperBean("funds mutation amount");
     private final MoneyWrapperBean payeeAccountMoneyWrapper = new MoneyWrapperBean("funds mutation payed amount");
 
-    private Optional<MutationDirection> directionRef = Optional.empty();
+    private Optional<MutationDirection> directionRef = Optional.of(MutationDirection.BENEFIT);
     private FundsMutationEvent.Builder eventBuilder = FundsMutationEvent.builder();
     private Optional<BigDecimal> customRateRef = Optional.empty();
     private Optional<BigDecimal> naturalRateRef = Optional.empty();
@@ -43,6 +43,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     public void setPostponedEvent(PostponedFundsMutationEventRepository.PostponedMutationEvent event, BigDecimal naturalRate) {
         setEvent(event.mutationEvent);
         setAmount(event.mutationEvent.amount);
+        setRelevantBalance(event.mutationEvent.relevantBalance);
         setDirection(MutationDirection.forEvent(event.mutationEvent));
         setPayeeAccountUnit(event.conversionUnit);
         setCustomRate(event.customRate.orElse(null));
@@ -52,6 +53,14 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
     public void setDirection(MutationDirection direction) {
         this.directionRef = Optional.of(direction);
+        final Treasury.BalanceAccount relevantBalance = eventBuilder.getRelevantBalance();
+        if (relevantBalance != null) {
+            adjustUnitsUsingBalance(direction, relevantBalance);
+        }
+    }
+
+    public MutationDirection getDirection() {
+        return directionRef.get();
     }
 
     public void setEvent(FundsMutationEvent event) {
@@ -62,6 +71,10 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         this.naturalRateRef = Optional.of(naturalRate);
     }
 
+    public BigDecimal getNaturalRate() {
+        return naturalRateRef.orElseGet(null);
+    }
+
     @Override
     public Money getAmount() {
         return amountWrapper.getAmount();
@@ -70,6 +83,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     @Override
     public void setAmount(Money amount) {
         amountWrapper.setAmount(amount);
+        adjustRelevantBalance(amount.getCurrencyUnit(), MutationDirection.BENEFIT);
     }
 
     @Override
@@ -79,24 +93,52 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
     @Override
     public void setAmountUnit(String code) {
-        amountWrapper.setAmountUnit(code);
+        setAmountUnit(CurrencyUnit.of(code));
     }
 
     @Override
     public void setAmountUnit(CurrencyUnit unit) {
         amountWrapper.setAmountUnit(unit);
+        adjustRelevantBalance(unit, MutationDirection.BENEFIT);
+    }
+
+    @Override
+    public BigDecimal getAmountDecimal() {
+        return amountWrapper.getAmountDecimal();
+    }
+
+    @Override
+    public CurrencyUnit getAmountUnit() {
+        return amountWrapper.getAmountUnit();
+    }
+
+    public void setRelevantBalance(Treasury.BalanceAccount relevantBalance) {
+        eventBuilder.setRelevantBalance(relevantBalance);
+        if (directionRef.isPresent()) {
+            adjustUnitsUsingBalance(directionRef.get(), relevantBalance);
+        }
+    }
+
+    public Treasury.BalanceAccount getRelevantBalance() {
+        return eventBuilder.getRelevantBalance();
     }
 
     public void setPayeeAccountUnit(String code) {
-        payeeAccountMoneyWrapper.setAmountUnit(CurrencyUnit.of(code));
+        setPayeeAccountUnit(CurrencyUnit.of(code));
     }
 
     public void setPayeeAccountUnit(CurrencyUnit unit) {
         payeeAccountMoneyWrapper.setAmountUnit(unit);
+        adjustRelevantBalance(unit, MutationDirection.LOSS);
+    }
+
+    public CurrencyUnit getPayeeAccountUnit() {
+        return payeeAccountMoneyWrapper.getAmountUnit();
     }
 
     public void setPayedMoney(Money money) {
         payeeAccountMoneyWrapper.setAmount(money);
+        adjustRelevantBalance(money.getCurrencyUnit(), MutationDirection.LOSS);
     }
 
     public void setPayeeAmount(int coins, int cents) {
@@ -107,12 +149,24 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         payeeAccountMoneyWrapper.setAmountDecimal(amount);
     }
 
+    public BigDecimal getPayeeAmount() {
+        return payeeAccountMoneyWrapper.getAmountDecimal();
+    }
+
     public void setCustomRate(BigDecimal customRate) {
         this.customRateRef = Optional.ofNullable(customRate);
     }
 
+    public BigDecimal getCustomRate() {
+        return customRateRef.orElse(null);
+    }
+
     public void setQuantity(int quantity) {
         eventBuilder.setQuantity(quantity);
+    }
+
+    public int getQuantity() {
+        return eventBuilder.getQuantity();
     }
 
     public void setSubject(String subjectName) {
@@ -123,12 +177,24 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         eventBuilder.setSubject(subject);
     }
 
+    public FundsMutationSubject getSubject() {
+        return eventBuilder.getSubject();
+    }
+
     public void setTimestamp(OffsetDateTime timestamp) {
         eventBuilder.setTimestamp(timestamp);
     }
 
+    public OffsetDateTime getTimestamp() {
+        return eventBuilder.getTimestamp();
+    }
+
     public void setMutateFunds(boolean mutateFunds) {
         this.mutateFunds = mutateFunds;
+    }
+
+    public boolean getMutateFunds() {
+        return mutateFunds;
     }
 
     public void setAgent(FundsMutationAgent agent) {
@@ -145,12 +211,37 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         }));
     }
 
+    public FundsMutationAgent getAgent() {
+        return eventBuilder.getAgent();
+    }
+
     /**
      * Orientation is: [amount] = [payed amount] * rate.
      */
     @Override
-    public void submit() {
-        checkState(directionRef.isPresent(), "No direction set");
+    public Result submit() {
+        final ResultBuilder resultBuilder = new ResultBuilder();
+        resultBuilder.addFieldErrorIfAbsent(directionRef, "direction")
+                .addFieldErrorIfNull(eventBuilder.getRelevantBalance(), "relevantBalance")
+                .addFieldErrorIfNull(eventBuilder.getAgent(), "agent")
+                .addFieldErrorIfNull(eventBuilder.getSubject(), "subject");
+
+        if (!amountWrapper.isUnitSet()) {
+            resultBuilder.addFieldError("amountUnit")
+                    .addFieldError("amount");
+        }
+
+        if (payeeAccountMoneyWrapper.isUnitSet() && !amountWrapper.isAmountSet() && !payeeAccountMoneyWrapper.isAmountSet()) {
+            resultBuilder.addFieldError("amount")
+                    .addFieldError("amountDecimal")
+                    .addFieldError("payeeAmount")
+                    .addFieldError("payedMoney");
+        }
+
+        if (resultBuilder.toBuildError()) {
+            return resultBuilder.build();
+        }
+
         final MutationDirection direction = directionRef.get();
         final CurrencyUnit amountUnit = amountWrapper.getAmountUnit();
 
@@ -183,7 +274,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                 if (naturalRate == null) {
                     // we don't have today's rates yet, do accounting later
                     direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), payedUnit, customRateRef);
-                    return;
+                    return Result.SUCCESS;
                 }
 
                 final BigDecimal actualRate = customRateRef.orElse(naturalRate);
@@ -210,6 +301,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                             this,
                             naturalAmount.toMoney(RoundingMode.HALF_DOWN),
                             convertedAmount.toMoney(RoundingMode.HALF_DOWN),
+                            eventBuilder.getRelevantBalance(),
                             direction,
                             eventBuilder.getAgent(),
                             eventBuilder.getTimestamp(),
@@ -224,16 +316,23 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                                 .setRate(actualRate)
                                 .setBought(amountSmallMoney)
                                 .setSold(soldAmountSmallMoney)
+                                .setBoughtAccount(direction == MutationDirection.LOSS
+                                        ? Treasury.getTransitoryAccount(amountSmallMoney.getCurrencyUnit(), treasury)
+                                        : eventBuilder.getRelevantBalance())
+                                .setSoldAccount(direction == MutationDirection.LOSS
+                                        ? eventBuilder.getRelevantBalance()
+                                        : Treasury.getTransitoryAccount(soldAmountSmallMoney.getCurrencyUnit(), treasury))
                                 .setTimestamp(eventBuilder.getTimestamp())
                                 .build()
                 );
-                return;
+                return Result.SUCCESS;
             }
         } else {
             amount = amountWrapper.getAmount().toBigMoney();
         }
 
         direction.register(accounter, treasury, eventBuilder, amount.toMoney(), mutateFunds);
+        return Result.SUCCESS;
     }
 
     private BigDecimal calculateNaturalRate(CurrencyUnit payedUnit, CurrencyUnit amountUnit) {
@@ -256,6 +355,24 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     @Override
     public CurrenciesExchangeService getRatesService() {
         return ratesService;
+    }
+
+    private void adjustUnitsUsingBalance(MutationDirection dir, Treasury.BalanceAccount relevantBalance) {
+        final CurrencyUnit relevantBalanceUnit = relevantBalance.getUnit();
+        switch (dir) {
+            case LOSS:
+                setPayeeAccountUnit(relevantBalanceUnit);
+                break;
+            case BENEFIT:
+                setAmountUnit(relevantBalanceUnit);
+        }
+    }
+
+    private void adjustRelevantBalance(CurrencyUnit unit, MutationDirection dir) {
+        final Treasury.BalanceAccount relevantBalance = getRelevantBalance();
+        if (directionRef.isPresent() && relevantBalance != null && directionRef.get() == dir && !unit.equals(relevantBalance.getUnit())) {
+            eventBuilder.setRelevantBalance(null);
+        }
     }
 
 }

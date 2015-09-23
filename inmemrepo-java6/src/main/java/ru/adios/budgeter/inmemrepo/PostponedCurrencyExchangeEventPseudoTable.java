@@ -7,10 +7,10 @@ import java8.util.function.Predicate;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
-import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository;
+import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nonnull;
@@ -39,13 +39,19 @@ public final class PostponedCurrencyExchangeEventPseudoTable
     private PostponedCurrencyExchangeEventPseudoTable() {}
 
     @Override
-    public void rememberPostponedExchange(final Money toBuy, final CurrencyUnit unitSell, final Optional<BigDecimal> customRate, final OffsetDateTime timestamp, final FundsMutationAgent agent) {
+    public void rememberPostponedExchange(final BigDecimal toBuy,
+                                          final Treasury.BalanceAccount toBuyAccount,
+                                          final Treasury.BalanceAccount sellAccount,
+                                          final Optional<BigDecimal> customRate,
+                                          final OffsetDateTime timestamp,
+                                          final FundsMutationAgent agent)
+    {
         final int id = idSequence.incrementAndGet();
         checkState(
                 table.computeIfAbsent(id, new Function<Integer, Stored<PostponedExchange>>() {
                     @Override
                     public Stored<PostponedExchange> apply(Integer integer) {
-                        return new Stored<PostponedCurrencyExchangeEventRepository.PostponedExchange>(id, new PostponedExchange(toBuy, unitSell, customRate, timestamp, agent));
+                        return new Stored<PostponedExchange>(id, new PostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent));
                     }
                 }).id == id
         );
@@ -57,10 +63,11 @@ public final class PostponedCurrencyExchangeEventPseudoTable
                 .filter(new Predicate<Stored<PostponedExchange>>() {
                     @Override
                     public boolean test(Stored<PostponedExchange> event) {
-                        final CurrencyUnit cu = event.obj.toBuy.getCurrencyUnit();
+                        final CurrencyUnit bu = event.obj.toBuyAccount.getUnit();
+                        final CurrencyUnit su = event.obj.sellAccount.getUnit();
                         return day.equals(new UtcDay(event.obj.timestamp))
-                                && (cu.equals(oneOf) || cu.equals(secondOf))
-                                && (event.obj.unitSell.equals(oneOf) || event.obj.unitSell.equals(secondOf));
+                                && (bu.equals(oneOf) || bu.equals(secondOf))
+                                && (su.equals(oneOf) || su.equals(secondOf));
                     }
                 })
                 .map(new Function<Stored<PostponedExchange>, PostponedExchange>() {
