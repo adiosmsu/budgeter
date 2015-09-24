@@ -3,8 +3,10 @@ package ru.adios.budgeter;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
+import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.Units;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
 
@@ -51,6 +53,12 @@ public class BalanceElementCoreTest {
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(65));
         core.setTotalUnit(Units.RUB);
         assertEquals("Wrong total balance", Money.of(Units.RUB, BigDecimal.valueOf(87500.)), core.getTotalBalance());
+
+        // same total unit test
+        Schema.clearSchema();
+        treasury.registerBalanceAccount(new Treasury.BalanceAccount("Тест", Units.RUB));
+        core.setTotalUnit(Units.RUB);
+        core.getTotalBalance();
     }
 
     @Test

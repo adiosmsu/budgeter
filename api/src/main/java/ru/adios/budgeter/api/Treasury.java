@@ -154,7 +154,8 @@ public interface Treasury {
                 (w, otherAccount) -> {
                     final Optional<Money> amount = treasury.accountBalance(otherAccount.name);
                     if (amount.isPresent()) {
-                        w.plus(amount.get().convertedTo(
+                        final Money money = amount.get();
+                        w.plus(money.getCurrencyUnit().equals(unit) ? money : money.convertedTo(
                                         unit,
                                         ratesProvider
                                                 .getConversionMultiplier(new UtcDay(), otherAccount.getUnit(), unit)
