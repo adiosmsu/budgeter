@@ -6,6 +6,7 @@ import org.joda.money.Money;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Optional;
 import java.util.stream.Collector;
@@ -153,15 +154,24 @@ public interface Treasury {
                 () -> new MoneyWrapper(Money.zero(unit)),
                 (w, otherAccount) -> {
                     final Optional<Money> amount = treasury.accountBalance(otherAccount.name);
+
                     if (amount.isPresent()) {
                         final Money money = amount.get();
-                        w.plus(money.getCurrencyUnit().equals(unit) ? money : money.convertedTo(
-                                        unit,
-                                        ratesProvider
-                                                .getConversionMultiplier(new UtcDay(), otherAccount.getUnit(), unit)
-                                                .orElseGet(() -> ratesProvider.getLatestConversionMultiplier(otherAccount.getUnit(), unit)),
-                                        RoundingMode.HALF_DOWN)
-                        );
+
+                        if (money.getCurrencyUnit().equals(unit)) {
+                            w.plus(money);
+                        } else {
+                            final CurrencyUnit otherUnit = otherAccount.getUnit();
+                            final BigDecimal multiplier = ratesProvider
+                                    .getConversionMultiplier(new UtcDay(), otherUnit, unit)
+                                    .orElseGet(() -> ratesProvider.getLatestConversionMultiplier(otherUnit, unit));
+
+                            if (multiplier == null) {
+                                throw new NoRateException(unit, otherUnit);
+                            }
+
+                            w.plus(money.convertedTo(unit, multiplier, RoundingMode.HALF_DOWN));
+                        }
                     }
                 },
                 MoneyWrapper::plus,

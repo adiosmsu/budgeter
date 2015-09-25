@@ -57,20 +57,29 @@ public interface Treasury {
                     },
                     new BiConsumer<MoneyWrapper, BalanceAccount>() {
                         @Override
-                        public void accept(MoneyWrapper w, final BalanceAccount otherAccount) {
+                        public void accept(MoneyWrapper w, BalanceAccount otherAccount) {
                             final Optional<Money> amount = treasury.accountBalance(otherAccount.name);
+
                             if (amount.isPresent()) {
                                 final Money money = amount.get();
-                                w.plus(money.getCurrencyUnit().equals(unit) ? money : money.convertedTo(
-                                                unit,
-                                                ratesProvider.getConversionMultiplier(new UtcDay(), otherAccount.getUnit(), unit).orElseGet(new Supplier<BigDecimal>() {
-                                                    @Override
-                                                    public BigDecimal get() {
-                                                        return ratesProvider.getLatestConversionMultiplier(otherAccount.getUnit(), unit);
-                                                    }
-                                                }),
-                                                RoundingMode.HALF_DOWN)
-                                );
+
+                                if (money.getCurrencyUnit().equals(unit)) {
+                                    w.plus(money);
+                                } else {
+                                    final CurrencyUnit otherUnit = otherAccount.getUnit();
+                                    final BigDecimal multiplier = ratesProvider.getConversionMultiplier(new UtcDay(), otherUnit, unit).orElseGet(new Supplier<BigDecimal>() {
+                                        @Override
+                                        public BigDecimal get() {
+                                            return ratesProvider.getLatestConversionMultiplier(otherUnit, unit);
+                                        }
+                                    });
+
+                                    if (multiplier == null) {
+                                        throw new NoRateException(unit, otherUnit);
+                                    }
+
+                                    w.plus(money.convertedTo(unit, multiplier, RoundingMode.HALF_DOWN));
+                                }
                             }
                         }
                     },
@@ -140,7 +149,6 @@ public interface Treasury {
     Stream<BalanceAccount> streamRegisteredAccounts();
 
     BalanceAccount getAccountWithId(BalanceAccount account);
-
 
     @Immutable
     final class BalanceAccount {

@@ -3,6 +3,7 @@ package ru.adios.budgeter;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
+import ru.adios.budgeter.api.NoRateException;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.Units;
 import ru.adios.budgeter.api.UtcDay;
@@ -59,6 +60,15 @@ public class BalanceElementCoreTest {
         treasury.registerBalanceAccount(new Treasury.BalanceAccount("Тест", Units.RUB));
         core.setTotalUnit(Units.RUB);
         core.getTotalBalance();
+
+        // no total unit set test
+        Schema.clearSchema();
+        treasury.registerBalanceAccount(new Treasury.BalanceAccount("Тест", Units.RUB));
+        final BalanceElementCore balanceElementCore = new BalanceElementCore(treasury, ratesRepository);
+        try {
+            balanceElementCore.getTotalBalance();
+            fail("No way to get exchange rate between RUB and USD but it worked anyway!");
+        } catch (NoRateException ignore) {}
     }
 
     @Test

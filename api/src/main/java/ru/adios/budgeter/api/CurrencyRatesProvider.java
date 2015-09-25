@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 import org.joda.money.CurrencyUnit;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -29,9 +30,11 @@ public interface CurrencyRatesProvider {
         final Optional<BigDecimal> straight = getConversionMultiplierBidirectional(day, from, to);
         if (straight.isPresent()) {
             return straight;
-        } else {
+        } else if (!Units.RUB.equals(from) && !Units.RUB.equals(to)) {
             final CurrencyUnit rub = Units.RUB;
             return getConversionMultiplierWithIntermediate(day, from, to, rub);
+        } else {
+            return Optional.empty();
         }
     }
 
@@ -62,13 +65,16 @@ public interface CurrencyRatesProvider {
 
     Optional<BigDecimal> getLatestOptionalConversionMultiplier(CurrencyUnit from, CurrencyUnit to);
 
+    @Nullable
     default BigDecimal getLatestConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {
         final Optional<BigDecimal> opt = getLatestOptionalConversionMultiplierBidirectional(from, to);
         if (opt.isPresent()) {
             return opt.get();
-        } else {
+        } else if (!Units.RUB.equals(from) && !Units.RUB.equals(to)) {
             final CurrencyUnit rub = Units.RUB;
             return getLatestConversionMultiplierWithIntermediate(from, to, rub);
+        } else {
+            return null;
         }
     }
 
