@@ -73,9 +73,19 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
     @Override
     public Result submit() {
         final ResultBuilder resultBuilder = new ResultBuilder();
-        resultBuilder.addFieldErrorIfAbsent(accountRef, "account")
-                .addFieldErrorIfAbsent(amountWrapper.amountDecimalRef, "amountDecimal")
-                .addFieldErrorIfAbsent(amountWrapper.amountUnitRef, "amountUnit");
+        resultBuilder.addFieldErrorIfAbsent(accountRef, "account");
+
+        if (!amountWrapper.isUnitSet()) {
+            resultBuilder
+                    .addFieldError("amountUnit")
+                    .addFieldError("amount");
+        }
+        if (!amountWrapper.isAmountSet()) {
+            resultBuilder
+                    .addFieldError("amountDecimal")
+                    .addFieldError("amount");
+        }
+
         if (resultBuilder.toBuildError()) {
             return resultBuilder.build();
         }
