@@ -4,6 +4,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.Treasury;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.Optional;
 
@@ -53,6 +54,11 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
     public void setAccount(Treasury.BalanceAccount account) {
         this.accountRef = Optional.of(account);
         setAmountUnit(account.getUnit());
+    }
+
+    @Nullable
+    public Treasury.BalanceAccount getAccount() {
+        return accountRef.orElse(null);
     }
 
     @Override
