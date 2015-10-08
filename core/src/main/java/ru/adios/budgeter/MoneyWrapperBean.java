@@ -3,6 +3,7 @@ package ru.adios.budgeter;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.Optional;
 
@@ -67,6 +68,7 @@ public final class MoneyWrapperBean implements MoneySettable {
         return amountRef.orElseGet(this::initAmount);
     }
 
+    @Nullable
     public CurrencyUnit getAmountUnit() {
         return amountUnitRef.orElseGet(() -> amountRef.isPresent() ? amountRef.get().getCurrencyUnit() : null);
     }

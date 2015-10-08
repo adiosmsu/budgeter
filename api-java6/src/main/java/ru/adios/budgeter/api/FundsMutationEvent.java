@@ -3,6 +3,7 @@ package ru.adios.budgeter.api;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -143,10 +144,12 @@ public final class FundsMutationEvent {
             return timestamp;
         }
 
+        @Nullable
         public Money getAmount() {
             return amount;
         }
 
+        @Nullable
         public FundsMutationAgent getAgent() {
             return agent;
         }
@@ -155,10 +158,12 @@ public final class FundsMutationEvent {
             return quantity;
         }
 
+        @Nullable
         public FundsMutationSubject getSubject() {
             return subject;
         }
 
+        @Nullable
         public Treasury.BalanceAccount getRelevantBalance() {
             return relevantBalance;
         }

@@ -22,33 +22,58 @@ public class SubjectAdditionElementCoreTest {
         final long id = Schema.FUNDS_MUTATION_SUBJECTS.idSeqNext() + 1;
         final FundsMutationSubjectRepositoryMock subjRepo = new FundsMutationSubjectRepositoryMock();
         SubjectAdditionElementCore core = new SubjectAdditionElementCore(subjRepo);
-        boolean nameSet = core.setName(Optional.of(""));
-        assertFalse(nameSet);
-        nameSet = core.setName(Optional.<String>empty());
-        assertFalse(nameSet);
-        nameSet = core.setName(Optional.of("Еда"));
-        assertTrue(nameSet);
-        boolean parentSet = core.setParentName("Test");
-        assertFalse(parentSet);
-        boolean typeSet = core.setType(-1);
-        assertFalse(typeSet);
-        typeSet = core.setType(1000);
-        assertFalse(typeSet);
-        typeSet = core.setType(FundsMutationSubject.Type.PRODUCT.ordinal());
-        assertTrue(typeSet);
-        core.submit();
+        core.setName("");
+        Submitter.Result submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertTrue(isFieldInError(submit, SubjectAdditionElementCore.FIELD_NAME));
+
+        core.setName(null);
+        submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertTrue(isFieldInError(submit, SubjectAdditionElementCore.FIELD_NAME));
+
+        core.setName("Еда");
+        submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertFalse(isFieldInError(submit, SubjectAdditionElementCore.FIELD_NAME));
+
+        core.setParentName("Test");
+        submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertTrue(isFieldInError(submit, SubjectAdditionElementCore.FIELD_PARENT_NAME));
+
+        core.setType(-1);
+        submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertTrue(isFieldInError(submit, SubjectAdditionElementCore.FIELD_TYPE));
+
+        core.setType(1000);
+        submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertTrue(isFieldInError(submit, SubjectAdditionElementCore.FIELD_TYPE));
+
+        core.setType(FundsMutationSubject.Type.PRODUCT.ordinal());
+        submit = core.submit();
+        assertTrue(submit.isSuccessful());
 
         Optional<FundsMutationSubject> subjOpt = subjRepo.findByName("Еда");
         assertTrue(subjOpt.isPresent());
         assertEquals("Food fault", FundsMutationSubject.builder(subjRepo).setName("Еда").setType(FundsMutationSubject.Type.PRODUCT).build(), subjOpt.get());
 
         core = new SubjectAdditionElementCore(subjRepo);
-        nameSet = core.setName(Optional.of("Хлеб"));
-        assertTrue(nameSet);
-        parentSet = core.setParentName("Еда");
-        assertTrue(parentSet);
+        core.setName("Хлеб");
+        submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertFalse(isFieldInError(submit, SubjectAdditionElementCore.FIELD_NAME));
+
+        core.setParentName("Еда");
+        submit = core.submit();
+        assertFalse(submit.isSuccessful());
+        assertFalse(isFieldInError(submit, SubjectAdditionElementCore.FIELD_PARENT_NAME));
+
         core.setType(FundsMutationSubject.Type.PRODUCT);
-        core.submit();
+        submit = core.submit();
+        assertTrue(submit.isSuccessful());
 
         subjOpt = subjRepo.findByName("Хлеб");
         assertTrue(subjOpt.isPresent());
@@ -62,6 +87,15 @@ public class SubjectAdditionElementCoreTest {
                         .build(),
                 subjOpt.get()
         );
+    }
+
+    private boolean isFieldInError(Submitter.Result submit, String fieldName) {
+        for (Submitter.FieldError fieldError : submit.fieldErrors) {
+            if (fieldError.fieldInFault.equals(fieldName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

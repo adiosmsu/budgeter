@@ -3,6 +3,8 @@ package ru.adios.budgeter;
 import java8.util.Optional;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.Treasury;
 
 import javax.annotation.Nullable;
@@ -15,6 +17,14 @@ import java.math.BigDecimal;
  * @author Mikhail Kulikov
  */
 public final class FundsAdditionElementCore implements MoneySettable, Submitter {
+
+    public static final String FIELD_ACCOUNT = "account";
+    public static final String FIELD_AMOUNT = "amount";
+    public static final String FIELD_AMOUNT_UNIT = "amountUnit";
+    public static final String FIELD_AMOUNT_DECIMAL = "amountDecimal";
+
+    private static final Logger logger = LoggerFactory.getLogger(FundsMutationElementCore.class);
+
 
     private final Treasury treasury;
 
@@ -71,6 +81,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
         return amountWrapper.getAmountDecimal();
     }
 
+    @Nullable
     @Override
     public CurrencyUnit getAmountUnit() {
         return amountWrapper.getAmountUnit();
@@ -79,24 +90,32 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
     @Override
     public Result submit() {
         final ResultBuilder resultBuilder = new ResultBuilder();
-        resultBuilder.addFieldErrorIfAbsent(accountRef, "account");
+        resultBuilder.addFieldErrorIfAbsent(accountRef, FIELD_ACCOUNT);
 
         if (!amountWrapper.isUnitSet()) {
             resultBuilder
-                    .addFieldError("amountUnit")
-                    .addFieldError("amount");
+                    .addFieldError(FIELD_AMOUNT_UNIT)
+                    .addFieldError(FIELD_AMOUNT);
         }
         if (!amountWrapper.isAmountSet()) {
             resultBuilder
-                    .addFieldError("amountDecimal")
-                    .addFieldError("amount");
+                    .addFieldError(FIELD_AMOUNT_DECIMAL)
+                    .addFieldError(FIELD_AMOUNT);
         }
 
         if (resultBuilder.toBuildError()) {
             return resultBuilder.build();
         }
 
-        treasury.addAmount(getAmount(), accountRef.get().name);
+        try {
+            treasury.addAmount(getAmount(), accountRef.get().name);
+        } catch (RuntimeException ex) {
+            final String mes = "Error while adding amount to " + accountRef.get();
+            logger.error(mes, ex);
+            return resultBuilder
+                    .setGeneralError(mes + ": " + ex.getMessage())
+                    .build();
+        }
 
         return Result.SUCCESS;
     }

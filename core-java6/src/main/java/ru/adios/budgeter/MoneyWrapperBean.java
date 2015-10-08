@@ -5,6 +5,7 @@ import java8.util.function.Supplier;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -85,6 +86,7 @@ public final class MoneyWrapperBean implements MoneySettable {
         msDef.setAmount(coins, cents);
     }
 
+    @Nullable
     public CurrencyUnit getAmountUnit() {
         return amountUnitRef.orElseGet(new Supplier<CurrencyUnit>() {
             @Override

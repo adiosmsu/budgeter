@@ -5,11 +5,16 @@ import java8.util.function.Supplier;
 import org.joda.money.BigMoney;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Date: 6/13/15
@@ -18,6 +23,18 @@ import java.math.RoundingMode;
  * @author Mikhail Kulikov
  */
 public final class FundsMutationElementCore implements MoneySettable, FundsMutator, Submitter {
+
+    public static final String FIELD_DIRECTION = "direction";
+    public static final String FIELD_RELEVANT_BALANCE = "relevantBalance";
+    public static final String FIELD_AGENT = "agent";
+    public static final String FIELD_SUBJECT = "subject";
+    public static final String FIELD_AMOUNT_UNIT = "amountUnit";
+    public static final String FIELD_AMOUNT = "amount";
+    public static final String FIELD_AMOUNT_DECIMAL = "amountDecimal";
+    public static final String FIELD_PAYEE_AMOUNT = "payeeAmount";
+    public static final String FIELD_PAYED_MONEY = "payedMoney";
+
+    private static final Logger logger = LoggerFactory.getLogger(FundsMutationElementCore.class);
 
     private final Accounter accounter;
     private final CurrenciesExchangeService ratesService;
@@ -70,6 +87,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         this.naturalRateRef = Optional.of(naturalRate);
     }
 
+    @Nullable
     public BigDecimal getNaturalRate() {
         return naturalRateRef.orElseGet(null);
     }
@@ -111,6 +129,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         amountWrapper.setAmount(coins, cents);
     }
 
+    @Nullable
     @Override
     public CurrencyUnit getAmountUnit() {
         return amountWrapper.getAmountUnit();
@@ -123,6 +142,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         }
     }
 
+    @Nullable
     public Treasury.BalanceAccount getRelevantBalance() {
         return eventBuilder.getRelevantBalance();
     }
@@ -136,6 +156,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         adjustRelevantBalance(unit, MutationDirection.LOSS);
     }
 
+    @Nullable
     public CurrencyUnit getPayeeAccountUnit() {
         return payeeAccountMoneyWrapper.getAmountUnit();
     }
@@ -161,6 +182,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         this.customRateRef = Optional.ofNullable(customRate);
     }
 
+    @Nullable
     public BigDecimal getCustomRate() {
         return customRateRef.orElse(null);
     }
@@ -186,6 +208,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         eventBuilder.setSubject(subject);
     }
 
+    @Nullable
     public FundsMutationSubject getSubject() {
         return eventBuilder.getSubject();
     }
@@ -223,6 +246,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         }));
     }
 
+    @Nullable
     public FundsMutationAgent getAgent() {
         return eventBuilder.getAgent();
     }
@@ -233,122 +257,132 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     @Override
     public Result submit() {
         final ResultBuilder resultBuilder = new ResultBuilder();
-        resultBuilder.addFieldErrorIfAbsent(directionRef, "direction")
-                .addFieldErrorIfNull(eventBuilder.getRelevantBalance(), "relevantBalance")
-                .addFieldErrorIfNull(eventBuilder.getAgent(), "agent")
-                .addFieldErrorIfNull(eventBuilder.getSubject(), "subject");
+        resultBuilder.addFieldErrorIfAbsent(directionRef, FIELD_DIRECTION)
+                .addFieldErrorIfNull(eventBuilder.getRelevantBalance(), FIELD_RELEVANT_BALANCE)
+                .addFieldErrorIfNull(eventBuilder.getAgent(), FIELD_AGENT)
+                .addFieldErrorIfNull(eventBuilder.getSubject(), FIELD_SUBJECT);
 
         if (!amountWrapper.isUnitSet()) {
-            resultBuilder.addFieldError("amountUnit")
-                    .addFieldError("amount");
+            resultBuilder.addFieldError(FIELD_AMOUNT_UNIT)
+                    .addFieldError(FIELD_AMOUNT);
         }
 
         if (payeeAccountMoneyWrapper.isUnitSet() && !amountWrapper.isAmountSet() && !payeeAccountMoneyWrapper.isAmountSet()) {
-            resultBuilder.addFieldError("amount")
-                    .addFieldError("amountDecimal")
-                    .addFieldError("payeeAmount")
-                    .addFieldError("payedMoney");
+            resultBuilder.addFieldError(FIELD_AMOUNT)
+                    .addFieldError(FIELD_AMOUNT_DECIMAL)
+                    .addFieldError(FIELD_PAYEE_AMOUNT)
+                    .addFieldError(FIELD_PAYED_MONEY);
         }
 
         if (resultBuilder.toBuildError()) {
             return resultBuilder.build();
         }
 
-        final MutationDirection direction = directionRef.get();
-        final CurrencyUnit amountUnit = amountWrapper.getAmountUnit();
+        try {
+            final MutationDirection direction = directionRef.get();
+            final CurrencyUnit amountUnit = amountWrapper.getAmountUnit();
 
-        final BigMoney amount;
-        if (payeeAccountMoneyWrapper.isUnitSet()) {
-            // and so actual account of payment was set (even if only as a currency)
-            final CurrencyUnit payedUnit = payeeAccountMoneyWrapper.getAmountUnit(); // therefore we know it for sure
-            final boolean sameUnits = payedUnit.equals(amountUnit);
+            final BigMoney amount;
+            if (payeeAccountMoneyWrapper.isUnitSet()) {
+                // and so actual account of payment was set (even if only as a currency)
+                final CurrencyUnit payedUnit = payeeAccountMoneyWrapper.getAmountUnit(); // therefore we know it for sure
+                checkNotNull(payedUnit);
+                final boolean sameUnits = payedUnit.equals(amountUnit);
 
-            if (!customRateRef.isPresent() && payeeAccountMoneyWrapper.isAmountSet() && amountWrapper.isAmountSet()) {
-                // we know about payed money and actual amount both therefore we must calculate custom rate which with 99% chance will differ from natural rate
-                customRateRef = Optional.of(CurrencyRatesProvider.Static.calculateRate(amountWrapper.getAmount().getAmount(), payeeAccountMoneyWrapper.getAmount().getAmount()));
-            }
+                if (!customRateRef.isPresent() && payeeAccountMoneyWrapper.isAmountSet() && amountWrapper.isAmountSet()) {
+                    // we know about payed money and actual amount both therefore we must calculate custom rate which with 99% chance will differ from natural rate
+                    customRateRef = Optional.of(CurrencyRatesProvider.Static.calculateRate(amountWrapper.getAmount().getAmount(), payeeAccountMoneyWrapper.getAmount().getAmount()));
+                }
 
-            if (!amountWrapper.isAmountSet()) {
-                // actual amount wasn't set explicitly so we must calculate it from payed amount and rate (custom or natural) which must have been provided
-                final BigMoney payedAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
-                amount = (sameUnits)
-                        ? payedAmount
-                        : payedAmount.convertedTo(amountUnit, customRateRef.orElseGet(new Supplier<BigDecimal>() {
-                    @Override
-                    public BigDecimal get() {
-                        return calculateNaturalRate(payedUnit, amountUnit);
+                if (!amountWrapper.isAmountSet()) {
+                    // actual amount wasn't set explicitly so we must calculate it from payed amount and rate (custom or natural) which must have been provided
+                    final BigMoney payedAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
+                    checkNotNull(amountUnit);
+                    amount = (sameUnits)
+                            ? payedAmount
+                            : payedAmount.convertedTo(amountUnit, customRateRef.orElseGet(new Supplier<BigDecimal>() {
+                        @Override
+                        public BigDecimal get() {
+                            return calculateNaturalRate(payedUnit, amountUnit);
+                        }
+                    }));
+                } else {
+                    // actual amount was set explicitly
+                    amount = amountWrapper.getAmount().toBigMoney();
+                }
+
+                if (!sameUnits) {
+                    // currency conversion to be
+                    final BigDecimal naturalRate = calculateNaturalRate(payedUnit, amountUnit);
+                    final Money amountSmallMoney = amount.toMoney(RoundingMode.HALF_DOWN);
+                    if (naturalRate == null) {
+                        // we don't have today's rates yet, do accounting later
+                        direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), payedUnit, customRateRef);
+                        return Result.SUCCESS;
                     }
-                }));
+
+                    final BigDecimal actualRate = customRateRef.orElse(naturalRate);
+                    final BigMoney soldAmount = payeeAccountMoneyWrapper.isAmountSet()
+                            ? payeeAccountMoneyWrapper.getAmount().toBigMoney()
+                            : amount.convertedTo(payedUnit, CurrencyRatesProvider.Static.reverseRate(actualRate));
+
+                    final Money soldAmountSmallMoney = soldAmount.toMoney(RoundingMode.HALF_DOWN);
+                    final Money appropriateMutationAmount = direction.getAppropriateMutationAmount(amountSmallMoney, soldAmountSmallMoney);
+
+                    if (customRateRef.isPresent()) {
+                        // custom exchange rate present, will need to calculate difference and account it
+                        final BigMoney naturalAmount;
+                        final BigMoney convertedAmount;
+                        if (appropriateMutationAmount.getCurrencyUnit().equals(amountUnit)) {
+                            naturalAmount = soldAmount.convertedTo(amountUnit, naturalRate);
+                            convertedAmount = amount;
+                        } else {
+                            naturalAmount = amount.convertedTo(payedUnit, CurrencyRatesProvider.Static.reverseRate(naturalRate));
+                            convertedAmount = soldAmount;
+                        }
+
+                        FundsMutator.Static.registerExchangeDifference(
+                                this,
+                                naturalAmount.toMoney(RoundingMode.HALF_DOWN),
+                                convertedAmount.toMoney(RoundingMode.HALF_DOWN),
+                                eventBuilder.getRelevantBalance(),
+                                direction,
+                                eventBuilder.getAgent(),
+                                eventBuilder.getTimestamp(),
+                                eventBuilder.getQuantity()
+                        );
+                    }
+
+                    direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
+                    accounter.registerCurrencyExchange(
+                            CurrencyExchangeEvent.builder()
+                                    .setAgent(eventBuilder.getAgent())
+                                    .setRate(actualRate)
+                                    .setBought(amountSmallMoney)
+                                    .setSold(soldAmountSmallMoney)
+                                    .setBoughtAccount(direction == MutationDirection.LOSS
+                                            ? Treasury.Static.getTransitoryAccount(amountSmallMoney.getCurrencyUnit(), treasury)
+                                            : eventBuilder.getRelevantBalance())
+                                    .setSoldAccount(direction == MutationDirection.LOSS
+                                            ? eventBuilder.getRelevantBalance()
+                                            : Treasury.Static.getTransitoryAccount(soldAmountSmallMoney.getCurrencyUnit(), treasury))
+                                    .setTimestamp(eventBuilder.getTimestamp())
+                                    .build()
+                    );
+                    return Result.SUCCESS;
+                }
             } else {
-                // actual amount was set explicitly
                 amount = amountWrapper.getAmount().toBigMoney();
             }
 
-            if (!sameUnits) {
-                // currency conversion to be
-                final BigDecimal naturalRate = calculateNaturalRate(payedUnit, amountUnit);
-                final Money amountSmallMoney = amount.toMoney(RoundingMode.HALF_DOWN);
-                if (naturalRate == null) {
-                    // we don't have today's rates yet, do accounting later
-                    direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), payedUnit, customRateRef);
-                    return Result.SUCCESS;
-                }
-
-                final BigDecimal actualRate = customRateRef.orElse(naturalRate);
-                final BigMoney soldAmount = payeeAccountMoneyWrapper.isAmountSet()
-                        ? payeeAccountMoneyWrapper.getAmount().toBigMoney()
-                        : amount.convertedTo(payedUnit, CurrencyRatesProvider.Static.reverseRate(actualRate));
-
-                final Money soldAmountSmallMoney = soldAmount.toMoney(RoundingMode.HALF_DOWN);
-                final Money appropriateMutationAmount = direction.getAppropriateMutationAmount(amountSmallMoney, soldAmountSmallMoney);
-
-                if (customRateRef.isPresent()) {
-                    // custom exchange rate present, will need to calculate difference and account it
-                    final BigMoney naturalAmount;
-                    final BigMoney convertedAmount;
-                    if (appropriateMutationAmount.getCurrencyUnit().equals(amountUnit)) {
-                        naturalAmount = soldAmount.convertedTo(amountUnit, naturalRate);
-                        convertedAmount = amount;
-                    } else {
-                        naturalAmount = amount.convertedTo(payedUnit, CurrencyRatesProvider.Static.reverseRate(naturalRate));
-                        convertedAmount = soldAmount;
-                    }
-
-                    FundsMutator.Static.registerExchangeDifference(
-                            this,
-                            naturalAmount.toMoney(RoundingMode.HALF_DOWN),
-                            convertedAmount.toMoney(RoundingMode.HALF_DOWN),
-                            eventBuilder.getRelevantBalance(),
-                            direction,
-                            eventBuilder.getAgent(),
-                            eventBuilder.getTimestamp(),
-                            eventBuilder.getQuantity()
-                    );
-                }
-
-                direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
-                accounter.registerCurrencyExchange(
-                        CurrencyExchangeEvent.builder()
-                                .setAgent(eventBuilder.getAgent())
-                                .setRate(actualRate)
-                                .setBought(amountSmallMoney)
-                                .setSold(soldAmountSmallMoney)
-                                .setBoughtAccount(direction == MutationDirection.LOSS
-                                        ? Treasury.Static.getTransitoryAccount(amountSmallMoney.getCurrencyUnit(), treasury)
-                                        : eventBuilder.getRelevantBalance())
-                                .setSoldAccount(direction == MutationDirection.LOSS
-                                        ? eventBuilder.getRelevantBalance()
-                                        : Treasury.Static.getTransitoryAccount(soldAmountSmallMoney.getCurrencyUnit(), treasury))
-                                .setTimestamp(eventBuilder.getTimestamp())
-                                .build()
-                );
-                return Result.SUCCESS;
-            }
-        } else {
-            amount = amountWrapper.getAmount().toBigMoney();
+            direction.register(accounter, treasury, eventBuilder, amount.toMoney(), mutateFunds);
+        } catch (RuntimeException ex) {
+            logger.error("Error while performing funds mutation business logic", ex);
+            return resultBuilder
+                    .setGeneralError("Error while performing funds mutation business logic: " + ex.getMessage())
+                    .build();
         }
 
-        direction.register(accounter, treasury, eventBuilder, amount.toMoney(), mutateFunds);
         return Result.SUCCESS;
     }
 

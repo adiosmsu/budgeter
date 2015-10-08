@@ -159,6 +159,18 @@ public final class FundsMutationSubject {
             return this;
         }
 
+        public String getName() {
+            return name;
+        }
+
+        public Type getType() {
+            return type;
+        }
+
+        public int getParentId() {
+            return parentId;
+        }
+
         public FundsMutationSubject build() {
             return new FundsMutationSubject(this);
         }
