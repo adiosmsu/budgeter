@@ -66,6 +66,8 @@ public interface Submitter {
     @NotThreadSafe
     final class ResultBuilder {
 
+        private static final String FILL_IN_PRE = "Fill in";
+
         private ImmutableSet.Builder<FieldError> fieldErrorsBuilder = new ImmutableSet.Builder<FieldError>();
         private boolean wasFieldError = false;
         private String generalError;
@@ -85,7 +87,11 @@ public interface Submitter {
         }
 
         public ResultBuilder addFieldError(String fieldInFault) {
-            fieldErrorsBuilder.add(new FieldError("Fill in " + fieldInFault, fieldInFault));
+            return addFieldError(fieldInFault, FILL_IN_PRE);
+        }
+
+        public ResultBuilder addFieldError(String fieldInFault, String predicate) {
+            fieldErrorsBuilder.add(new FieldError(predicate + ' ' + fieldInFault, fieldInFault));
             wasFieldError = true;
             return this;
         }

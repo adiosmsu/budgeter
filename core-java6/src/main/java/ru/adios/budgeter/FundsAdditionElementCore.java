@@ -24,6 +24,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
     public static final String FIELD_AMOUNT_DECIMAL = "amountDecimal";
 
     private static final Logger logger = LoggerFactory.getLogger(FundsMutationElementCore.class);
+    private static final String CURRENCIES_DONT_MATCH_PRE = "Currencies don't match for";
 
 
     private final Treasury treasury;
@@ -96,6 +97,9 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
             resultBuilder
                     .addFieldError(FIELD_AMOUNT_UNIT)
                     .addFieldError(FIELD_AMOUNT);
+        } else if (accountRef.isPresent() && !accountRef.get().getUnit().equals(amountWrapper.getAmountUnit())) {
+            resultBuilder.addFieldError(FIELD_AMOUNT_UNIT, CURRENCIES_DONT_MATCH_PRE)
+                    .addFieldError(FIELD_ACCOUNT, CURRENCIES_DONT_MATCH_PRE);
         }
         if (!amountWrapper.isAmountSet()) {
             resultBuilder
