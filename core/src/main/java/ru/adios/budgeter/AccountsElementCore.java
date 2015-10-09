@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.Treasury;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -33,6 +34,7 @@ public class AccountsElementCore implements Submitter {
         this.treasury = treasury;
     }
 
+    @Nullable
     public String getName() {
         return nameOpt.orElse(null);
     }
@@ -41,6 +43,7 @@ public class AccountsElementCore implements Submitter {
         this.nameOpt = Optional.of(name);
     }
 
+    @Nullable
     public CurrencyUnit getUnit() {
         return unitOpt.orElse(null);
     }
