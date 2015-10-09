@@ -101,6 +101,17 @@ public interface Submitter {
             return this;
         }
 
+        public ResultBuilder addExistingResult(Result result) {
+            if (result.generalError != null) {
+                generalError = result.generalError;
+            }
+            for (final FieldError fieldError : result.fieldErrors) {
+                fieldErrorsBuilder.add(new FieldError(fieldError.errorText, fieldError.fieldInFault));
+                wasFieldError = true;
+            }
+            return this;
+        }
+
         public Result build() {
             return new Result(generalError, ImmutableList.copyOf(fieldErrorsBuilder.build()));
         }
