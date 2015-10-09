@@ -181,4 +181,15 @@ public class TreasuryPseudoTableTest {
         assertEquals(new Treasury.BalanceAccount(1L, "accountUSD", Money.of(CurrencyUnit.USD, BigDecimal.ZERO)), accountWithId);
     }
 
+    @Test
+    public void testGetAccountForName() throws Exception {
+        Schema.clearSchema();
+        TreasuryPseudoTable.INSTANCE.idSequence.set(0);
+        TestUtils.prepareBalance(CurrencyUnit.USD);
+        final Optional<Treasury.BalanceAccount> accountWithId = TreasuryPseudoTable.INSTANCE.getAccountForName("accountUSD");
+        assertEquals(new Treasury.BalanceAccount(1L, "accountUSD", Money.of(CurrencyUnit.USD, BigDecimal.ZERO)), accountWithId.get());
+        final Optional<Treasury.BalanceAccount> gibberish = TreasuryPseudoTable.INSTANCE.getAccountForName("gibberish");
+        assertFalse(gibberish.isPresent());
+    }
+
 }

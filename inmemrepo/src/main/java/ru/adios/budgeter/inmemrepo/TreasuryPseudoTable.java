@@ -185,6 +185,15 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
         return new BalanceAccount(key.longValue(), account.name, accountBalance(account.name).get());
     }
 
+    @Override
+    public Optional<BalanceAccount> getAccountForName(String accountName) {
+        final Integer key = nameUniqueIndex.get(accountName);
+        if (key == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new BalanceAccount(key.longValue(), accountName, accountBalance(accountName).get()));
+    }
+
     @Nonnull
     @Override
     ConcurrentHashMap<Integer, StoredBalanceAccount> innerTable() {

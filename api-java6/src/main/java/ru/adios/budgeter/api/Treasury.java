@@ -150,6 +150,8 @@ public interface Treasury {
 
     BalanceAccount getAccountWithId(BalanceAccount account);
 
+    Optional<BalanceAccount> getAccountForName(String accountName);
+
     @Immutable
     final class BalanceAccount {
 

@@ -67,6 +67,13 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
         setAmountUnit(account.getUnit());
     }
 
+    public void setAccount(String accountName) {
+        final Optional<Treasury.BalanceAccount> accountForName = treasury.getAccountForName(accountName);
+        if (accountForName.isPresent()) {
+            setAccount(accountForName.get());
+        }
+    }
+
     @Nullable
     public Treasury.BalanceAccount getAccount() {
         return accountRef.orElse(null);

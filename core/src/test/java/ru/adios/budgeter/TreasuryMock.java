@@ -75,6 +75,11 @@ public class TreasuryMock implements Treasury {
         return table.getAccountWithId(account);
     }
 
+    @Override
+    public Optional<BalanceAccount> getAccountForName(String accountName) {
+        return table.getAccountForName(accountName);
+    }
+
     void clear() {
         table.clear();
     }
