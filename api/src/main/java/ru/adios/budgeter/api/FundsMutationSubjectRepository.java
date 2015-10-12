@@ -21,7 +21,7 @@ public interface FundsMutationSubjectRepository {
 
     ImmutableList<FundsMutationSubject> searchByString(String str);
 
-    default void addSubject(FundsMutationSubject subject) {
+    default FundsMutationSubject addSubject(FundsMutationSubject subject) {
         if (subject.parentId == 0) {
             final FundsMutationSubject.Builder builder = FundsMutationSubject.builder(this).setFundsMutationSubject(subject);
             if (!subject.id.isPresent())
@@ -32,6 +32,7 @@ public interface FundsMutationSubjectRepository {
         if (subject.parentId != 0) {
             updateChildFlag(subject.parentId);
         }
+        return subject;
     }
 
     void rawAddition(FundsMutationSubject subject);

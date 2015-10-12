@@ -252,7 +252,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
             if (naturalRate == null) {
                 // we don't have rates in question for today yet, conserve operation to commit later
                 accounter.rememberPostponedExchange(buyAmountSmallMoney.getAmount(), boughtAccount, soldAccount, customRateRef, timestampRef.get(), agent);
-                return Result.SUCCESS;
+                return Result.success(null);
             }
 
             if (customRateRef.isPresent()) {
@@ -294,7 +294,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                     .build();
         }
 
-        return Result.SUCCESS;
+        return Result.success(null);
     }
 
     @Nullable

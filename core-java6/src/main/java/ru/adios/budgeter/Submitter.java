@@ -14,22 +14,28 @@ import javax.annotation.concurrent.NotThreadSafe;
  *
  * @author Mikhail Kulikov
  */
-public interface Submitter {
+public interface Submitter<T> {
 
-    Result submit();
+    Result<T> submit();
 
     @Immutable
-    final class Result {
+    final class Result<T> {
 
-        public static final Submitter.Result SUCCESS = new Submitter.Result(null, ImmutableList.<FieldError>of());
+        @SuppressWarnings("unchecked")
+        public static <T> Result<T> success(@Nullable T submitResult) {
+            return new Submitter.Result<T>(null, ImmutableList.<FieldError>of(), submitResult);
+        }
 
         @Nullable
         public final String generalError;
         public final ImmutableList<FieldError> fieldErrors;
+        @Nullable
+        public final T submitResult;
 
-        private Result(@Nullable String generalError, ImmutableList<FieldError> fieldErrors) {
+        private Result(@Nullable String generalError, ImmutableList<FieldError> fieldErrors, @Nullable T submitResult) {
             this.generalError = generalError;
             this.fieldErrors = fieldErrors;
+            this.submitResult = submitResult;
         }
 
         public boolean isSuccessful() {
@@ -64,46 +70,50 @@ public interface Submitter {
     }
 
     @NotThreadSafe
-    final class ResultBuilder {
+    final class ResultBuilder<T> {
 
         private static final String FILL_IN_PRE = "Fill in";
 
         private ImmutableSet.Builder<FieldError> fieldErrorsBuilder = new ImmutableSet.Builder<FieldError>();
         private boolean wasFieldError = false;
         private String generalError;
+        private T submitResult;
 
-        public <T> ResultBuilder addFieldErrorIfAbsent(Optional<T> field, String fieldName) {
+        public <FieldType> ResultBuilder<T> addFieldErrorIfAbsent(Optional<FieldType> field, String fieldName) {
             if (!field.isPresent()) {
                 addFieldError(fieldName);
             }
             return this;
         }
 
-        public ResultBuilder addFieldErrorIfNull(Object objectReference, String fieldName) {
+        public ResultBuilder<T> addFieldErrorIfNull(Object objectReference, String fieldName) {
             if (objectReference == null) {
                 addFieldError(fieldName);
             }
             return this;
         }
 
-        public ResultBuilder addFieldError(String fieldInFault) {
+        public ResultBuilder<T> addFieldError(String fieldInFault) {
             return addFieldError(fieldInFault, FILL_IN_PRE);
         }
 
-        public ResultBuilder addFieldError(String fieldInFault, String predicate) {
+        public ResultBuilder<T> addFieldError(String fieldInFault, String predicate) {
             fieldErrorsBuilder.add(new FieldError(predicate + ' ' + fieldInFault, fieldInFault));
             wasFieldError = true;
             return this;
         }
 
-        public ResultBuilder setGeneralError(String generalError) {
+        public ResultBuilder<T> setGeneralError(String generalError) {
             this.generalError = generalError;
             return this;
         }
 
-        public ResultBuilder addExistingResult(Result result) {
+        public ResultBuilder<T> addExistingResult(Result<T> result) {
             if (result.generalError != null) {
                 generalError = result.generalError;
+            }
+            if (result.submitResult != null) {
+                submitResult = result.submitResult;
             }
             for (final FieldError fieldError : result.fieldErrors) {
                 fieldErrorsBuilder.add(new FieldError(fieldError.errorText, fieldError.fieldInFault));
@@ -112,8 +122,8 @@ public interface Submitter {
             return this;
         }
 
-        public Result build() {
-            return new Result(generalError, ImmutableList.copyOf(fieldErrorsBuilder.build()));
+        public Result<T> build() {
+            return new Result<T>(generalError, ImmutableList.copyOf(fieldErrorsBuilder.build()), submitResult);
         }
 
         public boolean toBuildError() {

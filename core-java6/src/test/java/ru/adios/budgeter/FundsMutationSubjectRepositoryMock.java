@@ -59,8 +59,8 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
-    public void addSubject(FundsMutationSubject subject) {
-        fmsRepoDef.addSubject(subject);
+    public FundsMutationSubject addSubject(FundsMutationSubject subject) {
+        return fmsRepoDef.addSubject(subject);
     }
 
     public void clear() {

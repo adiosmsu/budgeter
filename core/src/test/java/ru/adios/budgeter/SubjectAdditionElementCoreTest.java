@@ -24,7 +24,7 @@ public class SubjectAdditionElementCoreTest {
         final FundsMutationSubjectRepositoryMock subjRepo = new FundsMutationSubjectRepositoryMock();
         SubjectAdditionElementCore core = new SubjectAdditionElementCore(subjRepo);
         core.setName("");
-        Submitter.Result submit = core.submit();
+        Submitter.Result<FundsMutationSubject> submit = core.submit();
         assertFalse(submit.isSuccessful());
         assertTrue(isFieldInError(submit, SubjectAdditionElementCore.FIELD_NAME));
 
@@ -90,7 +90,7 @@ public class SubjectAdditionElementCoreTest {
         );
     }
 
-    private boolean isFieldInError(Submitter.Result submit, String fieldName) {
+    private boolean isFieldInError(Submitter.Result<FundsMutationSubject> submit, String fieldName) {
         for (Submitter.FieldError fieldError : submit.fieldErrors) {
             if (fieldError.fieldInFault.equals(fieldName)) {
                 return true;

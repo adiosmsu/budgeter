@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  * @author Mikhail Kulikov
  */
 @NotThreadSafe
-public class AccountsElementCore implements Submitter {
+public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
 
     public static final String FIELD_NAME = "name";
     public static final String FIELD_UNIT = "unit";
@@ -57,8 +57,8 @@ public class AccountsElementCore implements Submitter {
     }
 
     @Override
-    public Result submit() {
-        final ResultBuilder resultBuilder = new ResultBuilder();
+    public Result<Treasury.BalanceAccount> submit() {
+        final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<>();
         resultBuilder.addFieldErrorIfAbsent(nameOpt, FIELD_NAME)
                 .addFieldErrorIfAbsent(unitOpt, FIELD_UNIT);
 
@@ -67,15 +67,16 @@ public class AccountsElementCore implements Submitter {
         }
 
         try {
-            treasury.registerBalanceAccount(new Treasury.BalanceAccount(nameOpt.get(), unitOpt.get()));
+            final String name = nameOpt.get();
+            treasury.registerBalanceAccount(new Treasury.BalanceAccount(name, unitOpt.get()));
+
+            return Result.success(treasury.getAccountForName(name).get());
         } catch (RuntimeException ex) {
             logger.error("Error while registering balance account", ex);
             return resultBuilder
                     .setGeneralError("Error while registering balance account: " + ex.getMessage())
                     .build();
         }
-
-        return Result.SUCCESS;
     }
 
 }

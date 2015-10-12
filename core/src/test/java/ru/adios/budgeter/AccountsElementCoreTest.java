@@ -3,6 +3,7 @@ package ru.adios.budgeter;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
+import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.Units;
 import ru.adios.budgeter.inmemrepo.Schema;
 
@@ -29,8 +30,8 @@ public class AccountsElementCoreTest {
         } catch (NullPointerException ignore) {}
         accountsElementCore.setName("Ha-ha");
         accountsElementCore.setUnit(Units.RUB);
-        Submitter.Result submit = accountsElementCore.submit();
-        assertEquals("No submit success of ha-ha", Submitter.Result.SUCCESS, submit);
+        Submitter.Result<Treasury.BalanceAccount> submit = accountsElementCore.submit();
+        assertTrue("No submit success of ha-ha", submit.isSuccessful());
 
         final Optional<Money> haBalance = Schema.TREASURY.accountBalance("Ha-ha");
         assertTrue("No account for ha-ha", haBalance.isPresent());

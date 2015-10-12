@@ -15,7 +15,7 @@ import java.util.OptionalInt;
  *
  * @author Mikhail Kulikov
  */
-public final class SubjectAdditionElementCore implements Submitter {
+public final class SubjectAdditionElementCore implements Submitter<FundsMutationSubject> {
 
     public static final String FIELD_NAME = "name";
     public static final String FIELD_TYPE = "type";
@@ -75,8 +75,8 @@ public final class SubjectAdditionElementCore implements Submitter {
     }
 
     @Override
-    public Result submit() {
-        final Submitter.ResultBuilder resultBuilder = new ResultBuilder();
+    public Result<FundsMutationSubject> submit() {
+        final Submitter.ResultBuilder<FundsMutationSubject> resultBuilder = new ResultBuilder<>();
         final String name = subjectBuilder.getName();
         resultBuilder.addFieldErrorIfNull(name, FIELD_NAME)
                 .addFieldErrorIfNull(subjectBuilder.getType(), FIELD_TYPE);
@@ -93,15 +93,13 @@ public final class SubjectAdditionElementCore implements Submitter {
         }
 
         try {
-            repository.addSubject(subjectBuilder.build());
+            return Result.success(repository.addSubject(subjectBuilder.build()));
         } catch (RuntimeException ex) {
             logger.error("Error while adding new subject", ex);
             return resultBuilder
                     .setGeneralError("Error while adding new subject: " + ex.getMessage())
                     .build();
         }
-
-        return Result.SUCCESS;
     }
 
 }

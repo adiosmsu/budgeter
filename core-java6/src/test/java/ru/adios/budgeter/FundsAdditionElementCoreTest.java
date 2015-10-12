@@ -29,7 +29,7 @@ public class FundsAdditionElementCoreTest {
         FundsAdditionElementCore core = new FundsAdditionElementCore(treasury);
         core.setAmount(100, 0);
         core.setAccount(usdAccount);
-        Submitter.Result submit = core.submit();
+        Submitter.Result<Treasury.BalanceAccount> submit = core.submit();
         submit.raiseExceptionIfFailed();
 
         final Optional<Money> amount = Schema.TREASURY.amount(CurrencyUnit.USD);

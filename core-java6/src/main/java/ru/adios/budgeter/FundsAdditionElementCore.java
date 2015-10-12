@@ -16,7 +16,7 @@ import java.math.BigDecimal;
  *
  * @author Mikhail Kulikov
  */
-public final class FundsAdditionElementCore implements MoneySettable, Submitter {
+public final class FundsAdditionElementCore implements MoneySettable, Submitter<Treasury.BalanceAccount> {
 
     public static final String FIELD_ACCOUNT = "account";
     public static final String FIELD_AMOUNT = "amount";
@@ -96,8 +96,8 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
     }
 
     @Override
-    public Result submit() {
-        final ResultBuilder resultBuilder = new ResultBuilder();
+    public Result<Treasury.BalanceAccount> submit() {
+        final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<Treasury.BalanceAccount>();
         resultBuilder.addFieldErrorIfAbsent(accountRef, FIELD_ACCOUNT);
 
         if (!amountWrapper.isUnitSet()) {
@@ -118,17 +118,18 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter 
             return resultBuilder.build();
         }
 
+        final Treasury.BalanceAccount account = accountRef.get();
         try {
-            treasury.addAmount(getAmount(), accountRef.get().name);
+            treasury.addAmount(getAmount(), account.name);
+
+            return Result.success(treasury.getAccountForName(account.name).get());
         } catch (RuntimeException ex) {
-            final String mes = "Error while adding amount to " + accountRef.get();
+            final String mes = "Error while adding amount to " + account;
             logger.error(mes, ex);
             return resultBuilder
                     .setGeneralError(mes + ": " + ex.getMessage())
                     .build();
         }
-
-        return Result.SUCCESS;
     }
 
 }

@@ -20,7 +20,7 @@ public interface FundsMutationSubjectRepository {
             this.fundsMutationSubjectRepository = fundsMutationSubjectRepository;
         }
 
-        public void addSubject(FundsMutationSubject subject) {
+        public FundsMutationSubject addSubject(FundsMutationSubject subject) {
             if (subject.parentId == 0) {
                 final FundsMutationSubject.Builder builder = FundsMutationSubject.builder(fundsMutationSubjectRepository).setFundsMutationSubject(subject);
                 if (!subject.id.isPresent())
@@ -31,6 +31,7 @@ public interface FundsMutationSubjectRepository {
             if (subject.parentId != 0) {
                 fundsMutationSubjectRepository.updateChildFlag(subject.parentId);
             }
+            return subject;
         }
 
     }
@@ -43,7 +44,7 @@ public interface FundsMutationSubjectRepository {
 
     ImmutableList<FundsMutationSubject> searchByString(String str);
 
-    void addSubject(FundsMutationSubject subject); // default in java8
+    FundsMutationSubject addSubject(FundsMutationSubject subject); // default in java8
 
     void rawAddition(FundsMutationSubject subject);
 

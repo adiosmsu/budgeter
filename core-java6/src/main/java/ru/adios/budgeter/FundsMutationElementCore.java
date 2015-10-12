@@ -318,7 +318,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     if (naturalRate == null) {
                         // we don't have today's rates yet, do accounting later
                         direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), payedUnit, customRateRef);
-                        return Result.SUCCESS;
+                        return Result.success(null);
                     }
 
                     final BigDecimal actualRate = customRateRef.orElse(naturalRate);
@@ -369,7 +369,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                                     .setTimestamp(eventBuilder.getTimestamp())
                                     .build()
                     );
-                    return Result.SUCCESS;
+                    return Result.success(null);
                 }
             } else {
                 amount = amountWrapper.getAmount().toBigMoney();
@@ -383,7 +383,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     .build();
         }
 
-        return Result.SUCCESS;
+        return Result.success(null);
     }
 
     private BigDecimal calculateNaturalRate(final CurrencyUnit payedUnit, final CurrencyUnit amountUnit) {
