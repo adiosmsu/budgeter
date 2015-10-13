@@ -11,6 +11,7 @@ import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 import ru.adios.budgeter.api.Treasury;
@@ -229,7 +230,9 @@ public class ExchangeRatesLoader {
             try {
                 final SAXParser saxParser = factory.newSAXParser();
 
-                saxParser.parse(stream, new DefaultHandler() {
+                final InputStreamReader r = new InputStreamReader(stream, "windows-1251");
+                final InputSource inputSource = new InputSource(r);
+                saxParser.parse(inputSource, new DefaultHandler() {
                     private boolean insideCode = false;
                     private boolean insideValue = false;
 

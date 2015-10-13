@@ -28,6 +28,7 @@ import org.threeten.bp.ZoneOffset;
 import org.threeten.bp.chrono.IsoChronology;
 import org.threeten.bp.format.DateTimeFormatter;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 import ru.adios.budgeter.api.Treasury;
@@ -247,7 +248,9 @@ public class ExchangeRatesLoader {
             try {
                 final SAXParser saxParser = factory.newSAXParser();
 
-                saxParser.parse(stream, new DefaultHandler() {
+                final InputStreamReader r = new InputStreamReader(stream, "windows-1251");
+                final InputSource inputSource = new InputSource(r);
+                saxParser.parse(inputSource, new DefaultHandler() {
                     private boolean insideCode = false;
                     private boolean insideValue = false;
 
