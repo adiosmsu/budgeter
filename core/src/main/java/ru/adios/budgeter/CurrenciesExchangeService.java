@@ -232,7 +232,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
             ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other, CurrencyUnit mainUnit, CurrencyUnit from, CurrencyUnit to, ImmutableList.Builder<Runnable> tasksBuilder
     ) {
         final Map<CurrencyUnit, BigDecimal> rates = loadCurrencies(loader, day, other);
-        return checkOtherWayAroundAndGet(day, mainUnit, rates, from, to, tasksBuilder);
+        return checkOtherWayAroundAndGet(day, mainUnit, rates, from, to, tasksBuilder, loader.directionFromMainToMapped());
     }
 
     private static Map<CurrencyUnit, BigDecimal> loadCurrencies(ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other) {
@@ -243,28 +243,47 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
         return loader.loadCurrencies(false, Optional.of(day), problematicsRef);
     }
 
-    private Optional<BigDecimal> checkOtherWayAroundAndGet(
-            final UtcDay day, final CurrencyUnit forRates, final Map<CurrencyUnit, BigDecimal> rates, CurrencyUnit from, CurrencyUnit to, final ImmutableList.Builder<Runnable> tasksBuilder
-    ) {
+    private Optional<BigDecimal> checkOtherWayAroundAndGet(final UtcDay day,
+                                                           final CurrencyUnit mainUnit,
+                                                           final Map<CurrencyUnit, BigDecimal> rates,
+                                                           CurrencyUnit from,
+                                                           CurrencyUnit to,
+                                                           final ImmutableList.Builder<Runnable> tasksBuilder,
+                                                           final boolean directionFromMainToMapped) {
         if (rates.isEmpty())
             return Optional.empty();
 
-        addPostponedTask(rates, day, forRates, tasksBuilder);
+        addPostponedTask(rates, day, mainUnit, tasksBuilder);
 
         try {
-            if (from.equals(forRates)) {
-                return Optional.ofNullable(rates.remove(to));
+            if (from.equals(mainUnit)) {
+                if (directionFromMainToMapped) {
+                    return Optional.ofNullable(rates.remove(to));
+                } else {
+                    final BigDecimal divisor = rates.remove(to);
+                    if (divisor == null)
+                        return Optional.empty();
+                    return Optional.of(CurrencyRatesProvider.reverseRate(divisor));
+                }
             } else {
-                final BigDecimal divisor = rates.remove(from);
-                if (divisor == null)
-                    return Optional.empty();
-                return Optional.of(CurrencyRatesProvider.reverseRate(divisor));
+                if (directionFromMainToMapped) {
+                    final BigDecimal divisor = rates.remove(from);
+                    if (divisor == null)
+                        return Optional.empty();
+                    return Optional.of(CurrencyRatesProvider.reverseRate(divisor));
+                } else {
+                    return Optional.ofNullable(rates.remove(from));
+                }
             }
         } finally {
             for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
                 tasksBuilder.add(() -> {
                     try {
-                        ratesRepository.addRate(day, forRates, entry.getKey(), entry.getValue());
+                        if (directionFromMainToMapped) {
+                            ratesRepository.addRate(day, mainUnit, entry.getKey(), entry.getValue());
+                        } else {
+                            ratesRepository.addRate(day, entry.getKey(), mainUnit, entry.getValue());
+                        }
                     } catch (Throwable th) {
                         logger.error("Rate addition after load from net failed", th);
                         Throwables.propagate(th);

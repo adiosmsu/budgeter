@@ -89,6 +89,10 @@ public class ExchangeRatesLoader {
         currenciesRepo.streamRegisteredCurrencies().forEach(supportedCurrencies::addIfAbsent);
     }
 
+    public final boolean directionFromMainToMapped() {
+        return parser.directionFromMainToMapped();
+    }
+
     public final Map<CurrencyUnit, BigDecimal> loadCurrencies(boolean updateSupported, Optional<UtcDay> dayRef, Optional<List<CurrencyUnit>> problematicsRef) {
         if (updateSupported) {
             updateSupportedCurrencies();
@@ -178,6 +182,8 @@ public class ExchangeRatesLoader {
 
         Map<CurrencyUnit, BigDecimal> parseInput(InputStream reader, String urlStr, UtcDay day, Optional<List<CurrencyUnit>> problematicsRef, ExchangeRatesLoader loader) throws IOException;
 
+        boolean directionFromMainToMapped();
+
     }
 
     @ThreadSafe
@@ -206,6 +212,11 @@ public class ExchangeRatesLoader {
         @Override
         public boolean resultInOneQuery(String urlStr) {
             return true;
+        }
+
+        @Override
+        public boolean directionFromMainToMapped() {
+            return false;
         }
 
         @Override
@@ -331,6 +342,11 @@ public class ExchangeRatesLoader {
                         .map(unit -> BtcLoader.BITCOIN_AVERAGE_HISTORY_URL_TEMPLATE.replace("<>", unit.getCode().toUpperCase()))
                         .collect(Collectors.toList());
             }
+        }
+
+        @Override
+        public boolean directionFromMainToMapped() {
+            return true;
         }
 
         @Override

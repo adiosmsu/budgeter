@@ -55,10 +55,12 @@ public class CurrenciesExchangeServiceTest {
         Thread.sleep(100);
         assertTrue("rubToUsd didn't download from net", rubToUsd.isPresent());
         System.out.println("rubToUsd: " + rubToUsd.get());
+        assertTrue("rubToUsd shows ruble stronger than dollar LOL", rubToUsd.get().compareTo(BigDecimal.ONE) < 0);
         final Optional<BigDecimal> rubToEur = service.getConversionMultiplier(TestUtils.YESTERDAY, Units.RUB, CurrencyUnit.EUR);
         Thread.sleep(100);
         assertTrue("rubToEur didn't download from net", rubToEur.isPresent());
         System.out.println("rubToEur: " + rubToEur.get());
+        assertTrue("rubToEur shows ruble stronger than euro LOL", rubToEur.get().compareTo(BigDecimal.ONE) < 0);
         final Optional<BigDecimal> usdToEur = service.getConversionMultiplier(TestUtils.YESTERDAY, CurrencyUnit.USD, CurrencyUnit.EUR);
         assertTrue("usdToEur didn't compute or download", usdToEur.isPresent());
         assertEquals("usdToEur didn't compute right (perhaps downloaded)",
@@ -79,6 +81,7 @@ public class CurrenciesExchangeServiceTest {
         final Optional<BigDecimal> btcToRub = service.getConversionMultiplier(TestUtils.TODAY, Units.BTC, Units.RUB);
         assertTrue("Today's btcToRub didn't compute or download", btcToRub.isPresent());
         System.out.println("btcToRub: " + btcToRub.get());
+        assertTrue("btcToRub shows Bitcoin cheaper than ruble LOL", btcToRub.get().compareTo(BigDecimal.ONE) > 0);
 
         final Optional<BigDecimal> btcToRubYesterday = service.getConversionMultiplier(TestUtils.YESTERDAY, Units.BTC, Units.RUB);
         assertTrue("btcToRubYesterday didn't compute or download", btcToRubYesterday.isPresent());
