@@ -34,6 +34,11 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
+    public Stream<FundsMutationSubject> streamAll() {
+        return pseudoTable.streamAll();
+    }
+
+    @Override
     public ImmutableList<FundsMutationSubject> nameLikeSearch(String str) {
         return pseudoTable.nameLikeSearch(str);
     }

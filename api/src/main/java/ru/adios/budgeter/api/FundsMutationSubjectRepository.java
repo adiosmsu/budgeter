@@ -19,6 +19,8 @@ public interface FundsMutationSubjectRepository {
 
     Stream<FundsMutationSubject> findByParent(int parentId);
 
+    Stream<FundsMutationSubject> streamAll();
+
     ImmutableList<FundsMutationSubject> nameLikeSearch(String str);
 
     default FundsMutationSubject addSubject(FundsMutationSubject subject) {

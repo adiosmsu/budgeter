@@ -117,6 +117,11 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     }
 
     @Override
+    public Stream<FundsMutationSubject> streamAll() {
+        return StreamSupport.stream(table.values().getSpliterator(), false);
+    }
+
+    @Override
     public ImmutableList<FundsMutationSubject> nameLikeSearch(final String str) {
         final ImmutableList.Builder<FundsMutationSubject> builder = ImmutableList.builder();
         StreamSupport.stream(table.values().getSpliterator(), false).forEach(new Consumer<FundsMutationSubject>() {
