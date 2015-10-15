@@ -85,9 +85,14 @@ public class FundsMutationSubjectPseudoTableTest {
         Schema.FUNDS_MUTATION_SUBJECTS.addSubject(clothes);
         FundsMutationSubject cleaners = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Cleaners").setType(FundsMutationSubject.Type.PRODUCT).build();
         Schema.FUNDS_MUTATION_SUBJECTS.addSubject(cleaners);
-        final ImmutableList<FundsMutationSubject> found = Schema.FUNDS_MUTATION_SUBJECTS.searchByString("Cl");
+        ImmutableList<FundsMutationSubject> found = Schema.FUNDS_MUTATION_SUBJECTS.nameLikeSearch("Cl%");
         assertTrue("Search strange result " + found.get(0), found.get(0).equals(cleaners) || found.get(0).equals(clothes));
         assertTrue("Search strange result " + found.get(1), found.get(1).equals(cleaners) || found.get(1).equals(clothes));
+        found = Schema.FUNDS_MUTATION_SUBJECTS.nameLikeSearch("%s");
+        assertTrue("Search strange result " + found.get(0), found.get(0).equals(cleaners) || found.get(0).equals(clothes));
+        assertTrue("Search strange result " + found.get(1), found.get(1).equals(cleaners) || found.get(1).equals(clothes));
+        found = Schema.FUNDS_MUTATION_SUBJECTS.nameLikeSearch("%ers%");
+        assertTrue("Search strange result " + found.get(0), found.get(0).equals(cleaners));
     }
 
     @Test

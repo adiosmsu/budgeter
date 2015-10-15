@@ -42,7 +42,7 @@ public interface FundsMutationSubjectRepository {
 
     Stream<FundsMutationSubject> findByParent(int parentId);
 
-    ImmutableList<FundsMutationSubject> searchByString(String str);
+    ImmutableList<FundsMutationSubject> nameLikeSearch(String str);
 
     FundsMutationSubject addSubject(FundsMutationSubject subject); // default in java8
 

@@ -34,8 +34,8 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
-    public ImmutableList<FundsMutationSubject> searchByString(String str) {
-        return pseudoTable.searchByString(str);
+    public ImmutableList<FundsMutationSubject> nameLikeSearch(String str) {
+        return pseudoTable.nameLikeSearch(str);
     }
 
     @Override

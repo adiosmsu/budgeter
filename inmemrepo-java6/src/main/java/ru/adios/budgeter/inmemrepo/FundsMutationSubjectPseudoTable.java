@@ -117,13 +117,33 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     }
 
     @Override
-    public ImmutableList<FundsMutationSubject> searchByString(final String str) {
+    public ImmutableList<FundsMutationSubject> nameLikeSearch(final String str) {
         final ImmutableList.Builder<FundsMutationSubject> builder = ImmutableList.builder();
         StreamSupport.stream(table.values().getSpliterator(), false).forEach(new Consumer<FundsMutationSubject>() {
             @Override
             public void accept(FundsMutationSubject subject) {
-                if (subject.name.startsWith(str))
-                    builder.add(subject);
+                final int length = str.length();
+                if (length > 0) {
+                    if (str.charAt(0) == '%') {
+                        if (str.charAt(length - 1) == '%') {
+                            if (length > 2) {
+                                if (subject.name.contains(str.substring(1, length - 1))) {
+                                    builder.add(subject);
+                                }
+                            } else {
+                                builder.add(subject);
+                            }
+                        } else if (subject.name.endsWith(str.substring(1))) {
+                            builder.add(subject);
+                        }
+                    } else if (str.charAt(length - 1) == '%') {
+                        if (subject.name.startsWith(str.substring(0, length - 1))) {
+                            builder.add(subject);
+                        }
+                    } else if (str.equals(subject.name)) {
+                        builder.add(subject);
+                    }
+                }
             }
         });
         return builder.build();
