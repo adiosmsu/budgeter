@@ -34,13 +34,13 @@ public final class PostponedFundsMutationEventPseudoTable
     private PostponedFundsMutationEventPseudoTable() {}
 
     @Override
-    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
-        store(storedFactory(mutationEvent, FundsMutationDirection.BENEFIT, payedUnit, customRate));
+    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+        store(storedFactory(mutationEvent, FundsMutationDirection.BENEFIT, paidUnit, customRate));
     }
 
     @Override
-    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
-        store(storedFactory(mutationEvent, FundsMutationDirection.LOSS, payedUnit, customRate));
+    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+        store(storedFactory(mutationEvent, FundsMutationDirection.LOSS, paidUnit, customRate));
     }
 
     @Override

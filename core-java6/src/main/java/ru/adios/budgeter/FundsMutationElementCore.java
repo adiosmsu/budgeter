@@ -32,7 +32,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     public static final String FIELD_AMOUNT = "amount";
     public static final String FIELD_AMOUNT_DECIMAL = "amountDecimal";
     public static final String FIELD_PAYEE_AMOUNT = "payeeAmount";
-    public static final String FIELD_PAYED_MONEY = "payedMoney";
+    public static final String FIELD_PAID_MONEY = "paidMoney";
 
     private static final Logger logger = LoggerFactory.getLogger(FundsMutationElementCore.class);
 
@@ -41,7 +41,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     private final Treasury treasury;
 
     private final MoneyWrapperBean amountWrapper = new MoneyWrapperBean("funds mutation amount");
-    private final MoneyWrapperBean payeeAccountMoneyWrapper = new MoneyWrapperBean("funds mutation payed amount");
+    private final MoneyWrapperBean payeeAccountMoneyWrapper = new MoneyWrapperBean("funds mutation paid amount");
 
     private Optional<MutationDirection> directionRef = Optional.of(MutationDirection.BENEFIT);
     private FundsMutationEvent.Builder eventBuilder = FundsMutationEvent.builder();
@@ -161,7 +161,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         return payeeAccountMoneyWrapper.getAmountUnit();
     }
 
-    public void setPayedMoney(Money money) {
+    public void setPaidMoney(Money money) {
         payeeAccountMoneyWrapper.setAmount(money);
         adjustRelevantBalance(money.getCurrencyUnit(), MutationDirection.LOSS);
     }
@@ -252,7 +252,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     /**
-     * Orientation is: [amount] = [payed amount] * rate.
+     * Orientation is: [amount] = [paid amount] * rate.
      */
     @Override
     public Result submit() {
@@ -271,7 +271,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
             resultBuilder.addFieldError(FIELD_AMOUNT)
                     .addFieldError(FIELD_AMOUNT_DECIMAL)
                     .addFieldError(FIELD_PAYEE_AMOUNT)
-                    .addFieldError(FIELD_PAYED_MONEY);
+                    .addFieldError(FIELD_PAID_MONEY);
         }
 
         if (resultBuilder.toBuildError()) {
@@ -285,25 +285,25 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
             final BigMoney amount;
             if (payeeAccountMoneyWrapper.isUnitSet()) {
                 // and so actual account of payment was set (even if only as a currency)
-                final CurrencyUnit payedUnit = payeeAccountMoneyWrapper.getAmountUnit(); // therefore we know it for sure
-                checkNotNull(payedUnit);
-                final boolean sameUnits = payedUnit.equals(amountUnit);
+                final CurrencyUnit paidUnit = payeeAccountMoneyWrapper.getAmountUnit(); // therefore we know it for sure
+                checkNotNull(paidUnit);
+                final boolean sameUnits = paidUnit.equals(amountUnit);
 
                 if (!customRateRef.isPresent() && payeeAccountMoneyWrapper.isAmountSet() && amountWrapper.isAmountSet()) {
-                    // we know about payed money and actual amount both therefore we must calculate custom rate which with 99% chance will differ from natural rate
+                    // we know about paid money and actual amount both therefore we must calculate custom rate which with 99% chance will differ from natural rate
                     customRateRef = Optional.of(CurrencyRatesProvider.Static.calculateRate(amountWrapper.getAmount().getAmount(), payeeAccountMoneyWrapper.getAmount().getAmount()));
                 }
 
                 if (!amountWrapper.isAmountSet()) {
-                    // actual amount wasn't set explicitly so we must calculate it from payed amount and rate (custom or natural) which must have been provided
-                    final BigMoney payedAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
+                    // actual amount wasn't set explicitly so we must calculate it from paid amount and rate (custom or natural) which must have been provided
+                    final BigMoney paidAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
                     checkNotNull(amountUnit);
                     amount = (sameUnits)
-                            ? payedAmount
-                            : payedAmount.convertedTo(amountUnit, customRateRef.orElseGet(new Supplier<BigDecimal>() {
+                            ? paidAmount
+                            : paidAmount.convertedTo(amountUnit, customRateRef.orElseGet(new Supplier<BigDecimal>() {
                         @Override
                         public BigDecimal get() {
-                            return calculateNaturalRate(payedUnit, amountUnit);
+                            return calculateNaturalRate(paidUnit, amountUnit);
                         }
                     }));
                 } else {
@@ -313,18 +313,18 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
                 if (!sameUnits) {
                     // currency conversion to be
-                    final BigDecimal naturalRate = calculateNaturalRate(payedUnit, amountUnit);
+                    final BigDecimal naturalRate = calculateNaturalRate(paidUnit, amountUnit);
                     final Money amountSmallMoney = amount.toMoney(RoundingMode.HALF_DOWN);
                     if (naturalRate == null) {
                         // we don't have today's rates yet, do accounting later
-                        direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), payedUnit, customRateRef);
+                        direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), paidUnit, customRateRef);
                         return Result.success(null);
                     }
 
                     final BigDecimal actualRate = customRateRef.orElse(naturalRate);
                     final BigMoney soldAmount = payeeAccountMoneyWrapper.isAmountSet()
                             ? payeeAccountMoneyWrapper.getAmount().toBigMoney()
-                            : amount.convertedTo(payedUnit, CurrencyRatesProvider.Static.reverseRate(actualRate));
+                            : amount.convertedTo(paidUnit, CurrencyRatesProvider.Static.reverseRate(actualRate));
 
                     final Money soldAmountSmallMoney = soldAmount.toMoney(RoundingMode.HALF_DOWN);
                     final Money appropriateMutationAmount = direction.getAppropriateMutationAmount(amountSmallMoney, soldAmountSmallMoney);
@@ -337,7 +337,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                             naturalAmount = soldAmount.convertedTo(amountUnit, naturalRate);
                             convertedAmount = amount;
                         } else {
-                            naturalAmount = amount.convertedTo(payedUnit, CurrencyRatesProvider.Static.reverseRate(naturalRate));
+                            naturalAmount = amount.convertedTo(paidUnit, CurrencyRatesProvider.Static.reverseRate(naturalRate));
                             convertedAmount = soldAmount;
                         }
 
@@ -386,12 +386,12 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         return Result.success(null);
     }
 
-    private BigDecimal calculateNaturalRate(final CurrencyUnit payedUnit, final CurrencyUnit amountUnit) {
+    private BigDecimal calculateNaturalRate(final CurrencyUnit paidUnit, final CurrencyUnit amountUnit) {
         if (calculatedNaturalRate == null) {
             calculatedNaturalRate = naturalRateRef.orElseGet(new Supplier<BigDecimal>() {
                 @Override
                 public BigDecimal get() {
-                    return ratesService.getConversionMultiplier(new UtcDay(eventBuilder.getTimestamp()), payedUnit, amountUnit).orElse(null);
+                    return ratesService.getConversionMultiplier(new UtcDay(eventBuilder.getTimestamp()), paidUnit, amountUnit).orElse(null);
                 }
             });
         }

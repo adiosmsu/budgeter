@@ -65,8 +65,8 @@ public interface FundsMutator {
             }
 
             @Override
-            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
-                accounter.rememberPostponedExchangeableBenefit(event, payedUnit, customRate);
+            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+                accounter.rememberPostponedExchangeableBenefit(event, paidUnit, customRate);
             }
 
             @Override
@@ -75,7 +75,7 @@ public interface FundsMutator {
             }
 
             @Override
-            Money getAppropriateMutationAmount(Money amount, Money payedAmount) {
+            Money getAppropriateMutationAmount(Money amount, Money paidAmount) {
                 return amount;
             }
         },
@@ -90,8 +90,8 @@ public interface FundsMutator {
             }
 
             @Override
-            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate) {
-                accounter.rememberPostponedExchangeableLoss(event, payedUnit, customRate);
+            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+                accounter.rememberPostponedExchangeableLoss(event, paidUnit, customRate);
             }
 
             @Override
@@ -100,8 +100,8 @@ public interface FundsMutator {
             }
 
             @Override
-            Money getAppropriateMutationAmount(Money amount, Money payedAmount) {
-                return payedAmount;
+            Money getAppropriateMutationAmount(Money amount, Money paidAmount) {
+                return paidAmount;
             }
         };
 
@@ -111,11 +111,11 @@ public interface FundsMutator {
 
         abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
 
-        abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit payedUnit, Optional<BigDecimal> customRate);
+        abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate);
 
         abstract MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural);
 
-        abstract Money getAppropriateMutationAmount(Money amount, Money payedAmount);
+        abstract Money getAppropriateMutationAmount(Money amount, Money paidAmount);
 
     }
 

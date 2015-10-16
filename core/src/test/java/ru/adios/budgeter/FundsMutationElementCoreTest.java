@@ -104,7 +104,7 @@ public class FundsMutationElementCoreTest {
         core.setDirection(FundsMutator.MutationDirection.BENEFIT);
         core.setSubject(workSubj);
         core.setAmountUnit(Units.RUB);
-        core.setPayedMoney(Money.of(CurrencyUnit.EUR, 100));
+        core.setPaidMoney(Money.of(CurrencyUnit.EUR, 100));
         core.setTimestamp(TestUtils.JULY_3RD_2015.inner);
         core.setRelevantBalance(rubAccount);
 
