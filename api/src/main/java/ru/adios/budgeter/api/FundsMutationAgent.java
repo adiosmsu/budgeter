@@ -56,6 +56,10 @@ public final class FundsMutationAgent {
             return this;
         }
 
+        public String getName() {
+            return name;
+        }
+
         public FundsMutationAgent build() {
             return new FundsMutationAgent(this);
         }

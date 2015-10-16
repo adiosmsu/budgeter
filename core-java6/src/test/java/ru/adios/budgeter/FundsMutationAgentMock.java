@@ -17,8 +17,8 @@ public class FundsMutationAgentMock implements FundsMutationAgentRepository {
     private final FundsMutationAgentPseudoTable table = Schema.FUNDS_MUTATION_AGENTS;
 
     @Override
-    public void addAgent(FundsMutationAgent agent) {
-        table.addAgent(agent);
+    public FundsMutationAgent addAgent(FundsMutationAgent agent) {
+        return table.addAgent(agent);
     }
 
     @Override
