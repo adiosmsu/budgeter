@@ -33,6 +33,8 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     public static final String FIELD_AMOUNT_DECIMAL = "amountDecimal";
     public static final String FIELD_PAYEE_AMOUNT = "payeeAmount";
     public static final String FIELD_PAID_MONEY = "paidMoney";
+    public static final String FIELD_PAYEE_ACCOUNT_UNIT = "payee_account_unit";
+    public static final String FIELD_QUANTITY = "quantity";
 
     private static final Logger logger = LoggerFactory.getLogger(FundsMutationElementCore.class);
 
@@ -276,6 +278,14 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     .addFieldError(FIELD_AMOUNT_DECIMAL)
                     .addFieldError(FIELD_PAYEE_AMOUNT)
                     .addFieldError(FIELD_PAID_MONEY);
+        }
+
+        if (!payeeAccountMoneyWrapper.isUnitSet() && payeeAccountMoneyWrapper.isAmountSet()) {
+            resultBuilder.addFieldError(FIELD_PAYEE_ACCOUNT_UNIT);
+        }
+
+        if (eventBuilder.getQuantity() <= 0) {
+            resultBuilder.addFieldError(FIELD_QUANTITY, "Fill in positive");
         }
 
         if (resultBuilder.toBuildError()) {
