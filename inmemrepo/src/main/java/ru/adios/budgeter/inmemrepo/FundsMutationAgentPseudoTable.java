@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -35,6 +36,11 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
             return id;
         }).equals(id), "Not unique name %s", agent.name);
         return agent;
+    }
+
+    @Override
+    public Stream<FundsMutationAgent> streamAll() {
+        return table.values().stream().map(stored -> stored.obj);
     }
 
     @Override

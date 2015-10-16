@@ -6,6 +6,7 @@ import ru.adios.budgeter.inmemrepo.FundsMutationAgentPseudoTable;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Date: 7/1/15
@@ -20,6 +21,11 @@ public class FundsMutationAgentMock implements FundsMutationAgentRepository {
     @Override
     public FundsMutationAgent addAgent(FundsMutationAgent agent) {
         return table.addAgent(agent);
+    }
+
+    @Override
+    public Stream<FundsMutationAgent> streamAll() {
+        return null;
     }
 
     @Override

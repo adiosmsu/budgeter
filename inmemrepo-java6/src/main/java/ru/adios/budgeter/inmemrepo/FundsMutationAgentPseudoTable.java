@@ -3,6 +3,8 @@ package ru.adios.budgeter.inmemrepo;
 import java8.util.Optional;
 import java8.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
+import java8.util.stream.Stream;
+import java8.util.stream.StreamSupport;
 import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
 
@@ -39,6 +41,16 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
             }
         }).equals(id), "Not unique name %s", agent.name);
         return agent;
+    }
+
+    @Override
+    public Stream<FundsMutationAgent> streamAll() {
+        return StreamSupport.stream(table.values().getSpliterator(), false).map(new Function<Stored<FundsMutationAgent>, FundsMutationAgent>() {
+            @Override
+            public FundsMutationAgent apply(Stored<FundsMutationAgent> stored) {
+                return stored.obj;
+            }
+        });
     }
 
     @Override

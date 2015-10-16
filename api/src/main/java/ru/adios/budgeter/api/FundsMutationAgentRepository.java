@@ -1,6 +1,7 @@
 package ru.adios.budgeter.api;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Date: 7/1/15
@@ -11,6 +12,8 @@ import java.util.Optional;
 public interface FundsMutationAgentRepository {
 
     FundsMutationAgent addAgent(FundsMutationAgent agent);
+
+    Stream<FundsMutationAgent> streamAll();
 
     Optional<FundsMutationAgent> findByName(String name);
 
