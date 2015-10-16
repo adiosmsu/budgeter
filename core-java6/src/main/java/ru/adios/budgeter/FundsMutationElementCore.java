@@ -166,6 +166,10 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         adjustRelevantBalance(money.getCurrencyUnit(), MutationDirection.LOSS);
     }
 
+    public Money getPaidMoney() {
+        return payeeAccountMoneyWrapper.getAmount();
+    }
+
     public void setPayeeAmount(int coins, int cents) {
         payeeAccountMoneyWrapper.setAmount(coins, cents);
     }
