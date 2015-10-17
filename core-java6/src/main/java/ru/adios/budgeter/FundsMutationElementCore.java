@@ -70,6 +70,16 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         setTimestamp(event.mutationEvent.timestamp);
     }
 
+    public Money getSubmittedMoney() {
+        //noinspection ConstantConditions
+        if (payeeAccountMoneyWrapper.isUnitSet() && !payeeAccountMoneyWrapper.getAmountUnit().equals(amountWrapper.getAmountUnit())) {
+            final MutationDirection direction = getDirection();
+            final Money amount = direction.getAppropriateMutationAmount(amountWrapper.getAmount(), payeeAccountMoneyWrapper.getAmount());
+            return direction.amountToSet(amount).multipliedBy(getQuantity());
+        }
+        return amountWrapper.getAmount().multipliedBy(getQuantity());
+    }
+
     public void setDirection(MutationDirection direction) {
         this.directionRef = Optional.of(direction);
         final Treasury.BalanceAccount relevantBalance = eventBuilder.getRelevantBalance();
@@ -332,6 +342,9 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     // currency conversion to be
                     final BigDecimal naturalRate = calculateNaturalRate(paidUnit, amountUnit);
                     final Money amountSmallMoney = amount.toMoney(RoundingMode.HALF_DOWN);
+                    if (!amountWrapper.isInitiable()) {
+                        amountWrapper.setAmount(amountSmallMoney); // set discovered money
+                    }
                     if (naturalRate == null) {
                         // we don't have today's rates yet, do accounting later
                         direction.remember(accounter, eventBuilder.setAmount(amountSmallMoney).build(), paidUnit, customRateRef);
@@ -344,6 +357,9 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                             : amount.convertedTo(paidUnit, CurrencyRatesProvider.Static.reverseRate(actualRate));
 
                     final Money soldAmountSmallMoney = soldAmount.toMoney(RoundingMode.HALF_DOWN);
+                    if (!payeeAccountMoneyWrapper.isInitiable()) {
+                        payeeAccountMoneyWrapper.setAmount(soldAmountSmallMoney); // set discovered money paid
+                    }
                     final Money appropriateMutationAmount = direction.getAppropriateMutationAmount(amountSmallMoney, soldAmountSmallMoney);
 
                     if (customRateRef.isPresent()) {

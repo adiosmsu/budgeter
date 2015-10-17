@@ -6,6 +6,7 @@ import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 
 /**
@@ -57,13 +58,19 @@ public interface FundsMutator {
         BENEFIT {
             @Override
             Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
-                final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount : amount.negated()).build();
+                final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
                 accounter.registerBenefit(event);
                 if (mutateFunds) {
                     treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                     return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
                 }
                 return null;
+            }
+
+            @Nonnull
+            @Override
+            Money amountToSet(Money amount) {
+                return amount.getAmount().signum() >= 0 ? amount : amount.negated();
             }
 
             @Override
@@ -84,13 +91,19 @@ public interface FundsMutator {
         LOSS {
             @Override
             Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
-                final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount.negated() : amount).build();
+                final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
                 accounter.registerLoss(event);
                 if (mutateFunds) {
                     treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                     return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
                 }
                 return null;
+            }
+
+            @Nonnull
+            @Override
+            Money amountToSet(Money amount) {
+                return amount.getAmount().signum() >= 0 ? amount.negated() : amount;
             }
 
             @Override
@@ -112,6 +125,9 @@ public interface FundsMutator {
         static MutationDirection forEvent(FundsMutationEvent event) {
             return event.amount.getAmount().signum() >= 0 ? MutationDirection.BENEFIT : MutationDirection.LOSS;
         }
+
+        @Nonnull
+        abstract Money amountToSet(Money amount);
 
         abstract Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
 
