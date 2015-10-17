@@ -54,13 +54,16 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     private BigDecimal calculatedNaturalRate;
     private boolean personalMoneyExchange = false;
 
+    private boolean lockOn = false;
+
     public ExchangeCurrenciesElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
         this.accounter = accounter;
         this.treasury = treasury;
         this.ratesService = ratesService;
     }
 
-    public void setPostponedEvent(PostponedCurrencyExchangeEventRepository.PostponedExchange event, BigDecimal naturalRate) {
+    public boolean setPostponedEvent(PostponedCurrencyExchangeEventRepository.PostponedExchange event, BigDecimal naturalRate) {
+        if (lockOn) return false;
         setAgent(event.agent);
         setBuyAmountDecimal(event.toBuy);
         setBuyAccount(event.toBuyAccount);
@@ -68,13 +71,16 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         setCustomRate(event.customRate.orElse(null));
         setNaturalRate(naturalRate);
         setTimestamp(event.timestamp);
+        return true;
     }
 
     public void setPersonalMoneyExchange(boolean personalMoneyExchange) {
+        if (lockOn) return;
         this.personalMoneyExchange = personalMoneyExchange;
     }
 
     public void setNaturalRate(BigDecimal naturalRate) {
+        if (lockOn) return;
         this.naturalRateRef = Optional.ofNullable(naturalRate);
     }
 
@@ -84,14 +90,17 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     }
 
     public void setBuyAmount(int coins, int cents) {
+        if (lockOn) return;
         buyAmountWrapper.setAmount(coins, cents);
     }
 
     public void setBuyAmount(Money buyAmount) {
+        if (lockOn) return;
         buyAmountWrapper.setAmount(buyAmount);
     }
 
     public void setBuyAmountDecimal(BigDecimal buyAmount) {
+        if (lockOn) return;
         buyAmountWrapper.setAmountDecimal(buyAmount);
     }
 
@@ -104,10 +113,12 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     }
 
     public void setBuyAmountUnit(String buyAmountUnitName) {
+        if (lockOn) return;
         buyAmountWrapper.setAmountUnit(buyAmountUnitName);
     }
 
     public void setBuyAmountUnit(CurrencyUnit buyUnit) {
+        if (lockOn) return;
         buyAmountWrapper.setAmountUnit(buyUnit);
     }
 
@@ -122,26 +133,32 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     }
 
     public void setSellAmountUnit(CurrencyUnit sellUnit) {
+        if (lockOn) return;
         sellAmountWrapper.setAmountUnit(sellUnit);
     }
 
     public void setSellAmountUnit(String sellAmountUnitName) {
+        if (lockOn) return;
         sellAmountWrapper.setAmountUnit(sellAmountUnitName);
     }
 
     public void setSellAmountDecimal(BigDecimal sellAmount) {
+        if (lockOn) return;
         sellAmountWrapper.setAmountDecimal(sellAmount);
     }
 
     public void setSellAmount(int coins, int cents) {
+        if (lockOn) return;
         sellAmountWrapper.setAmount(coins, cents);
     }
 
     public void setSellAmount(Money sellAmount) {
+        if (lockOn) return;
         sellAmountWrapper.setAmount(sellAmount);
     }
 
     public void setBuyAccount(Treasury.BalanceAccount buyAccount) {
+        if (lockOn) return;
         this.buyAccountRef = Optional.of(buyAccount);
         buyAmountWrapper.setAmountUnit(buyAccount.getUnit());
     }
@@ -157,11 +174,13 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     }
 
     public void setSellAccount(Treasury.BalanceAccount sellAccount) {
+        if (lockOn) return;
         this.sellAccountRef = Optional.of(sellAccount);
         sellAmountWrapper.setAmountUnit(sellAccount.getUnit());
     }
 
     public void setCustomRate(BigDecimal customRate) {
+        if (lockOn) return;
         this.customRateRef = Optional.ofNullable(customRate);
     }
 
@@ -171,6 +190,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     }
 
     public void setTimestamp(OffsetDateTime timestamp) {
+        if (lockOn) return;
         this.timestampRef = Optional.of(timestamp);
     }
 
@@ -180,6 +200,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     }
 
     public void setAgent(FundsMutationAgent agent) {
+        if (lockOn) return;
         agentRef = Optional.of(agent);
     }
 
@@ -331,6 +352,16 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     @Override
     public Treasury getTreasury() {
         return treasury;
+    }
+
+    @Override
+    public void lock() {
+        lockOn = true;
+    }
+
+    @Override
+    public void unlock() {
+        lockOn = false;
     }
 
 }

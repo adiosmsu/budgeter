@@ -30,8 +30,9 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
     private final Treasury treasury;
 
     private final MoneyWrapperBean amountWrapper = new MoneyWrapperBean("funds addition amount");
-
     private Optional<Treasury.BalanceAccount> accountRef = Optional.empty();
+
+    private boolean lockOn = false;
 
     public FundsAdditionElementCore(Treasury treasury) {
         this.treasury = treasury;
@@ -44,30 +45,36 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
 
     @Override
     public void setAmount(Money amount) {
+        if (lockOn) return;
         amountWrapper.setAmount(amount);
     }
 
     @Override
     public void setAmountDecimal(BigDecimal amountDecimal) {
+        if (lockOn) return;
         amountWrapper.setAmountDecimal(amountDecimal);
     }
 
     @Override
     public void setAmountUnit(String code) {
+        if (lockOn) return;
         amountWrapper.setAmountUnit(code);
     }
 
     @Override
     public void setAmountUnit(CurrencyUnit unit) {
+        if (lockOn) return;
         amountWrapper.setAmountUnit(unit);
     }
 
     public void setAccount(Treasury.BalanceAccount account) {
+        if (lockOn) return;
         this.accountRef = Optional.of(account);
         setAmountUnit(account.getUnit());
     }
 
     public void setAccount(String accountName) {
+        if (lockOn) return;
         final Optional<Treasury.BalanceAccount> accountForName = treasury.getAccountForName(accountName);
         if (accountForName.isPresent()) {
             setAccount(accountForName.get());
@@ -125,6 +132,16 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
                     .setGeneralError(mes + ": " + ex.getMessage())
                     .build();
         }
+    }
+
+    @Override
+    public void lock() {
+        lockOn = true;
+    }
+
+    @Override
+    public void unlock() {
+        lockOn = false;
     }
 
 }

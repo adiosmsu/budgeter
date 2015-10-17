@@ -18,6 +18,10 @@ public interface Submitter<T> {
 
     Result<T> submit();
 
+    void lock();
+
+    void unlock();
+
     @Immutable
     final class Result<T> {
 

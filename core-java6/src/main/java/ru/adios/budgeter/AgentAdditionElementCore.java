@@ -23,11 +23,14 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
     private final FundsMutationAgentRepository repository;
     private final FundsMutationAgent.Builder agentBuilder = FundsMutationAgent.builder();
 
+    private boolean lockOn = false;
+
     public AgentAdditionElementCore(FundsMutationAgentRepository repository) {
         this.repository = repository;
     }
 
     public void setName(String name) {
+        if (lockOn) return;
         agentBuilder.setName(name);
     }
 
@@ -55,6 +58,16 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
                     .setGeneralError("Error while adding new agent: " + ex.getMessage())
                     .build();
         }
+    }
+
+    @Override
+    public void lock() {
+        lockOn = true;
+    }
+
+    @Override
+    public void unlock() {
+        lockOn = false;
     }
 
 }

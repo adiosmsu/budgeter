@@ -53,6 +53,8 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     private boolean mutateFunds = true;
     private BigDecimal calculatedNaturalRate;
 
+    private boolean lockOn = false;
+
     public FundsMutationElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
         this.accounter = accounter;
         this.ratesService = ratesService;
@@ -60,6 +62,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setPostponedEvent(PostponedFundsMutationEventRepository.PostponedMutationEvent event, BigDecimal naturalRate) {
+        if (lockOn) return;
         setEvent(event.mutationEvent);
         setAmount(event.mutationEvent.amount);
         setRelevantBalance(event.mutationEvent.relevantBalance);
@@ -81,6 +84,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setDirection(MutationDirection direction) {
+        if (lockOn) return;
         this.directionRef = Optional.of(direction);
         final Treasury.BalanceAccount relevantBalance = eventBuilder.getRelevantBalance();
         if (relevantBalance != null) {
@@ -93,10 +97,12 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setEvent(FundsMutationEvent event) {
+        if (lockOn) return;
         eventBuilder.setFundsMutationEvent(event);
     }
 
     public void setNaturalRate(BigDecimal naturalRate) {
+        if (lockOn) return;
         this.naturalRateRef = Optional.of(naturalRate);
     }
 
@@ -112,22 +118,26 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
     @Override
     public void setAmount(Money amount) {
+        if (lockOn) return;
         amountWrapper.setAmount(amount);
         adjustRelevantBalance(amount.getCurrencyUnit(), MutationDirection.BENEFIT);
     }
 
     @Override
     public void setAmountDecimal(BigDecimal amountDecimal) {
+        if (lockOn) return;
         amountWrapper.setAmountDecimal(amountDecimal);
     }
 
     @Override
     public void setAmountUnit(String code) {
+        if (lockOn) return;
         setAmountUnit(CurrencyUnit.of(code));
     }
 
     @Override
     public void setAmountUnit(CurrencyUnit unit) {
+        if (lockOn) return;
         amountWrapper.setAmountUnit(unit);
         adjustRelevantBalance(unit, MutationDirection.BENEFIT);
     }
@@ -139,6 +149,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
     @Override
     public void setAmount(int coins, int cents) {
+        if (lockOn) return;
         amountWrapper.setAmount(coins, cents);
     }
 
@@ -149,6 +160,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setRelevantBalance(Treasury.BalanceAccount relevantBalance) {
+        if (lockOn) return;
         eventBuilder.setRelevantBalance(relevantBalance);
         if (directionRef.isPresent()) {
             adjustUnitsUsingBalance(directionRef.get(), relevantBalance);
@@ -161,10 +173,12 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setPayeeAccountUnit(String code) {
+        if (lockOn) return;
         setPayeeAccountUnit(CurrencyUnit.of(code));
     }
 
     public void setPayeeAccountUnit(CurrencyUnit unit) {
+        if (lockOn) return;
         payeeAccountMoneyWrapper.setAmountUnit(unit);
         adjustRelevantBalance(unit, MutationDirection.LOSS);
     }
@@ -175,6 +189,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setPaidMoney(Money money) {
+        if (lockOn) return;
         payeeAccountMoneyWrapper.setAmount(money);
         adjustRelevantBalance(money.getCurrencyUnit(), MutationDirection.LOSS);
     }
@@ -184,10 +199,12 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setPayeeAmount(int coins, int cents) {
+        if (lockOn) return;
         payeeAccountMoneyWrapper.setAmount(coins, cents);
     }
 
     public void setPayeeAmount(BigDecimal amount) {
+        if (lockOn) return;
         payeeAccountMoneyWrapper.setAmountDecimal(amount);
     }
 
@@ -196,6 +213,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setCustomRate(BigDecimal customRate) {
+        if (lockOn) return;
         this.customRateRef = Optional.ofNullable(customRate);
     }
 
@@ -205,6 +223,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setQuantity(int quantity) {
+        if (lockOn) return;
         eventBuilder.setQuantity(quantity);
     }
 
@@ -213,6 +232,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setSubject(String subjectName) {
+        if (lockOn) return;
         eventBuilder.setSubject(accounter.fundsMutationSubjectRepo().findByName(subjectName).orElseThrow(new Supplier<NullPointerException>() {
             @Override
             public NullPointerException get() {
@@ -222,6 +242,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setSubject(FundsMutationSubject subject) {
+        if (lockOn) return;
         eventBuilder.setSubject(subject);
     }
 
@@ -231,6 +252,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setTimestamp(OffsetDateTime timestamp) {
+        if (lockOn) return;
         eventBuilder.setTimestamp(timestamp);
     }
 
@@ -240,6 +262,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setMutateFunds(boolean mutateFunds) {
+        if (lockOn) return;
         this.mutateFunds = mutateFunds;
     }
 
@@ -248,10 +271,12 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public void setAgent(FundsMutationAgent agent) {
+        if (lockOn) return;
         eventBuilder.setAgent(agent);
     }
 
     public void setAgentString(final String agentStr) {
+        if (lockOn) return;
         final FundsMutationAgentRepository repo = accounter.fundsMutationAgentRepo();
         final Optional<FundsMutationAgent> byName = repo.findByName(agentStr);
         eventBuilder.setAgent(byName.orElseGet(new Supplier<FundsMutationAgent>() {
@@ -442,6 +467,16 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     @Override
     public CurrenciesExchangeService getRatesService() {
         return ratesService;
+    }
+
+    @Override
+    public void lock() {
+        lockOn = true;
+    }
+
+    @Override
+    public void unlock() {
+        lockOn = false;
     }
 
     private void adjustUnitsUsingBalance(MutationDirection dir, Treasury.BalanceAccount relevantBalance) {

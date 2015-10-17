@@ -23,10 +23,13 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
 
     private static final Logger logger = LoggerFactory.getLogger(SubjectAdditionElementCore.class);
 
+
     private final FundsMutationSubject.Builder subjectBuilder;
     private final FundsMutationSubjectRepository repository;
 
     private String parentName;
+
+    private boolean lockOn = false;
 
     public SubjectAdditionElementCore(FundsMutationSubjectRepository repository) {
         this.repository = repository;
@@ -34,6 +37,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     }
 
     public void setName(String name) {
+        if (lockOn) return;
         subjectBuilder.setName(name);
     }
 
@@ -43,6 +47,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     }
 
     public void setParentName(String parentName) {
+        if (lockOn) return;
         this.parentName = parentName;
         final Optional<FundsMutationSubject> parentRef = repository.findByName(parentName);
         if (parentRef.isPresent()) {
@@ -59,6 +64,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     }
 
     public void setType(int typeOrdinal) {
+        if (lockOn) return;
         final FundsMutationSubject.Type[] values = FundsMutationSubject.Type.values();
         if (typeOrdinal >= 0 && typeOrdinal < values.length) {
             subjectBuilder.setType(values[typeOrdinal]);
@@ -66,6 +72,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     }
 
     public void setType(FundsMutationSubject.Type subjectType) {
+        if (lockOn) return;
         subjectBuilder.setType(subjectType);
     }
 
@@ -100,6 +107,16 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
                     .setGeneralError("Error while adding new subject: " + ex.getMessage())
                     .build();
         }
+    }
+
+    @Override
+    public void lock() {
+        lockOn = true;
+    }
+
+    @Override
+    public void unlock() {
+        lockOn = false;
     }
 
 }

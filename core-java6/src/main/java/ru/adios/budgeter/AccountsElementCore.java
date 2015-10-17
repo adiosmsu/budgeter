@@ -30,6 +30,8 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     private Optional<String> nameOpt = Optional.empty();
     private Optional<CurrencyUnit> unitOpt = Optional.empty();
 
+    private boolean lockOn = false;
+
     public AccountsElementCore(Treasury treasury) {
         this.treasury = treasury;
     }
@@ -40,6 +42,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     }
 
     public void setName(String name) {
+        if (lockOn) return;
         this.nameOpt = Optional.of(name);
     }
 
@@ -49,6 +52,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     }
 
     public void setUnit(CurrencyUnit unit) {
+        if (lockOn) return;
         this.unitOpt = Optional.of(unit);
     }
 
@@ -77,6 +81,16 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
                     .setGeneralError("Error while registering balance account: " + ex.getMessage())
                     .build();
         }
+    }
+
+    @Override
+    public void lock() {
+        lockOn = true;
+    }
+
+    @Override
+    public void unlock() {
+        lockOn = false;
     }
 
 }
