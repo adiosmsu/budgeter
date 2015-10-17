@@ -52,12 +52,14 @@ public interface FundsMutator {
 
         BENEFIT {
             @Override
-            void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
+            Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount : amount.negated()).build();
                 accounter.registerBenefit(event);
                 if (mutateFunds) {
                     treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
+                    return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
                 }
+                return null;
             }
 
             @Override
@@ -77,12 +79,14 @@ public interface FundsMutator {
         },
         LOSS {
             @Override
-            void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
+            Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amount.getAmount().signum() >= 0 ? amount.negated() : amount).build();
                 accounter.registerLoss(event);
                 if (mutateFunds) {
                     treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
+                    return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
                 }
+                return null;
             }
 
             @Override
@@ -105,7 +109,7 @@ public interface FundsMutator {
             return event.amount.getAmount().signum() >= 0 ? MutationDirection.BENEFIT : MutationDirection.LOSS;
         }
 
-        abstract void register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
+        abstract Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
 
         abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate);
 

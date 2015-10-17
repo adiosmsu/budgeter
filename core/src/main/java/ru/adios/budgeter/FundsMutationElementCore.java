@@ -23,7 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @author Mikhail Kulikov
  */
 @NotThreadSafe
-public final class FundsMutationElementCore implements MoneySettable, FundsMutator, Submitter {
+public final class FundsMutationElementCore implements MoneySettable, FundsMutator, Submitter<Treasury.BalanceAccount> {
 
     public static final String FIELD_DIRECTION = "direction";
     public static final String FIELD_RELEVANT_BALANCE = "relevantBalance";
@@ -252,8 +252,8 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
      * Orientation is: [amount] = [paid amount] * rate.
      */
     @Override
-    public Result submit() {
-        final ResultBuilder resultBuilder = new ResultBuilder();
+    public Result<Treasury.BalanceAccount> submit() {
+        final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<>();
         resultBuilder.addFieldErrorIfAbsent(directionRef, FIELD_DIRECTION)
                 .addFieldErrorIfNull(eventBuilder.getRelevantBalance(), FIELD_RELEVANT_BALANCE)
                 .addFieldErrorIfNull(eventBuilder.getAgent(), FIELD_AGENT)
@@ -354,7 +354,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                         );
                     }
 
-                    direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
+                    final Treasury.BalanceAccount res = direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
                     accounter.registerCurrencyExchange(
                             CurrencyExchangeEvent.builder()
                                     .setAgent(eventBuilder.getAgent())
@@ -370,21 +370,19 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                                     .setTimestamp(eventBuilder.getTimestamp())
                                     .build()
                     );
-                    return Result.success(null);
+                    return Result.success(res);
                 }
             } else {
                 amount = amountWrapper.getAmount().toBigMoney();
             }
 
-            direction.register(accounter, treasury, eventBuilder, amount.toMoney(), mutateFunds);
+            return Result.success(direction.register(accounter, treasury, eventBuilder, amount.toMoney(), mutateFunds));
         } catch (RuntimeException ex) {
             logger.error("Error while performing funds mutation business logic", ex);
             return resultBuilder
                     .setGeneralError("Error while performing funds mutation business logic: " + ex.getMessage())
                     .build();
         }
-
-        return Result.success(null);
     }
 
     private BigDecimal calculateNaturalRate(CurrencyUnit paidUnit, CurrencyUnit amountUnit) {
