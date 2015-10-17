@@ -54,6 +54,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     private boolean personalMoneyExchange = false;
 
     private boolean lockOn = false;
+    private Result storedResult;
 
     public ExchangeCurrenciesElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
         this.accounter = accounter;
@@ -354,6 +355,16 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     @Override
     public void unlock() {
         lockOn = false;
+    }
+
+    @Override
+    public Result getStoredResult() {
+        return storedResult;
+    }
+
+    @Override
+    public void submitAndStoreResult() {
+        storedResult = submit();
     }
 
 }

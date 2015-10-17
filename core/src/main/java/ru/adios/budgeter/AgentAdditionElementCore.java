@@ -24,6 +24,7 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
     private final FundsMutationAgent.Builder agentBuilder = FundsMutationAgent.builder();
 
     private boolean lockOn = false;
+    private Result<FundsMutationAgent> storedResult;
 
     public AgentAdditionElementCore(FundsMutationAgentRepository repository) {
         this.repository = repository;
@@ -68,6 +69,16 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
     @Override
     public void unlock() {
         lockOn = false;
+    }
+
+    @Override
+    public Result<FundsMutationAgent> getStoredResult() {
+        return storedResult;
+    }
+
+    @Override
+    public void submitAndStoreResult() {
+        storedResult = submit();
     }
 
 }

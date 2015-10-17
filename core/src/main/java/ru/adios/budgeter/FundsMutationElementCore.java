@@ -56,6 +56,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     private BigDecimal calculatedNaturalRate;
 
     private boolean lockOn = false;
+    private Result<Treasury.BalanceAccount> storedResult;
 
     public FundsMutationElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
         this.accounter = accounter;
@@ -456,6 +457,16 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     @Override
     public void unlock() {
         lockOn = false;
+    }
+
+    @Override
+    public Result<Treasury.BalanceAccount> getStoredResult() {
+        return storedResult;
+    }
+
+    @Override
+    public void submitAndStoreResult() {
+        storedResult = submit();
     }
 
     private void adjustUnitsUsingBalance(MutationDirection dir, Treasury.BalanceAccount relevantBalance) {

@@ -33,6 +33,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
     private Optional<Treasury.BalanceAccount> accountRef = Optional.empty();
 
     private boolean lockOn = false;
+    private Result<Treasury.BalanceAccount> storedResult;
 
     public FundsAdditionElementCore(Treasury treasury) {
         this.treasury = treasury;
@@ -142,6 +143,16 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
     @Override
     public void unlock() {
         lockOn = false;
+    }
+
+    @Override
+    public Result<Treasury.BalanceAccount> getStoredResult() {
+        return storedResult;
+    }
+
+    @Override
+    public void submitAndStoreResult() {
+        storedResult = submit();
     }
 
 }

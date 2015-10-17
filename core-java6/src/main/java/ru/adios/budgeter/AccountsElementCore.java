@@ -31,6 +31,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     private Optional<CurrencyUnit> unitOpt = Optional.empty();
 
     private boolean lockOn = false;
+    private Result<Treasury.BalanceAccount> storedResult;
 
     public AccountsElementCore(Treasury treasury) {
         this.treasury = treasury;
@@ -91,6 +92,16 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     @Override
     public void unlock() {
         lockOn = false;
+    }
+
+    @Override
+    public Result<Treasury.BalanceAccount> getStoredResult() {
+        return storedResult;
+    }
+
+    @Override
+    public void submitAndStoreResult() {
+        storedResult = submit();
     }
 
 }

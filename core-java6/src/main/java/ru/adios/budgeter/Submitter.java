@@ -22,6 +22,10 @@ public interface Submitter<T> {
 
     void unlock();
 
+    void submitAndStoreResult();
+
+    Result<T> getStoredResult();
+
     @Immutable
     final class Result<T> {
 

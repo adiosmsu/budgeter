@@ -30,6 +30,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     private String parentName;
 
     private boolean lockOn = false;
+    private Result<FundsMutationSubject> storedResult;
 
     public SubjectAdditionElementCore(FundsMutationSubjectRepository repository) {
         this.repository = repository;
@@ -117,6 +118,16 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     @Override
     public void unlock() {
         lockOn = false;
+    }
+
+    @Override
+    public Result<FundsMutationSubject> getStoredResult() {
+        return storedResult;
+    }
+
+    @Override
+    public void submitAndStoreResult() {
+        storedResult = submit();
     }
 
 }
