@@ -8,7 +8,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import java.time.OffsetDateTime;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Date: 6/13/15
@@ -131,7 +130,7 @@ public final class FundsMutationEvent {
         }
 
         public Builder setTimestamp(OffsetDateTime timestamp) {
-            this.timestamp = checkNotNull(timestamp);
+            this.timestamp = timestamp;
             return this;
         }
 
@@ -140,6 +139,7 @@ public final class FundsMutationEvent {
             return this;
         }
 
+        @Nullable
         public OffsetDateTime getTimestamp() {
             return timestamp;
         }

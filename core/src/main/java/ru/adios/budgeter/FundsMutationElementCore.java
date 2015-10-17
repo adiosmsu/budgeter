@@ -36,6 +36,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     public static final String FIELD_PAID_MONEY = "paidMoney";
     public static final String FIELD_PAYEE_ACCOUNT_UNIT = "payee_account_unit";
     public static final String FIELD_QUANTITY = "quantity";
+    public static final String FIELD_TIMESTAMP = "timestamp";
 
     private static final Logger logger = LoggerFactory.getLogger(FundsMutationElementCore.class);
 
@@ -215,6 +216,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         eventBuilder.setTimestamp(timestamp);
     }
 
+    @Nullable
     public OffsetDateTime getTimestamp() {
         return eventBuilder.getTimestamp();
     }
@@ -255,7 +257,8 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         resultBuilder.addFieldErrorIfAbsent(directionRef, FIELD_DIRECTION)
                 .addFieldErrorIfNull(eventBuilder.getRelevantBalance(), FIELD_RELEVANT_BALANCE)
                 .addFieldErrorIfNull(eventBuilder.getAgent(), FIELD_AGENT)
-                .addFieldErrorIfNull(eventBuilder.getSubject(), FIELD_SUBJECT);
+                .addFieldErrorIfNull(eventBuilder.getSubject(), FIELD_SUBJECT)
+                .addFieldErrorIfNull(eventBuilder.getTimestamp(), FIELD_TIMESTAMP);
 
         if (!amountWrapper.isUnitSet()) {
             resultBuilder.addFieldError(FIELD_AMOUNT_UNIT)
