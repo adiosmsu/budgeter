@@ -106,7 +106,7 @@ public interface CurrencyRatesProvider {
     }
 
     static BigDecimal getConversionMultiplierFromIntermediateMultipliers(BigDecimal interToFirst, BigDecimal interToSecond) {
-        return interToFirst.divide(interToSecond, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
+        return interToSecond.divide(interToFirst, RATES_SCALE, RoundingMode.HALF_DOWN).stripTrailingZeros();
     }
 
     static BigDecimal reverseRate(BigDecimal rate) {
