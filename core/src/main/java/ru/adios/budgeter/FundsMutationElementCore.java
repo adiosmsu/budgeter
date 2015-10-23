@@ -53,7 +53,6 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     private Optional<BigDecimal> customRateRef = Optional.empty();
     private Optional<BigDecimal> naturalRateRef = Optional.empty();
     private boolean mutateFunds = true;
-    private BigDecimal calculatedNaturalRate;
 
     private boolean lockOn = false;
     private Result<Treasury.BalanceAccount> storedResult;
@@ -123,8 +122,17 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     @Override
     public void setAmount(Money amount) {
         if (lockOn) return;
+
+        final CurrencyUnit oldUnit = amountWrapper.getAmountUnit();
+
         amountWrapper.setAmount(amount);
-        adjustRelevantBalance(amount.getCurrencyUnit(), MutationDirection.BENEFIT);
+
+        if (amount != null) {
+            processAmountUnitChange(amount.getCurrencyUnit(), oldUnit);
+        } else {
+            adjustRelevantBalance(null, MutationDirection.BENEFIT);
+            emptyRateRefs();
+        }
     }
 
     @Override
@@ -142,7 +150,19 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     @Override
     public void setAmountUnit(CurrencyUnit unit) {
         if (lockOn) return;
+
+        final CurrencyUnit oldUnit = amountWrapper.getAmountUnit();
+
         amountWrapper.setAmountUnit(unit);
+
+        processAmountUnitChange(unit, oldUnit);
+    }
+
+    private void processAmountUnitChange(CurrencyUnit unit, CurrencyUnit oldUnit) {
+        if (unit == null || !unit.equals(oldUnit)) {
+            emptyRateRefs();
+        }
+
         adjustRelevantBalance(unit, MutationDirection.BENEFIT);
     }
 
@@ -177,8 +197,12 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
     public void setPayeeAccountUnit(CurrencyUnit unit) {
         if (lockOn) return;
+
+        final CurrencyUnit oldUnit = payeeAccountMoneyWrapper.getAmountUnit();
+
         payeeAccountMoneyWrapper.setAmountUnit(unit);
-        adjustRelevantBalance(unit, MutationDirection.LOSS);
+
+        processPayedUnitChange(unit, oldUnit);
     }
 
     @Nullable
@@ -188,8 +212,25 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
     public void setPaidMoney(Money money) {
         if (lockOn) return;
+
+        final CurrencyUnit oldUnit = payeeAccountMoneyWrapper.getAmountUnit();
+
         payeeAccountMoneyWrapper.setAmount(money);
-        adjustRelevantBalance(money.getCurrencyUnit(), MutationDirection.LOSS);
+
+        if (money != null) {
+            processPayedUnitChange(money.getCurrencyUnit(), oldUnit);
+        } else {
+            adjustRelevantBalance(null, MutationDirection.LOSS);
+            emptyRateRefs();
+        }
+    }
+
+    private void processPayedUnitChange(CurrencyUnit unit, CurrencyUnit oldUnit) {
+        if (unit == null || !unit.equals(oldUnit)) {
+            emptyRateRefs();
+        }
+
+        adjustRelevantBalance(unit, MutationDirection.LOSS);
     }
 
     public Money getPaidMoney() {
@@ -432,11 +473,12 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         }
     }
 
+    @Nullable
     private BigDecimal calculateNaturalRate(CurrencyUnit paidUnit, CurrencyUnit amountUnit) {
-        if (calculatedNaturalRate == null) {
-            calculatedNaturalRate = naturalRateRef.orElseGet(() -> ratesService.getConversionMultiplier(new UtcDay(eventBuilder.getTimestamp()), paidUnit, amountUnit).orElse(null));
+        if (!naturalRateRef.isPresent()) {
+            naturalRateRef = ratesService.getConversionMultiplier(new UtcDay(eventBuilder.getTimestamp()), paidUnit, amountUnit);
         }
-        return calculatedNaturalRate;
+        return naturalRateRef.orElse(null);
     }
 
     @Override
@@ -475,21 +517,28 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     private void adjustUnitsUsingBalance(MutationDirection dir, Treasury.BalanceAccount relevantBalance) {
-        final CurrencyUnit relevantBalanceUnit = relevantBalance.getUnit();
-        switch (dir) {
-            case LOSS:
-                setPayeeAccountUnit(relevantBalanceUnit);
-                break;
-            case BENEFIT:
-                setAmountUnit(relevantBalanceUnit);
+        if (relevantBalance != null) {
+            final CurrencyUnit relevantBalanceUnit = relevantBalance.getUnit();
+            switch (dir) {
+                case LOSS:
+                    setPayeeAccountUnit(relevantBalanceUnit);
+                    break;
+                case BENEFIT:
+                    setAmountUnit(relevantBalanceUnit);
+            }
         }
     }
 
-    private void adjustRelevantBalance(CurrencyUnit unit, MutationDirection dir) {
+    private void adjustRelevantBalance(@Nullable CurrencyUnit unit, MutationDirection dir) {
         final Treasury.BalanceAccount relevantBalance = getRelevantBalance();
-        if (directionRef.isPresent() && relevantBalance != null && directionRef.get() == dir && !unit.equals(relevantBalance.getUnit())) {
+        if (directionRef.isPresent() && relevantBalance != null && directionRef.get() == dir && !relevantBalance.getUnit().equals(unit)) {
             eventBuilder.setRelevantBalance(null);
         }
+    }
+
+    private void emptyRateRefs() {
+        naturalRateRef = Optional.empty();
+        customRateRef = Optional.empty();
     }
 
 }
