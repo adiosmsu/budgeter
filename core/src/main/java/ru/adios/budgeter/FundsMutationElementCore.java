@@ -111,7 +111,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
 
     @Nullable
     public BigDecimal getNaturalRate() {
-        return naturalRateRef.orElseGet(null);
+        return naturalRateRef.orElse(null);
     }
 
     @Override
