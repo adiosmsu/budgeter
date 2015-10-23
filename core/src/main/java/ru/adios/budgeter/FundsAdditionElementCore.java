@@ -29,7 +29,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
 
     private final Treasury treasury;
 
-    private final MoneyWrapperBean amountWrapper = new MoneyWrapperBean("funds addition amount");
+    private final MoneyPositiveWrapper amountWrapper = new MoneyPositiveWrapper("funds addition amount");
     private Optional<Treasury.BalanceAccount> accountRef = Optional.empty();
 
     private boolean lockOn = false;

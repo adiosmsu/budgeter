@@ -41,8 +41,8 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     private final Treasury treasury;
     private final CurrenciesExchangeService ratesService;
 
-    private final MoneyWrapperBean buyAmountWrapper = new MoneyWrapperBean("exchange buy amount");
-    private final MoneyWrapperBean sellAmountWrapper = new MoneyWrapperBean("exchange sell amount");
+    private final MoneyPositiveWrapper buyAmountWrapper = new MoneyPositiveWrapper("exchange buy amount");
+    private final MoneyPositiveWrapper sellAmountWrapper = new MoneyPositiveWrapper("exchange sell amount");
 
     private Optional<Treasury.BalanceAccount> buyAccountRef = Optional.empty();
     private Optional<Treasury.BalanceAccount> sellAccountRef = Optional.empty();

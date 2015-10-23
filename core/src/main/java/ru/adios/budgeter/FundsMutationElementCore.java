@@ -45,8 +45,8 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     private final CurrenciesExchangeService ratesService;
     private final Treasury treasury;
 
-    private final MoneyWrapperBean amountWrapper = new MoneyWrapperBean("funds mutation amount");
-    private final MoneyWrapperBean payeeAccountMoneyWrapper = new MoneyWrapperBean("funds mutation paid amount");
+    private final MoneyPositiveWrapper amountWrapper = new MoneyPositiveWrapper("funds mutation amount");
+    private final MoneyPositiveWrapper payeeAccountMoneyWrapper = new MoneyPositiveWrapper("funds mutation paid amount");
 
     private Optional<MutationDirection> directionRef = Optional.of(MutationDirection.BENEFIT);
     private FundsMutationEvent.Builder eventBuilder = FundsMutationEvent.builder();

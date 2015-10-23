@@ -65,11 +65,14 @@ public class FundsAdditionElementCoreTest {
         core.setAmount(Money.of(CurrencyUnit.USD, -10.));
         core.setAccount(usdAccount);
         submit = core.submit();
-        submit.raiseExceptionIfFailed();
+        try {
+            submit.raiseExceptionIfFailed();
+            fail("Negative amount passed");
+        } catch (Submitter.SubmitFailure ignore) {}
 
         final Optional<Money> amountUsd = Schema.TREASURY.amount(CurrencyUnit.USD);
         assertTrue(amountUsd.isPresent());
-        assertEquals("Treasury amount fault", Money.of(CurrencyUnit.USD, 90.0), amountUsd.get());
+        assertEquals("Treasury amount fault", Money.of(CurrencyUnit.USD, 100.0), amountUsd.get());
     }
 
 }

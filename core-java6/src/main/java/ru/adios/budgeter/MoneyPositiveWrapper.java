@@ -8,7 +8,6 @@ import org.joda.money.Money;
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -17,7 +16,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @author Mikhail Kulikov
  */
-public final class MoneyWrapperBean implements MoneySettable {
+public final class MoneyPositiveWrapper implements MoneySettable {
 
     public final String name;
 
@@ -27,38 +26,58 @@ public final class MoneyWrapperBean implements MoneySettable {
 
     private final MoneySettable.Default msDef = new Default(this);
 
-    public MoneyWrapperBean(String name) {
+    public MoneyPositiveWrapper(String name) {
         this.name = name;
     }
 
     @Override
     public void setAmountDecimal(BigDecimal amountDecimal) {
-        amountDecimalRef = Optional.of(amountDecimal);
+        if (amountDecimal == null) {
+            amountDecimalRef = Optional.empty();
+            if (amountRef.isPresent()) {
+                amountUnitRef = Optional.of(amountRef.get().getCurrencyUnit());
+                amountRef = Optional.empty();
+            }
+        } else {
+            amountDecimalRef = Optional.of(amountDecimal);
+        }
     }
 
     @Override
     public void setAmountUnit(String code) {
-        setAmountUnit(CurrencyUnit.of(code));
+        if (code == null) {
+            emptyAmountUnitRefs();
+        } else {
+            setAmountUnit(CurrencyUnit.of(code));
+        }
     }
 
     @Override
     public void setAmountUnit(CurrencyUnit unit) {
-        checkNotNull(unit);
-        if (amountUnitRef.isPresent() && !unit.equals(amountUnitRef.get())) {
-            amountDecimalRef = Optional.empty();
+        if (unit == null) {
+            emptyAmountUnitRefs();
+        } else {
+            if (amountUnitRef.isPresent() && !unit.equals(amountUnitRef.get())) {
+                amountDecimalRef = Optional.empty();
+            }
+            if (amountRef.isPresent() && !unit.equals(amountRef.get().getCurrencyUnit())) {
+                amountRef = Optional.empty();
+            }
+            amountUnitRef = Optional.of(unit);
         }
-        if (amountRef.isPresent() && !unit.equals(amountRef.get().getCurrencyUnit())) {
-            amountRef = Optional.empty();
-        }
-        amountUnitRef = Optional.of(unit);
     }
 
     @Override
     public void setAmount(Money amount) {
-        checkNotNull(amount);
-        amountRef = Optional.of(amount);
-        amountDecimalRef = Optional.of(amount.getAmount());
-        amountUnitRef = Optional.of(amount.getCurrencyUnit());
+        if (amount == null) {
+            amountRef = Optional.empty();
+            amountDecimalRef = Optional.empty();
+            amountUnitRef = Optional.empty();
+        } else {
+            amountRef = Optional.of(amount);
+            amountDecimalRef = Optional.of(amount.getAmount());
+            amountUnitRef = Optional.of(amount.getCurrencyUnit());
+        }
     }
 
     @Override
@@ -97,7 +116,8 @@ public final class MoneyWrapperBean implements MoneySettable {
     }
 
     public boolean isAmountSet() {
-        return amountRef.isPresent() || amountDecimalRef.isPresent();
+        return (amountRef.isPresent() && amountRef.get().getAmount().compareTo(BigDecimal.ZERO) > 0)
+                || (amountDecimalRef.isPresent() && amountDecimalRef.get().compareTo(BigDecimal.ZERO) > 0);
     }
 
     public boolean isUnitSet() {
@@ -105,7 +125,16 @@ public final class MoneyWrapperBean implements MoneySettable {
     }
 
     public boolean isInitiable() {
-        return amountRef.isPresent() || (amountDecimalRef.isPresent() && amountUnitRef.isPresent());
+        return (amountRef.isPresent() && amountRef.get().getAmount().compareTo(BigDecimal.ZERO) > 0) ||
+                (amountDecimalRef.isPresent() && amountDecimalRef.get().compareTo(BigDecimal.ZERO) > 0 && amountUnitRef.isPresent());
+    }
+
+    private void emptyAmountUnitRefs() {
+        amountUnitRef = Optional.empty();
+        if (amountRef.isPresent()) {
+            amountDecimalRef = Optional.of(amountRef.get().getAmount());
+            amountRef = Optional.empty();
+        }
     }
 
     private Money initAmount() {
