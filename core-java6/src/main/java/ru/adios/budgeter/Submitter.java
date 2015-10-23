@@ -70,6 +70,17 @@ public interface Submitter<T> {
             throw new SubmitFailure(builder.toString());
         }
 
+        public boolean containsFieldErrors(String... names) {
+            for (final FieldError fieldError : fieldErrors) {
+                for (final String name : names) {
+                    if (fieldError.fieldInFault.equals(name)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
     }
 
     final class SubmitFailure extends RuntimeException {
