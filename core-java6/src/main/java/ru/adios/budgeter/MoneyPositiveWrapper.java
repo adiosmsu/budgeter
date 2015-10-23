@@ -7,6 +7,7 @@ import org.joda.money.Money;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -40,6 +41,10 @@ public final class MoneyPositiveWrapper implements MoneySettable {
             }
         } else {
             amountDecimalRef = Optional.of(amountDecimal);
+            if (amountRef.isPresent()) {
+                final Money mon = amountRef.get();
+                amountRef = Optional.of(Money.of(mon.getCurrencyUnit(), amountDecimal, RoundingMode.HALF_DOWN));
+            }
         }
     }
 
