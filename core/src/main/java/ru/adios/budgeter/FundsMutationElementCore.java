@@ -334,36 +334,20 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                 final boolean sameUnits = paidUnit.equals(amountUnit);
 
                 if (!customRateRef.isPresent() && payeeAccountMoneyWrapper.isAmountSet() && amountWrapper.isAmountSet()) {
-                    final Money amountChecked = amountWrapper.getAmount();
-                    if (amountChecked.isZero()) {
-                        return resultBuilder.addFieldError(FIELD_AMOUNT_DECIMAL).build();
-                    }
-                    final Money payedAmountChecked = payeeAccountMoneyWrapper.getAmount();
-                    if (payedAmountChecked.isZero()) {
-                        return resultBuilder.addFieldError(FIELD_PAYEE_AMOUNT).build();
-                    }
                     // we know about paid money and actual amount both therefore we must calculate custom rate which with 99% chance will differ from natural rate
-                    customRateRef = Optional.of(CurrencyRatesProvider.calculateRate(amountChecked.getAmount(), payedAmountChecked.getAmount()));
+                    customRateRef = Optional.of(CurrencyRatesProvider.calculateRate(amountWrapper.getAmount().getAmount(), payeeAccountMoneyWrapper.getAmount().getAmount()));
                 }
 
                 if (!amountWrapper.isAmountSet()) {
-                    final Money payedAmountChecked = payeeAccountMoneyWrapper.getAmount();
-                    if (payedAmountChecked.isZero()) {
-                        return resultBuilder.addFieldError(FIELD_PAYEE_AMOUNT).build();
-                    }
                     // actual amount wasn't set explicitly so we must calculate it from paid amount and rate (custom or natural) which must have been provided
-                    final BigMoney paidAmount = payedAmountChecked.toBigMoney();
+                    final BigMoney paidAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
                     checkNotNull(amountUnit);
                     amount = (sameUnits)
                             ? paidAmount
                             : paidAmount.convertedTo(amountUnit, customRateRef.orElseGet(() -> calculateNaturalRate(paidUnit, amountUnit)));
                 } else {
-                    final Money amountChecked = amountWrapper.getAmount();
-                    if (amountChecked.isZero()) {
-                        return resultBuilder.addFieldError(FIELD_AMOUNT_DECIMAL).build();
-                    }
                     // actual amount was set explicitly
-                    amount = amountChecked.toBigMoney();
+                    amount = amountWrapper.getAmount().toBigMoney();
                 }
 
                 if (!sameUnits) {
@@ -382,11 +366,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     final BigMoney soldAmount;
                     final BigDecimal actualRate = customRateRef.orElse(naturalRate);
                     if (payeeAccountMoneyWrapper.isAmountSet()) {
-                        final Money payedAmountChecked = payeeAccountMoneyWrapper.getAmount();
-                        if (payedAmountChecked.isZero()) {
-                            return resultBuilder.addFieldError(FIELD_PAYEE_AMOUNT).build();
-                        }
-                        soldAmount = payedAmountChecked.toBigMoney();
+                        soldAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
                     } else {
                         soldAmount = amount.convertedTo(paidUnit, CurrencyRatesProvider.reverseRate(actualRate));
                     }
@@ -440,11 +420,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                     return Result.success(res);
                 }
             } else {
-                final Money amountChecked = amountWrapper.getAmount();
-                if (amountChecked.isZero()) {
-                    return resultBuilder.addFieldError(FIELD_AMOUNT_DECIMAL).build();
-                }
-                amount = amountChecked.toBigMoney();
+                amount = amountWrapper.getAmount().toBigMoney();
             }
 
             return Result.success(direction.register(accounter, treasury, eventBuilder, amount.toMoney(), mutateFunds));

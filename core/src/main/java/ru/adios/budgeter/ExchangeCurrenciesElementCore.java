@@ -248,46 +248,22 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
             final CurrencyUnit sellUnit = sellAmountWrapper.getAmountUnit();
 
             if (!customRateRef.isPresent() && buyAmountWrapper.isAmountSet() && sellAmountWrapper.isAmountSet()) {
-                final Money buyAmountChecked = buyAmountWrapper.getAmount();
-                if (buyAmountChecked.isZero()) {
-                    return resultBuilder.addFieldError(FIELD_BUY_AMOUNT_DECIMAL).build();
-                }
-                final Money sellAmountChecked = sellAmountWrapper.getAmount();
-                if (sellAmountChecked.isZero()) {
-                    return resultBuilder.addFieldError(FIELD_SELL_AMOUNT_DECIMAL).build();
-                }
-                customRateRef = Optional.of(CurrencyRatesProvider.calculateRate(buyAmountChecked.getAmount(), sellAmountChecked.getAmount()));
+                customRateRef = Optional.of(CurrencyRatesProvider.calculateRate(buyAmountWrapper.getAmount().getAmount(), sellAmountWrapper.getAmount().getAmount()));
             }
 
             final BigMoney buyAmount, sellAmount;
             final BigDecimal actualRate = customRateRef.orElseGet(() -> calculateNaturalRate(sellUnit, buyUnit));
             if (!buyAmountWrapper.isAmountSet()) {
-                final Money sellAmountChecked = sellAmountWrapper.getAmount();
-                if (sellAmountChecked.isZero()) {
-                    return resultBuilder.addFieldError(FIELD_SELL_AMOUNT_DECIMAL).build();
-                }
-                sellAmount = sellAmountChecked.toBigMoney();
+                sellAmount = sellAmountWrapper.getAmount().toBigMoney();
                 checkNotNull(buyUnit);
                 buyAmount = sellAmount.convertedTo(buyUnit, actualRate);
             } else if (!sellAmountWrapper.isAmountSet()) {
-                final Money buyAmountChecked = buyAmountWrapper.getAmount();
-                if (buyAmountChecked.isZero()) {
-                    return resultBuilder.addFieldError(FIELD_BUY_AMOUNT_DECIMAL).build();
-                }
-                buyAmount = buyAmountChecked.toBigMoney();
+                buyAmount = buyAmountWrapper.getAmount().toBigMoney();
                 checkNotNull(sellUnit);
                 sellAmount = buyAmount.convertedTo(sellUnit, CurrencyRatesProvider.reverseRate(actualRate));
             } else {
-                final Money buyAmountChecked = buyAmountWrapper.getAmount();
-                if (buyAmountChecked.isZero()) {
-                    return resultBuilder.addFieldError(FIELD_BUY_AMOUNT_DECIMAL).build();
-                }
-                buyAmount = buyAmountChecked.toBigMoney();
-                final Money sellAmountChecked = sellAmountWrapper.getAmount();
-                if (sellAmountChecked.isZero()) {
-                    return resultBuilder.addFieldError(FIELD_SELL_AMOUNT_DECIMAL).build();
-                }
-                sellAmount = sellAmountChecked.toBigMoney();
+                buyAmount = buyAmountWrapper.getAmount().toBigMoney();
+                sellAmount = sellAmountWrapper.getAmount().toBigMoney();
             }
             final Money buyAmountSmallMoney = buyAmount.toMoney(RoundingMode.HALF_DOWN);
 
