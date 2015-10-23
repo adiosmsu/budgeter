@@ -70,12 +70,21 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
 
     public void setAccount(Treasury.BalanceAccount account) {
         if (lockOn) return;
-        this.accountRef = Optional.of(account);
-        setAmountUnit(account.getUnit());
+        if (account == null) {
+            accountRef = Optional.empty();
+            setAmountUnit((String) null);
+        } else {
+            this.accountRef = Optional.of(account);
+            setAmountUnit(account.getUnit());
+        }
     }
 
     public void setAccount(String accountName) {
         if (lockOn) return;
+        if (accountName == null) {
+            setAccount((Treasury.BalanceAccount) null);
+            return;
+        }
         final Optional<Treasury.BalanceAccount> accountForName = treasury.getAccountForName(accountName);
         if (accountForName.isPresent()) {
             setAccount(accountForName.get());
