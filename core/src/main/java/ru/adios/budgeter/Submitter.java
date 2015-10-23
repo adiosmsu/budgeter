@@ -103,8 +103,8 @@ public interface Submitter<T> {
             return this;
         }
 
-        public ResultBuilder<T> addFieldErrorIfNotPositive(MoneyWrapperBean wrapperBean, String fieldName) {
-            if (wrapperBean.isAmountSet() && wrapperBean.getAmountDecimal().compareTo(BigDecimal.ZERO) <= 0) {
+        public ResultBuilder<T> addFieldErrorIfNegative(MoneyWrapperBean wrapperBean, String fieldName) {
+            if (wrapperBean.isAmountSet() && wrapperBean.getAmountDecimal().compareTo(BigDecimal.ZERO) < 0) {
                 addFieldError(fieldName, POSITIVE_PRE);
             }
             return this;

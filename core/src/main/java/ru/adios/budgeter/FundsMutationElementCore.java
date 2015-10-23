@@ -295,8 +295,8 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                 .addFieldErrorIfNull(eventBuilder.getAgent(), FIELD_AGENT)
                 .addFieldErrorIfNull(eventBuilder.getSubject(), FIELD_SUBJECT)
                 .addFieldErrorIfNull(eventBuilder.getTimestamp(), FIELD_TIMESTAMP)
-                .addFieldErrorIfNotPositive(amountWrapper, FIELD_AMOUNT_DECIMAL)
-                .addFieldErrorIfNotPositive(payeeAccountMoneyWrapper, FIELD_PAYEE_AMOUNT);
+                .addFieldErrorIfNegative(amountWrapper, FIELD_AMOUNT_DECIMAL)
+                .addFieldErrorIfNegative(payeeAccountMoneyWrapper, FIELD_PAYEE_AMOUNT);
 
         if (!amountWrapper.isUnitSet()) {
             resultBuilder.addFieldError(FIELD_AMOUNT_UNIT)
