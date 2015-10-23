@@ -75,13 +75,13 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
     }
 
     public Money getSubmittedMoney() {
+        final MutationDirection direction = getDirection();
         //noinspection ConstantConditions
         if (payeeAccountMoneyWrapper.isUnitSet() && !payeeAccountMoneyWrapper.getAmountUnit().equals(amountWrapper.getAmountUnit())) {
-            final MutationDirection direction = getDirection();
             final Money amount = direction.getAppropriateMutationAmount(amountWrapper.getAmount(), payeeAccountMoneyWrapper.getAmount());
             return direction.amountToSet(amount).multipliedBy(getQuantity());
         }
-        return amountWrapper.getAmount().multipliedBy(getQuantity());
+        return direction.amountToSet(amountWrapper.getAmount()).multipliedBy(getQuantity());
     }
 
     public void setDirection(MutationDirection direction) {
@@ -305,7 +305,9 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
                 .addFieldErrorIfNull(eventBuilder.getRelevantBalance(), FIELD_RELEVANT_BALANCE)
                 .addFieldErrorIfNull(eventBuilder.getAgent(), FIELD_AGENT)
                 .addFieldErrorIfNull(eventBuilder.getSubject(), FIELD_SUBJECT)
-                .addFieldErrorIfNull(eventBuilder.getTimestamp(), FIELD_TIMESTAMP);
+                .addFieldErrorIfNull(eventBuilder.getTimestamp(), FIELD_TIMESTAMP)
+                .addFieldErrorIfNotPositive(amountWrapper, FIELD_AMOUNT_DECIMAL)
+                .addFieldErrorIfNotPositive(payeeAccountMoneyWrapper, FIELD_PAYEE_AMOUNT);
 
         if (!amountWrapper.isUnitSet()) {
             resultBuilder.addFieldError(FIELD_AMOUNT_UNIT)
@@ -324,7 +326,7 @@ public final class FundsMutationElementCore implements MoneySettable, FundsMutat
         }
 
         if (eventBuilder.getQuantity() <= 0) {
-            resultBuilder.addFieldError(FIELD_QUANTITY, "Fill in positive");
+            resultBuilder.addFieldError(FIELD_QUANTITY, Submitter.ResultBuilder.POSITIVE_PRE);
         }
 
         if (resultBuilder.toBuildError()) {

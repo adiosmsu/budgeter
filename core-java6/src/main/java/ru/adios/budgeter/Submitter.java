@@ -7,6 +7,7 @@ import java8.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+import java.math.BigDecimal;
 
 /**
  * Date: 6/13/15
@@ -80,7 +81,8 @@ public interface Submitter<T> {
     @NotThreadSafe
     final class ResultBuilder<T> {
 
-        private static final String FILL_IN_PRE = "Fill in";
+        public static final String FILL_IN_PRE = "Fill in";
+        public static final String POSITIVE_PRE = "Fill in positive";
 
         private ImmutableSet.Builder<FieldError> fieldErrorsBuilder = new ImmutableSet.Builder<FieldError>();
         private boolean wasFieldError = false;
@@ -97,6 +99,13 @@ public interface Submitter<T> {
         public ResultBuilder<T> addFieldErrorIfNull(Object objectReference, String fieldName) {
             if (objectReference == null) {
                 addFieldError(fieldName);
+            }
+            return this;
+        }
+
+        public ResultBuilder<T> addFieldErrorIfNotPositive(MoneyWrapperBean wrapperBean, String fieldName) {
+            if (wrapperBean.isAmountSet() && wrapperBean.getAmountDecimal().compareTo(BigDecimal.ZERO) <= 0) {
+                addFieldError(fieldName, POSITIVE_PRE);
             }
             return this;
         }
