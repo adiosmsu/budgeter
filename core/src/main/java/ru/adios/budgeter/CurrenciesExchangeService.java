@@ -237,9 +237,13 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
 
     private static Map<CurrencyUnit, BigDecimal> loadCurrencies(ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other) {
         loader.updateSupportedCurrencies();
-        final Optional<List<CurrencyUnit>> problematicsRef = loader.isFetchingAllSupportedProblematic(day)
-                ? Optional.of(ImmutableList.of(other))
-                : Optional.empty();
+        final Optional<List<CurrencyUnit>> problematicsRef;
+        if (loader.isFetchingAllSupportedProblematic(day)) {
+            problematicsRef = Optional.of(ImmutableList.of(other));
+        } else {
+            problematicsRef = Optional.empty();
+            loader.addToSupportedCurrencies(other);
+        }
         return loader.loadCurrencies(false, Optional.of(day), problematicsRef);
     }
 

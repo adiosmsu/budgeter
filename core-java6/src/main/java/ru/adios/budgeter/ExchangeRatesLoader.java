@@ -102,6 +102,10 @@ public class ExchangeRatesLoader {
         });
     }
 
+    public final void addToSupportedCurrencies(CurrencyUnit unit) {
+        supportedCurrencies.addIfAbsent(unit);
+    }
+
     public final boolean directionFromMainToMapped() {
         return parser.directionFromMainToMapped();
     }

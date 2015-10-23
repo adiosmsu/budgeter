@@ -89,6 +89,10 @@ public class ExchangeRatesLoader {
         currenciesRepo.streamRegisteredCurrencies().forEach(supportedCurrencies::addIfAbsent);
     }
 
+    public final void addToSupportedCurrencies(CurrencyUnit unit) {
+        supportedCurrencies.addIfAbsent(unit);
+    }
+
     public final boolean directionFromMainToMapped() {
         return parser.directionFromMainToMapped();
     }
