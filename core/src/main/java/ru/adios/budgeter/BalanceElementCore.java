@@ -6,6 +6,7 @@ import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -32,13 +33,15 @@ public final class BalanceElementCore {
     }
 
     public void setTotalUnit(CurrencyUnit totalUnit) {
-        this.totalUnitRef = Optional.of(totalUnit);
+        this.totalUnitRef = Optional.ofNullable(totalUnit);
     }
 
+    @Nullable
     public CurrencyUnit getTotalUnit() {
         return totalUnitRef.orElse(null);
     }
 
+    @PotentiallyBlocking
     public Stream<Money> streamIndividualBalances() {
         return treasury.streamRegisteredCurrencies().map(unit -> {
             final Optional<Money> amount = treasury.amount(unit);
@@ -46,10 +49,12 @@ public final class BalanceElementCore {
         }).filter(money -> !money.getAmount().equals(SPECIAL));
     }
 
+    @PotentiallyBlocking
     public Money getTotalBalance() {
         return treasury.totalAmount(totalUnitNonNull(), provider);
     }
 
+    @PotentiallyBlocking
     public boolean noTodayRate() {
         final UtcDay today = new UtcDay();
         final CurrencyUnit main = totalUnitNonNull();

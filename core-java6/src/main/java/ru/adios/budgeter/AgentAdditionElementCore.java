@@ -40,6 +40,7 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
         return agentBuilder.getName();
     }
 
+    @PotentiallyBlocking
     @Override
     public Result<FundsMutationAgent> submit() {
         ResultBuilder<FundsMutationAgent> resultBuilder = new ResultBuilder<FundsMutationAgent>();
@@ -76,6 +77,7 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
         return storedResult;
     }
 
+    @PotentiallyBlocking
     @Override
     public void submitAndStoreResult() {
         storedResult = submit();

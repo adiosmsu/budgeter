@@ -79,16 +79,22 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
         }
     }
 
-    public void setAccount(String accountName) {
-        if (lockOn) return;
+    @PotentiallyBlocking
+    public boolean setAccount(String accountName) {
+        if (lockOn) return false;
+
         if (accountName == null) {
             setAccount((Treasury.BalanceAccount) null);
-            return;
+            return true;
         }
+
         final Optional<Treasury.BalanceAccount> accountForName = treasury.getAccountForName(accountName);
         if (accountForName.isPresent()) {
             setAccount(accountForName.get());
+            return true;
         }
+
+        return false;
     }
 
     @Nullable
@@ -113,6 +119,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
         return amountWrapper.getAmountUnit();
     }
 
+    @PotentiallyBlocking
     @Override
     public Result<Treasury.BalanceAccount> submit() {
         final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<Treasury.BalanceAccount>();
@@ -165,6 +172,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
         return storedResult;
     }
 
+    @PotentiallyBlocking
     @Override
     public void submitAndStoreResult() {
         storedResult = submit();

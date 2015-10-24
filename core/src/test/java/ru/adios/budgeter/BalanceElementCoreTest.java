@@ -27,10 +27,7 @@ public class BalanceElementCoreTest {
 
     @Test
     public void testSetTotalUnit() throws Exception {
-        try {
-            core.setTotalUnit(null);
-            fail("Null accepted");
-        } catch (Exception ignore) {}
+        core.setTotalUnit(null);
         core.setTotalUnit(CurrencyUnit.USD);
     }
 

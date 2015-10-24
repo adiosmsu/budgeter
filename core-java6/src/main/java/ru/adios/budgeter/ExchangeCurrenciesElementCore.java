@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @author Mikhail Kulikov
  */
-public final class ExchangeCurrenciesElementCore implements FundsMutator, Submitter {
+public final class ExchangeCurrenciesElementCore implements FundsMutator, Submitter, TimestampSettable {
 
     public static final String FIELD_BUY_ACCOUNT = "buyAccount";
     public static final String FIELD_SELL_ACCOUNT = "sellAccount";
@@ -54,6 +54,8 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     private BigDecimal calculatedNaturalRate;
     private boolean personalMoneyExchange = false;
 
+    private BuyMoneySettable buyMoneySettable;
+    private SellMoneySettable sellMoneySettable;
     private boolean lockOn = false;
     private Result storedResult;
 
@@ -61,6 +63,20 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         this.accounter = accounter;
         this.treasury = treasury;
         this.ratesService = ratesService;
+    }
+
+    public MoneySettable getBuyMoneySettable() {
+        if (buyMoneySettable == null) {
+            buyMoneySettable = new BuyMoneySettable();
+        }
+        return buyMoneySettable;
+    }
+
+    public MoneySettable getSellMoneySettable() {
+        if (sellMoneySettable == null) {
+            sellMoneySettable = new SellMoneySettable();
+        }
+        return sellMoneySettable;
     }
 
     public boolean setPostponedEvent(PostponedCurrencyExchangeEventRepository.PostponedExchange event, BigDecimal naturalRate) {
@@ -190,19 +206,21 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         return customRateRef.orElse(null);
     }
 
-    public void setTimestamp(OffsetDateTime timestamp) {
+    @Override
+    public void setTimestamp(@Nullable OffsetDateTime timestamp) {
         if (lockOn) return;
-        this.timestampRef = Optional.of(timestamp);
+        this.timestampRef = Optional.ofNullable(timestamp);
     }
 
     @Nullable
+    @Override
     public OffsetDateTime getTimestamp() {
         return timestampRef.orElse(null);
     }
 
     public void setAgent(FundsMutationAgent agent) {
         if (lockOn) return;
-        agentRef = Optional.of(agent);
+        agentRef = Optional.ofNullable(agent);
     }
 
     @Nullable
@@ -213,6 +231,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     /**
      * Orientation is: [buy amount] = [sell amount] * rate.
      */
+    @PotentiallyBlocking
     @Override
     public Result submit() {
         final ResultBuilder resultBuilder = new ResultBuilder();
@@ -370,9 +389,102 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         return storedResult;
     }
 
+    @PotentiallyBlocking
     @Override
     public void submitAndStoreResult() {
         storedResult = submit();
+    }
+
+    public final class BuyMoneySettable implements MoneySettable {
+
+        private BuyMoneySettable() {}
+
+        @Override
+        public Money getAmount() {
+            return buyAmountWrapper.getAmount();
+        }
+
+        @Override
+        public void setAmount(int coins, int cents) {
+            setBuyAmount(coins, cents);
+        }
+
+        @Override
+        public void setAmountDecimal(BigDecimal amountDecimal) {
+            setBuyAmountDecimal(amountDecimal);
+        }
+
+        @Override
+        public BigDecimal getAmountDecimal() {
+            return getBuyAmountDecimal();
+        }
+
+        @Override
+        public void setAmountUnit(String code) {
+            setBuyAmountUnit(code);
+        }
+
+        @Override
+        public void setAmountUnit(CurrencyUnit unit) {
+            setBuyAmountUnit(unit);
+        }
+
+        @Override
+        public CurrencyUnit getAmountUnit() {
+            return getBuyAmountUnit();
+        }
+
+        @Override
+        public void setAmount(Money amount) {
+            setBuyAmount(amount);
+        }
+
+    }
+
+    public final class SellMoneySettable implements MoneySettable {
+
+        private SellMoneySettable() {}
+
+        @Override
+        public Money getAmount() {
+            return sellAmountWrapper.getAmount();
+        }
+
+        @Override
+        public void setAmount(int coins, int cents) {
+            setSellAmount(coins, cents);
+        }
+
+        @Override
+        public void setAmountDecimal(BigDecimal amountDecimal) {
+            setSellAmountDecimal(amountDecimal);
+        }
+
+        @Override
+        public BigDecimal getAmountDecimal() {
+            return getSellAmountDecimal();
+        }
+
+        @Override
+        public void setAmountUnit(String code) {
+            setSellAmountUnit(code);
+        }
+
+        @Override
+        public void setAmountUnit(CurrencyUnit unit) {
+            setSellAmountUnit(unit);
+        }
+
+        @Override
+        public CurrencyUnit getAmountUnit() {
+            return getSellAmountUnit();
+        }
+
+        @Override
+        public void setAmount(Money amount) {
+            setSellAmount(amount);
+        }
+
     }
 
 }

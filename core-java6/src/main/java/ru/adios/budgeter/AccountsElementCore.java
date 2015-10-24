@@ -44,7 +44,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
 
     public void setName(String name) {
         if (lockOn) return;
-        this.nameOpt = Optional.of(name);
+        this.nameOpt = Optional.ofNullable(name);
     }
 
     @Nullable
@@ -54,13 +54,15 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
 
     public void setUnit(CurrencyUnit unit) {
         if (lockOn) return;
-        this.unitOpt = Optional.of(unit);
+        this.unitOpt = Optional.ofNullable(unit);
     }
 
+    @PotentiallyBlocking
     public Stream<Treasury.BalanceAccount> streamAccountBalances() {
         return treasury.streamRegisteredAccounts();
     }
 
+    @PotentiallyBlocking
     @Override
     public Result<Treasury.BalanceAccount> submit() {
         final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<Treasury.BalanceAccount>();
@@ -99,6 +101,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
         return storedResult;
     }
 
+    @PotentiallyBlocking
     @Override
     public void submitAndStoreResult() {
         storedResult = submit();

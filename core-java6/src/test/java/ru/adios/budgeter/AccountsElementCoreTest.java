@@ -23,10 +23,7 @@ public class AccountsElementCoreTest {
         Schema.clearSchema();
 
         AccountsElementCore accountsElementCore = new AccountsElementCore(Schema.TREASURY);
-        try {
-            accountsElementCore.setName(null);
-            fail("Null values not allowed");
-        } catch (NullPointerException ignore) {}
+        accountsElementCore.setName(null);
         accountsElementCore.setName("Ha-ha");
         accountsElementCore.setUnit(Units.RUB);
         Submitter.Result<Treasury.BalanceAccount> submit = accountsElementCore.submit();

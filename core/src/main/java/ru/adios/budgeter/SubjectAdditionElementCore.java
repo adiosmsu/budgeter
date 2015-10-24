@@ -47,16 +47,28 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
         return subjectBuilder.getName();
     }
 
-    public void setParentName(String parentName) {
-        if (lockOn) return;
+    @PotentiallyBlocking
+    public boolean setParentName(String parentName) {
+        if (lockOn) return false;
+
         this.parentName = parentName;
+
+        if (parentName == null) {
+            subjectBuilder.setParentId(0);
+            return true;
+        }
+
         final Optional<FundsMutationSubject> parentRef = repository.findByName(parentName);
+
         if (parentRef.isPresent()) {
             final OptionalInt idParentRef = parentRef.get().id;
             if (idParentRef.isPresent()) {
                 subjectBuilder.setParentId(idParentRef.getAsInt());
+                return true;
             }
         }
+
+        return false;
     }
 
     @Nullable
@@ -82,6 +94,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
         return subjectBuilder.getType();
     }
 
+    @PotentiallyBlocking
     @Override
     public Result<FundsMutationSubject> submit() {
         final Submitter.ResultBuilder<FundsMutationSubject> resultBuilder = new ResultBuilder<>();
