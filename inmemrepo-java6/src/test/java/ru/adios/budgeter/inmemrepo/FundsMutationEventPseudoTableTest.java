@@ -8,8 +8,7 @@ import ru.adios.budgeter.api.*;
 
 import java.math.BigDecimal;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Date: 6/15/15
@@ -39,7 +38,12 @@ public class FundsMutationEventPseudoTableTest {
             });
         }
         final FundsMutationAgent agent = TestUtils.prepareTestAgent();
-        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(Units.RUB);
+        Treasury.BalanceAccount accountRub;
+        try {
+            accountRub = TestUtils.prepareBalance(Units.RUB);
+        } catch (Exception ignore) {
+            accountRub = Schema.TREASURY.getAccountForName("accountRUB").get();
+        }
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
@@ -76,11 +80,16 @@ public class FundsMutationEventPseudoTableTest {
             });
         }
         final FundsMutationAgent agent = TestUtils.prepareTestAgent();
-        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(Units.RUB);
+        Treasury.BalanceAccount accountRub;
+        try {
+            accountRub = TestUtils.prepareBalance(Units.RUB);
+        } catch (Exception ignore) {
+            accountRub = Schema.TREASURY.getAccountForName("accountRUB").get();
+        }
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
-                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
+                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-50L)))
                 .setRelevantBalance(accountRub)
                 .setAgent(agent)
                 .build();
@@ -96,6 +105,30 @@ public class FundsMutationEventPseudoTableTest {
             Schema.FUNDS_MUTATION_EVENTS.registerLoss(test);
             fail("Subject existence test failed");
         } catch (Exception ignore) {}
+    }
+
+    @Test
+    public void testStream() throws Exception {
+        testRegisterLoss();
+        testRegisterBenefit();
+        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.createLimit(1)).count());
+        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.createOffset(1)).count());
+        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.create(1, 1)).count());
+        assertEquals(0, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.createOffset(2)).count());
+        assertTrue(Schema.FUNDS_MUTATION_EVENTS
+                .stream(new OrderBy<FundsMutationEventRepository.Field>(FundsMutationEventRepository.Field.AMOUNT, Order.ASC))
+                .findFirst()
+                .get()
+                .amount
+                .isNegative()
+        );
+        assertTrue(Schema.FUNDS_MUTATION_EVENTS
+                        .stream(new OrderBy<FundsMutationEventRepository.Field>(FundsMutationEventRepository.Field.AMOUNT, Order.DESC))
+                        .findFirst()
+                        .get()
+                        .amount
+                        .isPositive()
+        );
     }
 
 }

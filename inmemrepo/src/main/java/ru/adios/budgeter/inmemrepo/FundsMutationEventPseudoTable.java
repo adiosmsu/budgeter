@@ -2,13 +2,12 @@ package ru.adios.budgeter.inmemrepo;
 
 import com.google.common.collect.ImmutableMap;
 import org.joda.money.Money;
-import ru.adios.budgeter.api.FundsMutationEvent;
-import ru.adios.budgeter.api.FundsMutationEventRepository;
-import ru.adios.budgeter.api.FundsMutationSubject;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +49,52 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     private void store(StoredFundsMutationEvent event) {
         Schema.FUNDS_MUTATION_SUBJECTS.findByName(event.obj.subject.name).orElseThrow(() -> new IllegalStateException("No subject with name " + event.obj.subject.name));
         checkState(table.putIfAbsent(event.id, event) == null);
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        final int[] offsetCounter = new int[1], limitCounter = new int[1];
+        offsetCounter[0] = 0; limitCounter[0] = 0;
+
+        return table.values()
+                .stream()
+                .map(event -> event.obj)
+                .sorted((e1, e2) -> {
+                    int res = 1;
+                    for (final OrderBy<Field> opt : options) {
+                        switch (opt.field) {
+                            case AMOUNT:
+                                res = applyOrder(opt.order, e1.amount.compareTo(e2.amount));
+                                if (res < 0) {
+                                    return -1;
+                                }
+                                break;
+                            case TIMESTAMP:
+                                res = applyOrder(opt.order, e1.timestamp.compareTo(e2.timestamp));
+                                if (res < 0) {
+                                    return -1;
+                                }
+                                break;
+                        }
+                    }
+                    return res;
+                })
+                .filter(event1 ->
+                        limit == null
+                                || !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
+                                && !(limit.limit > 0 && limit.limit < ++limitCounter[0])
+                );
+    }
+
+    private int applyOrder(Order order, int compareResult) {
+        switch (order) {
+            case ASC:
+                return compareResult;
+            case DESC:
+                return -compareResult;
+            default:
+                throw new IllegalStateException("Unreachable");
+        }
     }
 
     @Override

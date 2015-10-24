@@ -4,12 +4,11 @@ import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
-import ru.adios.budgeter.api.FundsMutationEvent;
-import ru.adios.budgeter.api.FundsMutationEventRepository;
-import ru.adios.budgeter.api.FundsMutationSubject;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.FundsMutationEventPseudoTable;
 
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,6 +34,16 @@ public class FundsMutationEventRepositoryMock implements FundsMutationEventRepos
     @Override
     public void registerLoss(FundsMutationEvent mutationEvent) {
         table.registerLoss(mutationEvent);
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(RepoOption... options) {
+        return table.stream(options);
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        return table.stream(options, limit);
     }
 
     @Override

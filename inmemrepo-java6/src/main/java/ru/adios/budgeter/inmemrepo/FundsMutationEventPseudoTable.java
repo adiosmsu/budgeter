@@ -10,12 +10,12 @@ import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
-import ru.adios.budgeter.api.FundsMutationEvent;
-import ru.adios.budgeter.api.FundsMutationEventRepository;
-import ru.adios.budgeter.api.FundsMutationSubject;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -63,6 +63,63 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     }
 
     @Override
+    public Stream<FundsMutationEvent> stream(final List<OrderBy<Field>> options, final @Nullable OptLimit limit) {
+        final int[] offsetCounter = new int[1], limitCounter = new int[1];
+        offsetCounter[0] = 0; limitCounter[0] = 0;
+
+        return StreamSupport.stream(table.values().getSpliterator(), false)
+                .map(new Function<StoredFundsMutationEvent, FundsMutationEvent>() {
+                    @Override
+                    public FundsMutationEvent apply(StoredFundsMutationEvent event) {
+                        return event.obj;
+                    }
+                })
+                .sorted(new Comparator<FundsMutationEvent>() {
+                    @Override
+                    public int compare(FundsMutationEvent e1, FundsMutationEvent e2) {
+                        int res = 1;
+                        for (final OrderBy<Field> opt : options) {
+                            switch (opt.field) {
+                                case AMOUNT:
+                                    res = applyOrder(opt.order, e1.amount.compareTo(e2.amount));
+                                    if (res < 0) {
+                                        return -1;
+                                    }
+                                    break;
+                                case TIMESTAMP:
+                                    res = applyOrder(opt.order, e1.timestamp.compareTo(e2.timestamp));
+                                    if (res < 0) {
+                                        return -1;
+                                    }
+                                    break;
+                            }
+                        }
+                        return res;
+
+                    }
+                })
+                .filter(new Predicate<FundsMutationEvent>() {
+                    @Override
+                    public boolean test(FundsMutationEvent event1) {
+                        return limit == null
+                                || !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
+                                && !(limit.limit > 0 && limit.limit < ++limitCounter[0]);
+                    }
+                });
+    }
+
+    private int applyOrder(Order order, int compareResult) {
+        switch (order) {
+            case ASC:
+                return compareResult;
+            case DESC:
+                return -compareResult;
+            default:
+                throw new IllegalStateException("Unreachable");
+        }
+    }
+
+    @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel) {
         return ImmutableMap.of();
     }
@@ -87,6 +144,11 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
                         return event.obj;
                     }
                 });
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(RepoOption... options) {
+        return fmeRepoDef.stream(options);
     }
 
     @Override

@@ -8,7 +8,9 @@ import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.InnerMemoryAccounter;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,6 +42,16 @@ public class AccounterMock implements Accounter {
     @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel) {
         return fundsMutationEventRepository.getStatsInTimePeriod(from, till, parentLevel);
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        return fundsMutationEventRepository.stream(options, limit);
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(RepoOption... options) {
+        return fundsMutationEventRepository.stream(options);
     }
 
     @Override

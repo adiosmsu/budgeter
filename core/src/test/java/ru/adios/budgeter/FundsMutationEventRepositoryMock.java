@@ -1,13 +1,12 @@
 package ru.adios.budgeter;
 
 import org.joda.money.Money;
-import ru.adios.budgeter.api.FundsMutationEvent;
-import ru.adios.budgeter.api.FundsMutationEventRepository;
-import ru.adios.budgeter.api.FundsMutationSubject;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.FundsMutationEventPseudoTable;
 
+import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -44,6 +43,11 @@ public class FundsMutationEventRepositoryMock implements FundsMutationEventRepos
 
     public Stream<FundsMutationEvent> streamForDay(UtcDay day) {
         return table.streamForDay(day);
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        return table.stream(options, limit);
     }
 
     public void clear() {

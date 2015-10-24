@@ -1,9 +1,12 @@
 package ru.adios.budgeter.api;
 
 import java8.util.Optional;
+import java8.util.stream.Stream;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,6 +16,10 @@ import java.util.Map;
  * @author Mikhail Kulikov
  */
 public interface FundsMutationEventRepository {
+
+    enum Field implements OrderedField {
+        TIMESTAMP, AMOUNT
+    }
 
     final class Default {
 
@@ -26,11 +33,20 @@ public interface FundsMutationEventRepository {
             return fundsMutationEventRepository.getStatsInTimePeriod(from, till, Optional.<FundsMutationSubject>empty());
         }
 
+        public Stream<FundsMutationEvent> stream(RepoOption... options) {
+            final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
+            return fundsMutationEventRepository.stream(pair.options, pair.limit);
+        }
+
     }
 
     void registerBenefit(FundsMutationEvent mutationEvent);
 
     void registerLoss(FundsMutationEvent mutationEvent);
+
+    Stream<FundsMutationEvent> stream(RepoOption... options); // default in java8
+
+    Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit);
 
     Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel);
 

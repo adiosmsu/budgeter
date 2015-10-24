@@ -5,12 +5,10 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -44,6 +42,11 @@ public final class InnerMemoryAccounter implements Accounter {
     @Override
     public void registerLoss(FundsMutationEvent mutationEvent) {
         Schema.FUNDS_MUTATION_EVENTS.registerLoss(mutationEvent);
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        return Schema.FUNDS_MUTATION_EVENTS.stream(options, limit);
     }
 
     @Override
