@@ -7,5 +7,19 @@ package ru.adios.budgeter.api;
  * @author Mikhail Kulikov
  */
 public enum Order {
-    ASC, DESC
+
+    ASC {
+        @Override
+        public int applyToCompareResult(int compareResult) {
+            return compareResult;
+        }
+    }, DESC {
+        @Override
+        public int applyToCompareResult(int compareResult) {
+            return -compareResult;
+        }
+    };
+
+    public abstract int applyToCompareResult(int compareResult);
+
 }

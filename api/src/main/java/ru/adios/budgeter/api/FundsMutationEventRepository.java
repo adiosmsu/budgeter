@@ -25,12 +25,12 @@ public interface FundsMutationEventRepository {
 
     void registerLoss(FundsMutationEvent mutationEvent);
 
-    default Stream<FundsMutationEvent> stream(RepoOption... options) {
+    default Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options) {
         final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
-        return stream(pair.options, pair.limit);
+        return streamMutationEvents(pair.options, pair.limit);
     }
 
-    Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit);
+    Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit);
 
     Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel);
 

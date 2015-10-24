@@ -100,19 +100,19 @@ public class FundsMutationEventPseudoTableTest {
     public void testStream() throws Exception {
         testRegisterLoss();
         testRegisterBenefit();
-        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.createLimit(1)).count());
-        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.createOffset(1)).count());
-        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.create(1, 1)).count());
-        assertEquals(0, Schema.FUNDS_MUTATION_EVENTS.stream(OptLimit.createOffset(2)).count());
+        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(OptLimit.createLimit(1)).count());
+        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(OptLimit.createOffset(1)).count());
+        assertEquals(1, Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(OptLimit.create(1, 1)).count());
+        assertEquals(0, Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(OptLimit.createOffset(2)).count());
         assertTrue(Schema.FUNDS_MUTATION_EVENTS
-                        .stream(new OrderBy<>(FundsMutationEventRepository.Field.AMOUNT, Order.ASC))
+                        .streamMutationEvents(new OrderBy<>(FundsMutationEventRepository.Field.AMOUNT, Order.ASC))
                         .findFirst()
                         .get()
                         .amount
                         .isNegative()
         );
         assertTrue(Schema.FUNDS_MUTATION_EVENTS
-                        .stream(new OrderBy<>(FundsMutationEventRepository.Field.AMOUNT, Order.DESC))
+                        .streamMutationEvents(new OrderBy<>(FundsMutationEventRepository.Field.AMOUNT, Order.DESC))
                         .findFirst()
                         .get()
                         .amount

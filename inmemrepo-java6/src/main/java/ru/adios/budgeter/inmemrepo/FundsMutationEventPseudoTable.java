@@ -63,7 +63,7 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(final List<OrderBy<Field>> options, final @Nullable OptLimit limit) {
+    public Stream<FundsMutationEvent> streamMutationEvents(final List<OrderBy<Field>> options, final @Nullable OptLimit limit) {
         final int[] offsetCounter = new int[1], limitCounter = new int[1];
         offsetCounter[0] = 0; limitCounter[0] = 0;
 
@@ -81,13 +81,20 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
                         for (final OrderBy<Field> opt : options) {
                             switch (opt.field) {
                                 case AMOUNT:
-                                    res = applyOrder(opt.order, e1.amount.compareTo(e2.amount));
+                                    final int unitsComp = e1.amount.getCurrencyUnit().compareTo(e2.amount.getCurrencyUnit());
+                                    if (unitsComp < 0) {
+                                        return -1;
+                                    } else if (unitsComp > 0) {
+                                        res = 1;
+                                        break;
+                                    }
+                                    res = opt.order.applyToCompareResult(e1.amount.compareTo(e2.amount));
                                     if (res < 0) {
                                         return -1;
                                     }
                                     break;
                                 case TIMESTAMP:
-                                    res = applyOrder(opt.order, e1.timestamp.compareTo(e2.timestamp));
+                                    res = opt.order.applyToCompareResult(e1.timestamp.compareTo(e2.timestamp));
                                     if (res < 0) {
                                         return -1;
                                     }
@@ -106,17 +113,6 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
                                 && !(limit.limit > 0 && limit.limit < ++limitCounter[0]);
                     }
                 });
-    }
-
-    private int applyOrder(Order order, int compareResult) {
-        switch (order) {
-            case ASC:
-                return compareResult;
-            case DESC:
-                return -compareResult;
-            default:
-                throw new IllegalStateException("Unreachable");
-        }
     }
 
     @Override
@@ -147,8 +143,8 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(RepoOption... options) {
-        return fmeRepoDef.stream(options);
+    public Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options) {
+        return fmeRepoDef.streamMutationEvents(options);
     }
 
     @Override

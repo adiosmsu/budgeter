@@ -1,10 +1,10 @@
 package ru.adios.budgeter.inmemrepo;
 
-import ru.adios.budgeter.api.CurrencyExchangeEvent;
-import ru.adios.budgeter.api.CurrencyExchangeEventRepository;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -31,6 +31,36 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
         final int id = idSequence.incrementAndGet();
         checkState(table.putIfAbsent(id, new Stored<>(id, exchangeEvent)) == null);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        final int[] offsetCounter = new int[1], limitCounter = new int[1];
+        offsetCounter[0] = 0; limitCounter[0] = 0;
+
+        return table.values()
+                .stream()
+                .map(event -> event.obj)
+                .sorted((e1, e2) -> {
+                    int res = 1;
+                    for (final OrderBy<Field> opt : options) {
+                        switch (opt.field) {
+                            case TIMESTAMP:
+                                res = opt.order.applyToCompareResult(e1.timestamp.compareTo(e2.timestamp));
+                                if (res < 0) {
+                                    return -1;
+                                }
+                                break;
+                        }
+                    }
+                    return res;
+                })
+                .filter(event1 ->
+                                limit == null
+                                        || !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
+                                        && !(limit.limit > 0 && limit.limit < ++limitCounter[0])
+                );
+
     }
 
     @Nonnull

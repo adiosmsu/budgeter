@@ -45,13 +45,18 @@ public final class InnerMemoryAccounter implements Accounter {
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        return Schema.FUNDS_MUTATION_EVENTS.stream(options, limit);
+    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<FundsMutationEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(options, limit);
     }
 
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
         Schema.CURRENCY_EXCHANGE_EVENTS.registerCurrencyExchange(exchangeEvent);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<CurrencyExchangeEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return Schema.CURRENCY_EXCHANGE_EVENTS.streamExchangeEvents(options, limit);
     }
 
     @Override

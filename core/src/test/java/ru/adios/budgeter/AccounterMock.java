@@ -44,8 +44,8 @@ public class AccounterMock implements Accounter {
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        return fundsMutationEventRepository.stream(options, limit);
+    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<FundsMutationEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return fundsMutationEventRepository.streamMutationEvents(options, limit);
     }
 
     @Override
@@ -61,6 +61,11 @@ public class AccounterMock implements Accounter {
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
         currencyExchangeEventRepository.registerCurrencyExchange(exchangeEvent);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<CurrencyExchangeEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return currencyExchangeEventRepository.streamExchangeEvents(options, limit);
     }
 
     @Override

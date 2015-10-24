@@ -46,8 +46,8 @@ public class FundsMutationEventRepositoryMock implements FundsMutationEventRepos
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        return table.stream(options, limit);
+    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        return table.streamMutationEvents(options, limit);
     }
 
     public void clear() {

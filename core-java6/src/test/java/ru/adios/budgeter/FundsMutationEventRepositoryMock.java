@@ -37,13 +37,13 @@ public class FundsMutationEventRepositoryMock implements FundsMutationEventRepos
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(RepoOption... options) {
-        return table.stream(options);
+    public Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options) {
+        return table.streamMutationEvents(options);
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        return table.stream(options, limit);
+    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        return table.streamMutationEvents(options, limit);
     }
 
     @Override

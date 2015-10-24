@@ -1,10 +1,11 @@
 package ru.adios.budgeter;
 
 import java8.util.stream.Stream;
-import ru.adios.budgeter.api.CurrencyExchangeEvent;
-import ru.adios.budgeter.api.CurrencyExchangeEventRepository;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.CurrencyExchangeEventPseudoTable;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * Date: 6/15/15
@@ -19,6 +20,16 @@ public class CurrencyExchangeEventRepositoryMock implements CurrencyExchangeEven
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
         table.registerCurrencyExchange(exchangeEvent);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+        return table.streamExchangeEvents(options, limit);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(RepoOption... options) {
+        return table.streamExchangeEvents(options);
     }
 
     public Stream<CurrencyExchangeEvent> streamForDay(UtcDay day) {

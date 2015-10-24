@@ -27,7 +27,6 @@ public class AccounterMock implements Accounter {
     private final PostponedFundsMutationEventRepositoryMock postponedFundsMutationEventRepository = new PostponedFundsMutationEventRepositoryMock();
     private final PostponedCurrencyExchangeEventRepositoryMock postponedCurrencyExchangeEventRepository = new PostponedCurrencyExchangeEventRepositoryMock();
     private final InnerMemoryAccounter accounter = new InnerMemoryAccounter();
-    private final FundsMutationEventRepository.Default fmeRepoDef = new Default(this);
 
     @Override
     public FundsMutationSubjectRepository fundsMutationSubjectRepo() {
@@ -45,13 +44,13 @@ public class AccounterMock implements Accounter {
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        return fundsMutationEventRepository.stream(options, limit);
+    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<FundsMutationEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return fundsMutationEventRepository.streamMutationEvents(options, limit);
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(RepoOption... options) {
-        return fundsMutationEventRepository.stream(options);
+    public Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options) {
+        return fundsMutationEventRepository.streamMutationEvents(options);
     }
 
     @Override
@@ -67,6 +66,16 @@ public class AccounterMock implements Accounter {
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
         currencyExchangeEventRepository.registerCurrencyExchange(exchangeEvent);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(RepoOption... options) {
+        return currencyExchangeEventRepository.streamExchangeEvents(options);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<CurrencyExchangeEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return currencyExchangeEventRepository.streamExchangeEvents(options, limit);
     }
 
     @Override
@@ -112,7 +121,7 @@ public class AccounterMock implements Accounter {
 
     @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till) {
-        return fmeRepoDef.getStatsInTimePeriod(from, till);
+        return fundsMutationEventRepository.getStatsInTimePeriod(from, till);
     }
 
     public Stream<FundsMutationEvent> streamMutationsForDay(UtcDay day) {

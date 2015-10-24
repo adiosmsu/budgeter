@@ -26,8 +26,6 @@ import java.util.Map;
  */
 public final class InnerMemoryAccounter implements Accounter {
 
-    private final FundsMutationEventRepository.Default fmeRepoDef = new Default(this);
-
     @Override
     public FundsMutationSubjectRepository fundsMutationSubjectRepo() {
         return Schema.FUNDS_MUTATION_SUBJECTS;
@@ -44,13 +42,13 @@ public final class InnerMemoryAccounter implements Accounter {
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        return Schema.FUNDS_MUTATION_EVENTS.stream(options, limit);
+    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<FundsMutationEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(options, limit);
     }
 
     @Override
-    public Stream<FundsMutationEvent> stream(RepoOption... options) {
-        return Schema.FUNDS_MUTATION_EVENTS.stream(options);
+    public Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options) {
+        return Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(options);
     }
 
     @Override
@@ -66,6 +64,16 @@ public final class InnerMemoryAccounter implements Accounter {
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
         Schema.CURRENCY_EXCHANGE_EVENTS.registerCurrencyExchange(exchangeEvent);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<CurrencyExchangeEventRepository.Field>> options, @Nullable OptLimit limit) {
+        return Schema.CURRENCY_EXCHANGE_EVENTS.streamExchangeEvents(options, limit);
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(RepoOption... options) {
+        return Schema.CURRENCY_EXCHANGE_EVENTS.streamExchangeEvents(options);
     }
 
     @Override
@@ -133,7 +141,7 @@ public final class InnerMemoryAccounter implements Accounter {
 
     @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till) {
-        return fmeRepoDef.getStatsInTimePeriod(from, till);
+        return Schema.FUNDS_MUTATION_EVENTS.getStatsInTimePeriod(from, till);
     }
 
     private HashSet<CurrencyUnit> getUnitsAcc(HashMap<UtcDay, HashSet<CurrencyUnit>> accumulator, UtcDay utcDay) {

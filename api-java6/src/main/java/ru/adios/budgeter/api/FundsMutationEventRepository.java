@@ -33,9 +33,9 @@ public interface FundsMutationEventRepository {
             return fundsMutationEventRepository.getStatsInTimePeriod(from, till, Optional.<FundsMutationSubject>empty());
         }
 
-        public Stream<FundsMutationEvent> stream(RepoOption... options) {
+        public Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options) {
             final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
-            return fundsMutationEventRepository.stream(pair.options, pair.limit);
+            return fundsMutationEventRepository.streamMutationEvents(pair.options, pair.limit);
         }
 
     }
@@ -44,9 +44,9 @@ public interface FundsMutationEventRepository {
 
     void registerLoss(FundsMutationEvent mutationEvent);
 
-    Stream<FundsMutationEvent> stream(RepoOption... options); // default in java8
+    Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options); // default in java8
 
-    Stream<FundsMutationEvent> stream(List<OrderBy<Field>> options, @Nullable OptLimit limit);
+    Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit);
 
     Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel);
 
