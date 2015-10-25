@@ -332,6 +332,13 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                             .build()
             );
 
+            if (!buyAmountWrapper.isInitiable()) {
+                buyAmountWrapper.setAmount(buyAmountSmallMoney);
+            }
+            if (!sellAmountWrapper.isInitiable()) {
+                sellAmountWrapper.setAmount(sellAmountSmallMoney);
+            }
+
             if (personalMoneyExchange) {
                 treasury.addAmount(buyAmountSmallMoney, boughtAccount.name);
                 treasury.addAmount(sellAmountSmallMoney.negated(), soldAccount.name);
