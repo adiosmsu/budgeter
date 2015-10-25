@@ -342,6 +342,8 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
             if (personalMoneyExchange) {
                 treasury.addAmount(buyAmountSmallMoney, boughtAccount.name);
                 treasury.addAmount(sellAmountSmallMoney.negated(), soldAccount.name);
+                buyAccountRef = treasury.getAccountForName(boughtAccount.name);
+                sellAccountRef = treasury.getAccountForName(soldAccount.name);
             }
         } catch (RuntimeException ex) {
             logger.error("Error while performing exchange currencies business logic", ex);
