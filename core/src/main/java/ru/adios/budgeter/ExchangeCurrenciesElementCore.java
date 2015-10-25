@@ -32,6 +32,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
     public static final String FIELD_SELL_AMOUNT = "sellAmount";
     public static final String FIELD_BUY_AMOUNT_DECIMAL = "buyAmountDecimal";
     public static final String FIELD_SELL_AMOUNT_DECIMAL = "sellAmountDecimal";
+    public static final String FIELD_TIMESTAMP = "timestamp";
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeCurrenciesElementCore.class);
 
@@ -236,6 +237,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
         final ResultBuilder resultBuilder = new ResultBuilder();
         resultBuilder.addFieldErrorIfAbsent(buyAccountRef, FIELD_BUY_ACCOUNT)
                 .addFieldErrorIfAbsent(sellAccountRef, FIELD_SELL_ACCOUNT)
+                .addFieldErrorIfAbsent(timestampRef, FIELD_TIMESTAMP)
                 .addFieldErrorIfAbsent(agentRef, FIELD_AGENT);
 
         if (!buyAmountWrapper.isUnitSet()) {
