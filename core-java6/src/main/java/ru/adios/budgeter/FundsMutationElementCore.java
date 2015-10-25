@@ -419,14 +419,19 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
                     // actual amount wasn't set explicitly so we must calculate it from paid amount and rate (custom or natural) which must have been provided
                     final BigMoney paidAmount = payeeAccountMoneyWrapper.getAmount().toBigMoney();
                     checkNotNull(amountUnit);
-                    amount = (sameUnits)
-                            ? paidAmount
-                            : paidAmount.convertedTo(amountUnit, customRateRef.orElseGet(new Supplier<BigDecimal>() {
-                        @Override
-                        public BigDecimal get() {
-                            return calculateNaturalRate(paidUnit, amountUnit);
+                    if (sameUnits) {
+                        amount = paidAmount;
+                        if (!amountWrapper.isInitiable()) {
+                            amountWrapper.setAmount(paidAmount.toMoney(RoundingMode.HALF_DOWN)); // set discovered money
                         }
-                    }));
+                    } else {
+                        amount = paidAmount.convertedTo(amountUnit, customRateRef.orElseGet(new Supplier<BigDecimal>() {
+                            @Override
+                            public BigDecimal get() {
+                                return calculateNaturalRate(paidUnit, amountUnit);
+                            }
+                        }));
+                    }
                 } else {
                     // actual amount was set explicitly
                     amount = amountWrapper.getAmount().toBigMoney();
