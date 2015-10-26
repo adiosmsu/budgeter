@@ -28,7 +28,7 @@ public class PostponedCurrencyExchangeEventPseudoTableTest {
 
     @Before
     public void setUp() {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         Schema.FUNDS_MUTATION_AGENTS.addAgent(agent);
     }
 

@@ -26,7 +26,7 @@ public class PostponedFundsMutationEventPseudoTableTest {
 
     @Before
     public void setUp() {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
     }
 
     @Test

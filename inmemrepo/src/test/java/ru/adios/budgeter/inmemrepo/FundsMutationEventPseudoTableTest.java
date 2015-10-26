@@ -19,7 +19,7 @@ public class FundsMutationEventPseudoTableTest {
 
     @Before
     public void setUp() {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
     }
 
     @Test

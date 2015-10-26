@@ -24,7 +24,7 @@ public class InnerMemoryAccounterTest {
 
     @Test
     public void testStreamAllPostponingReasons() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
 
         final InnerMemoryAccounter innerMemoryAccounter = new InnerMemoryAccounter();
 

@@ -25,7 +25,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testAddAmount() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         final Treasury.BalanceAccount account = TestUtils.prepareBalance(CurrencyUnit.USD);
         final CountDownLatch latch = new CountDownLatch(1);
         for (int i = 0; i < 10; i++) {
@@ -53,7 +53,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testStreamRegisteredCurrencies() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         try {
             TestUtils.prepareBalance(CurrencyUnit.USD);
         } catch (Exception ignore) {}
@@ -72,7 +72,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testStreamAccountsByCurrency() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         try {
             TestUtils.prepareBalance(CurrencyUnit.USD);
         } catch (Exception ignore) {}
@@ -83,7 +83,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testAmount() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(CurrencyUnit.USD);
         final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(CurrencyUnit.EUR);
         final Treasury.BalanceAccount accountUsd2 = new Treasury.BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
@@ -107,7 +107,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testAccountBalance() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(CurrencyUnit.USD);
         final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(CurrencyUnit.EUR);
         final Treasury.BalanceAccount accountUsd2 = new Treasury.BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
@@ -134,7 +134,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testRegisterBalanceAccount() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         TestUtils.prepareBalance(CurrencyUnit.USD);
         try {
             TreasuryPseudoTable.INSTANCE.registerBalanceAccount(new Treasury.BalanceAccount("accountUSD", CurrencyUnit.USD));
@@ -144,7 +144,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testStreamRegisteredAccounts() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(CurrencyUnit.USD);
         final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(CurrencyUnit.EUR);
         final Treasury.BalanceAccount accountUsd2 = new Treasury.BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
@@ -173,7 +173,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testGetAccountWithId() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         TreasuryPseudoTable.INSTANCE.idSequence.set(0);
         TestUtils.prepareBalance(CurrencyUnit.USD);
         final Treasury.BalanceAccount accountUsd = new Treasury.BalanceAccount("accountUSD", CurrencyUnit.USD);
@@ -183,7 +183,7 @@ public class TreasuryPseudoTableTest {
 
     @Test
     public void testGetAccountForName() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         TreasuryPseudoTable.INSTANCE.idSequence.set(0);
         TestUtils.prepareBalance(CurrencyUnit.USD);
         final Optional<Treasury.BalanceAccount> accountWithId = TreasuryPseudoTable.INSTANCE.getAccountForName("accountUSD");
