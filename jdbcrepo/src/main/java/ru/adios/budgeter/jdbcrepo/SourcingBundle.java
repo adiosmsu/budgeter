@@ -1,7 +1,9 @@
 package ru.adios.budgeter.jdbcrepo;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.concurrent.ThreadSafe;
 import javax.sql.DataSource;
 
 /**
@@ -10,14 +12,27 @@ import javax.sql.DataSource;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 public final class SourcingBundle implements Bundle {
 
     private final SafeJdbcTemplateProvider jdbcTemplateProvider;
 
+    private final CurrencyExchangeEventJdbcRepository currencyExchangeEvents;
+    private final FundsMutationAgentJdbcRepository fundsMutationAgents;
 
+    private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
     public SourcingBundle(DataSource dataSource) {
         jdbcTemplateProvider = new SafeJdbcTemplateProvider(dataSource);
+        currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
+        fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
+    }
+
+    public void setSqlDialect(SqlDialect sqlDialect) {
+        this.sqlDialect = sqlDialect;
+        currencyExchangeEvents.setSqlDialect(sqlDialect);
+        fundsMutationAgents.setSqlDialect(sqlDialect);
+        //TODO: finish
     }
 
     public void setNewDataSource(DataSource dataSource) {
@@ -30,8 +45,8 @@ public final class SourcingBundle implements Bundle {
     }
 
     @Override
-    public CurrencyExchangeEventRepository currencyExchangeEvents() {
-        return null;
+    public CurrencyExchangeEventJdbcRepository currencyExchangeEvents() {
+        return currencyExchangeEvents;
     }
 
     @Override
@@ -60,13 +75,22 @@ public final class SourcingBundle implements Bundle {
     }
 
     @Override
-    public FundsMutationAgentRepository fundsMutationAgents() {
-        return null;
+    public FundsMutationAgentJdbcRepository fundsMutationAgents() {
+        return fundsMutationAgents;
     }
 
     @Override
     public void clearSchema() {
 
+    }
+
+    @Override
+    public void createSchemaIfNeeded() {
+        final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
+        if (jdbcTemplate.query(sqlDialect.tableExistsSql(FundsMutationAgentJdbcRepository.TABLE_NAME), Common.STRING_ROW_MAPPER).isEmpty()) {
+            Common.executeMultipleSql(jdbcTemplate, fundsMutationAgents.getCreateTableSql());
+            // TODO: finish
+        }
     }
 
     @Override

@@ -37,6 +37,8 @@ public interface Bundle {
 
     void clearSchema();
 
+    void createSchemaIfNeeded();
+
     void clear(Repo repo);
 
 }

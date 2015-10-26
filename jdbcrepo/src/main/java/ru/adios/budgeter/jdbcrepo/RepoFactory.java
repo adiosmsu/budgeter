@@ -2,6 +2,7 @@ package ru.adios.budgeter.jdbcrepo;
 
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.concurrent.ThreadSafe;
 import javax.sql.DataSource;
 
 /**
@@ -10,6 +11,7 @@ import javax.sql.DataSource;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 public final class RepoFactory {
 
     private final SafeJdbcTemplateProvider jdbcTemplateProvider;
@@ -26,8 +28,8 @@ public final class RepoFactory {
         return null;
     }
 
-    public CurrencyExchangeEventRepository createCurrencyExchangeEvents() {
-        return null;
+    public CurrencyExchangeEventJdbcRepository createCurrencyExchangeEvents() {
+        return new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
     }
 
     public FundsMutationEventRepository createFundsMutationEvents() {
@@ -50,8 +52,8 @@ public final class RepoFactory {
         return null;
     }
 
-    public FundsMutationAgentRepository createFundsMutationAgents() {
-        return null;
+    public FundsMutationAgentJdbcRepository createFundsMutationAgents() {
+        return new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
     }
 
 }

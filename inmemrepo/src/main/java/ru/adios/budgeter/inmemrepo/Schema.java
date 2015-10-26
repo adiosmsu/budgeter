@@ -67,6 +67,9 @@ public final class Schema implements Bundle {
     }
 
     @Override
+    public void createSchemaIfNeeded() {}
+
+    @Override
     public void clear(Repo repo) {
         switch (repo) {
             case FUNDS_MUTATION_SUBJECTS:
