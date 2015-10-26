@@ -17,6 +17,8 @@
         <module>chm-java6-port</module>
         <module>api-tests</module>
         <module>api-tests-java6</module>
+        <module>jdbcrepo</module>
+        <module>jdbcrepo-java6</module>
     </modules>
 
     <build>
