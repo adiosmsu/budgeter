@@ -8,6 +8,17 @@ package ru.adios.budgeter.api;
  */
 public interface Bundle {
 
+    enum Repo {
+        FUNDS_MUTATION_SUBJECTS,
+        CURRENCY_EXCHANGE_EVENTS,
+        FUNDS_MUTATION_EVENTS,
+        POSTPONED_CURRENCY_EXCHANGE_EVENTS,
+        POSTPONED_FUNDS_MUTATION_EVENTS,
+        TREASURY,
+        CURRENCY_RATES,
+        FUNDS_MUTATION_AGENTS
+    }
+
     FundsMutationSubjectRepository fundsMutationSubjects();
 
     CurrencyExchangeEventRepository currencyExchangeEvents();
@@ -25,5 +36,7 @@ public interface Bundle {
     FundsMutationAgentRepository fundsMutationAgents();
 
     void clearSchema();
+
+    void clear(Repo repo);
 
 }

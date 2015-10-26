@@ -3,6 +3,7 @@ package ru.adios.budgeter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java8.util.Optional;
 import java8.util.function.Consumer;
 import org.joda.money.CurrencyUnit;
@@ -250,6 +251,21 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
         return ratesRepository.isRateStale(to);
     }
 
+    @Override
+    public ImmutableSet<Long> getIndexedForDay(UtcDay day) {
+        return ratesRepository.getIndexedForDay(day);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return ratesRepository.currentSeqValue();
+    }
+
+    @Override
+    public Optional<ConversionRate> getById(Long id) {
+        return ratesRepository.getById(id);
+    }
+
     private Optional<BigDecimal> conversionMultiplierFor(
             ExchangeRatesLoader loader,
             UtcDay day,
@@ -387,7 +403,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                         final BigDecimal rate = entry.getValue();
                         final BigDecimal rateReversed = CurrencyRatesProvider.Static.reverseRate(rate);
                         final CurrencyUnit toUnit = entry.getKey();
-                        accounter.streamRememberedBenefits(day, forRates, toUnit).forEach(
+                        accounter.postponedFundsMutationEventRepository().streamRememberedBenefits(day, forRates, toUnit).forEach(
                                 new Consumer<PostponedFundsMutationEventRepository.PostponedMutationEvent>() {
                                     @Override
                                     public void accept(PostponedFundsMutationEventRepository.PostponedMutationEvent event) {
@@ -401,28 +417,32 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                     }
                                 }
                         );
-                        accounter.streamRememberedLosses(day, forRates, toUnit).forEach(new Consumer<PostponedFundsMutationEventRepository.PostponedMutationEvent>() {
-                            @Override
-                            public void accept(PostponedFundsMutationEventRepository.PostponedMutationEvent event) {
-                                final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, CurrenciesExchangeService.this);
-                                core.setPostponedEvent(event, event.conversionUnit.equals(forRates) ? rate : rateReversed);
-                                final Submitter.Result res = core.submit();
-                                if (!res.isSuccessful()) {
-                                    logger.info("Remembered losses save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
-                                }
-                            }
-                        });
-                        accounter.streamRememberedExchanges(day, forRates, toUnit).forEach(new Consumer<PostponedCurrencyExchangeEventRepository.PostponedExchange>() {
-                            @Override
-                            public void accept(PostponedCurrencyExchangeEventRepository.PostponedExchange postponedExchange) {
-                                final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, CurrenciesExchangeService.this);
-                                core.setPostponedEvent(postponedExchange, postponedExchange.sellAccount.getUnit().equals(forRates) ? rate : rateReversed);
-                                final Submitter.Result res = core.submit();
-                                if (!res.isSuccessful()) {
-                                    logger.info("Remembered exchanges save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
-                                }
-                            }
-                        });
+                        accounter.postponedFundsMutationEventRepository()
+                                .streamRememberedLosses(day, forRates, toUnit)
+                                .forEach(new Consumer<PostponedFundsMutationEventRepository.PostponedMutationEvent>() {
+                                    @Override
+                                    public void accept(PostponedFundsMutationEventRepository.PostponedMutationEvent event) {
+                                        final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, CurrenciesExchangeService.this);
+                                        core.setPostponedEvent(event, event.conversionUnit.equals(forRates) ? rate : rateReversed);
+                                        final Submitter.Result res = core.submit();
+                                        if (!res.isSuccessful()) {
+                                            logger.info("Remembered losses save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                                        }
+                                    }
+                                });
+                        accounter.postponedCurrencyExchangeEventRepository()
+                                .streamRememberedExchanges(day, forRates, toUnit)
+                                .forEach(new Consumer<PostponedCurrencyExchangeEventRepository.PostponedExchange>() {
+                                    @Override
+                                    public void accept(PostponedCurrencyExchangeEventRepository.PostponedExchange postponedExchange) {
+                                        final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, CurrenciesExchangeService.this);
+                                        core.setPostponedEvent(postponedExchange, postponedExchange.sellAccount.getUnit().equals(forRates) ? rate : rateReversed);
+                                        final Submitter.Result res = core.submit();
+                                        if (!res.isSuccessful()) {
+                                            logger.info("Remembered exchanges save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                                        }
+                                    }
+                                });
                     }
                 } catch (Throwable th) {
                     logger.error("Postponed tasks reenactment error", th);

@@ -13,7 +13,7 @@ import java.math.BigDecimal;
  *
  * @author Mikhail Kulikov
  */
-public interface PostponedFundsMutationEventRepository {
+public interface PostponedFundsMutationEventRepository extends Provider<PostponedFundsMutationEventRepository.PostponedMutationEvent, Long> {
 
     void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate);
 

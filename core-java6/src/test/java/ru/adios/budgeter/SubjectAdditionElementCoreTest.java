@@ -17,7 +17,7 @@ public class SubjectAdditionElementCoreTest {
 
     @Test
     public void testSubmit() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
 
         final long id = Schema.FUNDS_MUTATION_SUBJECTS.idSeqNext() + 1;
         final FundsMutationSubjectRepositoryMock subjRepo = new FundsMutationSubjectRepositoryMock();

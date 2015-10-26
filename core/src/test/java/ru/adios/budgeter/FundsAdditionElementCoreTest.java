@@ -21,7 +21,7 @@ public class FundsAdditionElementCoreTest {
 
     @Test
     public void testSubmit() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         final TreasuryMock treasury = new TreasuryMock();
         final Treasury.BalanceAccount usdAccount = TestUtils.prepareBalance(CurrencyUnit.USD);
         final Treasury.BalanceAccount eurAccount = TestUtils.prepareBalance(CurrencyUnit.EUR);

@@ -1,6 +1,7 @@
 package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.CurrencyUnit;
+import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.UtcDay;
 
 import java.math.BigDecimal;
@@ -22,6 +23,10 @@ final class StoredCurrencyRate extends Stored<UtcDay> {
         this.first = first;
         this.second = second;
         this.rate = rate;
+    }
+
+    CurrencyRatesProvider.ConversionRate createConversionRate() {
+        return new CurrencyRatesProvider.ConversionRate(obj, new CurrencyRatesProvider.ConversionPair(first, second), rate);
     }
 
 }

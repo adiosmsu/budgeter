@@ -1,6 +1,7 @@
 package ru.adios.budgeter.api;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.math.IntMath;
 import java8.util.Optional;
 import java8.util.function.BiFunction;
@@ -23,7 +24,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @author Mikhail Kulikov
  */
-public interface CurrencyRatesProvider {
+public interface CurrencyRatesProvider extends Provider<CurrencyRatesProvider.ConversionRate, Long> {
 
     int RATES_SCALE = 24;
 
@@ -180,6 +181,8 @@ public interface CurrencyRatesProvider {
 
     boolean isRateStale(CurrencyUnit to);
 
+    ImmutableSet<Long> getIndexedForDay(UtcDay day);
+
     final class ConversionPair {
 
         public final CurrencyUnit from;
@@ -188,6 +191,20 @@ public interface CurrencyRatesProvider {
         public ConversionPair(CurrencyUnit from, CurrencyUnit to) {
             this.from = from;
             this.to = to;
+        }
+
+    }
+
+    final class ConversionRate {
+
+        public final UtcDay day;
+        public final ConversionPair pair;
+        public final BigDecimal rate;
+
+        public ConversionRate(UtcDay day, ConversionPair pair, BigDecimal rate) {
+            this.day = day;
+            this.pair = pair;
+            this.rate = rate;
         }
 
     }

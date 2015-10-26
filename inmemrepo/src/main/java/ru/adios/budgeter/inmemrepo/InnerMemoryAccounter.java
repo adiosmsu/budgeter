@@ -2,13 +2,10 @@ package ru.adios.budgeter.inmemrepo;
 
 import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
-import org.joda.money.Money;
 import ru.adios.budgeter.api.*;
 
-import javax.annotation.Nullable;
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.stream.Stream;
 
 /**
@@ -20,6 +17,26 @@ import java.util.stream.Stream;
 public final class InnerMemoryAccounter implements Accounter {
 
     @Override
+    public CurrencyExchangeEventRepository currencyExchangeEventRepository() {
+        return Schema.CURRENCY_EXCHANGE_EVENTS;
+    }
+
+    @Override
+    public FundsMutationEventRepository fundsMutationEventRepository() {
+        return Schema.FUNDS_MUTATION_EVENTS;
+    }
+
+    @Override
+    public PostponedFundsMutationEventRepository postponedFundsMutationEventRepository() {
+        return Schema.POSTPONED_FUNDS_MUTATION_EVENTS;
+    }
+
+    @Override
+    public PostponedCurrencyExchangeEventRepository postponedCurrencyExchangeEventRepository() {
+        return Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS;
+    }
+
+    @Override
     public FundsMutationSubjectRepository fundsMutationSubjectRepo() {
         return Schema.FUNDS_MUTATION_SUBJECTS;
     }
@@ -27,72 +44,6 @@ public final class InnerMemoryAccounter implements Accounter {
     @Override
     public FundsMutationAgentRepository fundsMutationAgentRepo() {
         return Schema.FUNDS_MUTATION_AGENTS;
-    }
-
-    @Override
-    public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel) {
-        return Schema.FUNDS_MUTATION_EVENTS.getStatsInTimePeriod(from, till, parentLevel);
-    }
-
-    @Override
-    public void registerBenefit(FundsMutationEvent mutationEvent) {
-        Schema.FUNDS_MUTATION_EVENTS.registerBenefit(mutationEvent);
-    }
-
-    @Override
-    public void registerLoss(FundsMutationEvent mutationEvent) {
-        Schema.FUNDS_MUTATION_EVENTS.registerLoss(mutationEvent);
-    }
-
-    @Override
-    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<FundsMutationEventRepository.Field>> options, @Nullable OptLimit limit) {
-        return Schema.FUNDS_MUTATION_EVENTS.streamMutationEvents(options, limit);
-    }
-
-    @Override
-    public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
-        Schema.CURRENCY_EXCHANGE_EVENTS.registerCurrencyExchange(exchangeEvent);
-    }
-
-    @Override
-    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<CurrencyExchangeEventRepository.Field>> options, @Nullable OptLimit limit) {
-        return Schema.CURRENCY_EXCHANGE_EVENTS.streamExchangeEvents(options, limit);
-    }
-
-    @Override
-    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableBenefit(mutationEvent, paidUnit, customRate);
-    }
-
-    @Override
-    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.rememberPostponedExchangeableLoss(mutationEvent, paidUnit, customRate);
-    }
-
-    @Override
-    public Stream<PostponedMutationEvent> streamRememberedBenefits(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        return Schema.POSTPONED_FUNDS_MUTATION_EVENTS.streamRememberedBenefits(day, oneOf, secondOf);
-    }
-
-    @Override
-    public Stream<PostponedMutationEvent> streamRememberedLosses(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        return Schema.POSTPONED_FUNDS_MUTATION_EVENTS.streamRememberedLosses(day, oneOf, secondOf);
-    }
-
-    @Override
-    public void rememberPostponedExchange(BigDecimal toBuy,
-                                          Treasury.BalanceAccount toBuyAccount,
-                                          Treasury.BalanceAccount sellAccount,
-                                          Optional<BigDecimal> customRate,
-                                          OffsetDateTime timestamp,
-                                          FundsMutationAgent agent)
-    {
-        Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.rememberPostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent);
-    }
-
-    @Override
-    public Stream<PostponedExchange> streamRememberedExchanges(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        return Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.streamRememberedExchanges(day, oneOf, secondOf);
     }
 
     @Override

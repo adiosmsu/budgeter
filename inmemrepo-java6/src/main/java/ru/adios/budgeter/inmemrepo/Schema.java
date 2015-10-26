@@ -66,6 +66,35 @@ public final class Schema implements Bundle {
         clearSchemaStatic();
     }
 
+    @Override
+    public void clear(Repo repo) {
+        switch (repo) {
+            case FUNDS_MUTATION_SUBJECTS:
+                FUNDS_MUTATION_SUBJECTS.clear();
+                return;
+            case CURRENCY_EXCHANGE_EVENTS:
+                CURRENCY_EXCHANGE_EVENTS.clear();
+                return;
+            case FUNDS_MUTATION_EVENTS:
+                FUNDS_MUTATION_EVENTS.clear();
+                return;
+            case POSTPONED_CURRENCY_EXCHANGE_EVENTS:
+                POSTPONED_CURRENCY_EXCHANGE_EVENTS.clear();
+                return;
+            case POSTPONED_FUNDS_MUTATION_EVENTS:
+                POSTPONED_FUNDS_MUTATION_EVENTS.clear();
+                return;
+            case TREASURY:
+                TREASURY.clear();
+                return;
+            case CURRENCY_RATES:
+                CURRENCY_RATES.clear();
+                return;
+            case FUNDS_MUTATION_AGENTS:
+                FUNDS_MUTATION_AGENTS.clear();
+        }
+    }
+
     public static void clearSchemaStatic() {
         FUNDS_MUTATION_SUBJECTS.clear();
         CURRENCY_EXCHANGE_EVENTS.clear();

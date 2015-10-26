@@ -1,5 +1,6 @@
 package ru.adios.budgeter;
 
+import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.CurrencyRatesRepository;
 import ru.adios.budgeter.api.UtcDay;
@@ -20,6 +21,16 @@ public class CurrencyRatesRepositoryMock implements CurrencyRatesRepository {
     private final CurrencyRatesPseudoTable table = Schema.CURRENCY_RATES;
 
     @Override
+    public Optional<ConversionRate> getById(Long id) {
+        return table.getById(id);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return table.currentSeqValue();
+    }
+
+    @Override
     public boolean addRate(UtcDay dayUtc, CurrencyUnit from, CurrencyUnit to, BigDecimal rate) {
         return table.addRate(dayUtc, from, to, rate);
     }
@@ -37,6 +48,11 @@ public class CurrencyRatesRepositoryMock implements CurrencyRatesRepository {
     @Override
     public boolean isRateStale(CurrencyUnit to) {
         return table.isRateStale(to);
+    }
+
+    @Override
+    public ImmutableSet<Long> getIndexedForDay(UtcDay day) {
+        return table.getIndexedForDay(day);
     }
 
     @Override

@@ -21,6 +21,21 @@ public class TreasuryMock implements Treasury {
     private final TreasuryPseudoTable table = Schema.TREASURY;
 
     @Override
+    public void setSequenceValue(Long value) {
+        table.setSequenceValue(value);
+    }
+
+    @Override
+    public Optional<BalanceAccount> getById(Long id) {
+        return table.getById(id);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return table.currentSeqValue();
+    }
+
+    @Override
     public Optional<Money> accountBalance(String accountName) {
         return table.accountBalance(accountName);
     }

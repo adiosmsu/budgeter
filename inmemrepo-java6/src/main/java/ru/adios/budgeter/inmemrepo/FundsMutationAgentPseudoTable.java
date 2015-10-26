@@ -31,6 +31,20 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
     private FundsMutationAgentPseudoTable() {}
 
     @Override
+    public Optional<FundsMutationAgent> getById(Long id) {
+        final Stored<FundsMutationAgent> stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.obj);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
+
+    @Override
     public FundsMutationAgent addAgent(final FundsMutationAgent agent) {
         final int id = idSequence.incrementAndGet();
         checkState(nameUniqueIndex.computeIfAbsent(agent.name, new Function<String, Integer>() {

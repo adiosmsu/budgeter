@@ -1,6 +1,7 @@
 package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.Money;
+import ru.adios.budgeter.api.Treasury;
 
 /**
  * Date: 9/17/15
@@ -15,6 +16,14 @@ public final class StoredBalanceAccount extends Stored<Money> {
     StoredBalanceAccount(int id, Money obj, String name) {
         super(id, obj);
         this.name = name;
+    }
+
+    Treasury.BalanceAccount createBalanceAccount() {
+        return new Treasury.BalanceAccount((long) id, name, obj);
+    }
+
+    Treasury.BalanceAccount createBalanceAccount(Long id) {
+        return new Treasury.BalanceAccount(id, name, obj);
     }
 
     @Override

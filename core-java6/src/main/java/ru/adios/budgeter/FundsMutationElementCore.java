@@ -489,7 +489,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
                     }
 
                     final Treasury.BalanceAccount res = direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
-                    accounter.registerCurrencyExchange(
+                    accounter.currencyExchangeEventRepository().registerCurrencyExchange(
                             CurrencyExchangeEvent.builder()
                                     .setAgent(eventBuilder.getAgent())
                                     .setRate(actualRate)

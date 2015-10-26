@@ -47,7 +47,7 @@ public class FundsMutationSubjectPseudoTableTest {
     public void testFindById() throws Exception {
         FundsMutationSubject con = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Grooming").setType(FundsMutationSubject.Type.SERVICE).setId(100).build();
         Schema.FUNDS_MUTATION_SUBJECTS.addSubject(con);
-        assertEquals("Grooming not found", con, Schema.FUNDS_MUTATION_SUBJECTS.findById(100).get());
+        assertEquals("Grooming not found", con, Schema.FUNDS_MUTATION_SUBJECTS.getById(100L).get());
     }
 
     @Test
@@ -66,12 +66,12 @@ public class FundsMutationSubjectPseudoTableTest {
         } catch (Exception ignore) {}
         final FundsMutationSubject food1 = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Food").get();
         final FundsMutationSubject meat =
-                FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Meat").setType(FundsMutationSubject.Type.PRODUCT).setParentId(food1.id.getAsInt()).build();
+                FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Meat").setType(FundsMutationSubject.Type.PRODUCT).setParentId(food1.id.getAsLong()).build();
         final FundsMutationSubject vegs =
-                FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Vegs").setType(FundsMutationSubject.Type.PRODUCT).setParentId(food1.id.getAsInt()).build();
+                FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Vegs").setType(FundsMutationSubject.Type.PRODUCT).setParentId(food1.id.getAsLong()).build();
         Schema.FUNDS_MUTATION_SUBJECTS.addSubject(meat);
         Schema.FUNDS_MUTATION_SUBJECTS.addSubject(vegs);
-        Schema.FUNDS_MUTATION_SUBJECTS.findByParent(food1.id.getAsInt()).forEach(subject -> assertTrue("Wrong byParent stream: " + subject.name, subject.equals(meat) || subject.equals(vegs)));
+        Schema.FUNDS_MUTATION_SUBJECTS.findByParent(food1.id.getAsLong()).forEach(subject -> assertTrue("Wrong byParent stream: " + subject.name, subject.equals(meat) || subject.equals(vegs)));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class FundsMutationSubjectPseudoTableTest {
         FundsMutationSubject cars = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Cars").setType(FundsMutationSubject.Type.PRODUCT).build();
         Schema.FUNDS_MUTATION_SUBJECTS.addSubject(cars);
         final Optional<FundsMutationSubject> cars1 = Schema.FUNDS_MUTATION_SUBJECTS.findByName("Cars");
-        final int carsId = cars1.get().id.getAsInt();
+        final int carsId = (int) cars1.get().id.getAsLong();
         assertTrue("Parent and root did not initialize", cars1.get().parentId == 0 && cars1.get().rootId == 0);
         FundsMutationSubject mitsubishi =
                 FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Mitsubishi").setType(FundsMutationSubject.Type.PRODUCT).setParentId(carsId).build();

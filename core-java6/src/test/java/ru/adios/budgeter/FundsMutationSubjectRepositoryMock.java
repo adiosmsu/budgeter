@@ -19,8 +19,13 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     private final FundsMutationSubjectRepository.Default fmsRepoDef = new Default(this);
 
     @Override
-    public Optional<FundsMutationSubject> findById(int id) {
-        return pseudoTable.findById(id);
+    public Optional<FundsMutationSubject> getById(Long id) {
+        return pseudoTable.getById(id);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return pseudoTable.currentSeqValue();
     }
 
     @Override
@@ -29,7 +34,7 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
-    public Stream<FundsMutationSubject> findByParent(int parentId) {
+    public Stream<FundsMutationSubject> findByParent(long parentId) {
         return pseudoTable.findByParent(parentId);
     }
 
@@ -44,12 +49,12 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
-    public int idSeqNext() {
+    public long idSeqNext() {
         return pseudoTable.idSeqNext();
     }
 
     @Override
-    public int getIdForRateSubject() {
+    public long getIdForRateSubject() {
         return pseudoTable.getIdForRateSubject();
     }
 
@@ -59,7 +64,7 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
-    public void updateChildFlag(int id) {
+    public void updateChildFlag(long id) {
         pseudoTable.updateChildFlag(id);
     }
 

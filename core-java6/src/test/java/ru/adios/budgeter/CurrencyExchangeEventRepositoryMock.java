@@ -1,5 +1,6 @@
 package ru.adios.budgeter;
 
+import java8.util.Optional;
 import java8.util.stream.Stream;
 import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.CurrencyExchangeEventPseudoTable;
@@ -16,6 +17,16 @@ import java.util.List;
 public class CurrencyExchangeEventRepositoryMock implements CurrencyExchangeEventRepository {
 
     private final CurrencyExchangeEventPseudoTable table = CurrencyExchangeEventPseudoTable.INSTANCE;
+
+    @Override
+    public Long currentSeqValue() {
+        return table.currentSeqValue();
+    }
+
+    @Override
+    public Optional<CurrencyExchangeEvent> getById(Long id) {
+        return table.getById(id);
+    }
 
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {

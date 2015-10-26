@@ -15,7 +15,7 @@ import java.util.Map;
  *
  * @author Mikhail Kulikov
  */
-public interface FundsMutationEventRepository {
+public interface FundsMutationEventRepository extends Provider<FundsMutationEvent, Long> {
 
     enum Field implements OrderedField {
         TIMESTAMP, AMOUNT

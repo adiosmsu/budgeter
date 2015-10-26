@@ -53,13 +53,13 @@ public class BalanceElementCoreTest {
         assertEquals("Wrong total balance", Money.of(Units.RUB, BigDecimal.valueOf(87500.)), core.getTotalBalance());
 
         // same total unit test
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         treasury.registerBalanceAccount(new Treasury.BalanceAccount("Тест", Units.RUB));
         core.setTotalUnit(Units.RUB);
         core.getTotalBalance();
 
         // no total unit set test
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
         treasury.registerBalanceAccount(new Treasury.BalanceAccount("Тест", Units.RUB));
         final BalanceElementCore balanceElementCore = new BalanceElementCore(treasury, ratesRepository);
         try {

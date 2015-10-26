@@ -37,6 +37,20 @@ public final class PostponedFundsMutationEventPseudoTable
     private PostponedFundsMutationEventPseudoTable() {}
 
     @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
+
+    @Override
+    public Optional<PostponedMutationEvent> getById(Long id) {
+        final StoredPostponedFundsMutationEvent stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.obj);
+    }
+
+    @Override
     public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
         store(storedFactory(mutationEvent, FundsMutationDirection.BENEFIT, paidUnit, customRate));
     }

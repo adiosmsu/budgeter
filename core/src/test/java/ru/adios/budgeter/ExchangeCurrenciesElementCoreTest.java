@@ -29,7 +29,7 @@ public class ExchangeCurrenciesElementCoreTest {
         final CurrenciesExchangeService ratesService =
                 new CurrenciesExchangeService(txNal, ratesRepo, accounter, treasury, ExchangeRatesLoader.createBtcLoader(treasury), ExchangeRatesLoader.createCbrLoader(treasury));
 
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
 
         final FundsMutationAgent agentExchanger = FundsMutationAgent.builder().setName("Обменник").build();
         accounter.fundsMutationAgentRepo().addAgent(agentExchanger);

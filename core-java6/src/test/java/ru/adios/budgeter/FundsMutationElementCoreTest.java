@@ -35,7 +35,7 @@ public class FundsMutationElementCoreTest {
                 ExchangeRatesLoader.createCbrLoader(treasury)
         );
 
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
 
         final Treasury.BalanceAccount rubAccount = TestUtils.prepareBalance(Units.RUB);
         final Treasury.BalanceAccount usdAccount = TestUtils.prepareBalance(CurrencyUnit.USD);

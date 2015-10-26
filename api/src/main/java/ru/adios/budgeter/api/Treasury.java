@@ -18,7 +18,7 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
-public interface Treasury {
+public interface Treasury extends Provider<Treasury.BalanceAccount, Long>, Repository<Long> {
 
     Optional<Money> amount(CurrencyUnit unit);
 

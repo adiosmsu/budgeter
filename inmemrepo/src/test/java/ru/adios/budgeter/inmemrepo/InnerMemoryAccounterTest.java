@@ -47,7 +47,8 @@ public class InnerMemoryAccounterTest {
                 .setAgent(agent)
                 .build();
 
-        innerMemoryAccounter.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.empty());
+        final PostponedFundsMutationEventRepository postMutRepo = innerMemoryAccounter.postponedFundsMutationEventRepository();
+        postMutRepo.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.empty());
 
         FundsMutationSubject game = FundsMutationSubject.builder(Schema.FUNDS_MUTATION_SUBJECTS).setName("Game").setType(FundsMutationSubject.Type.PRODUCT).build();
         final FundsMutationEvent gameBuy = FundsMutationEvent.builder()
@@ -58,9 +59,10 @@ public class InnerMemoryAccounterTest {
                 .setAgent(agent)
                 .build();
 
-        innerMemoryAccounter.rememberPostponedExchangeableLoss(gameBuy, Units.RUB, Optional.empty());
+        postMutRepo.rememberPostponedExchangeableLoss(gameBuy, Units.RUB, Optional.empty());
 
-        innerMemoryAccounter.rememberPostponedExchange(BigDecimal.valueOf(100L), accountEur, accountRub, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now(), agent);
+        innerMemoryAccounter.postponedCurrencyExchangeEventRepository()
+                .rememberPostponedExchange(BigDecimal.valueOf(100L), accountEur, accountRub, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now(), agent);
 
         final List<Accounter.PostponingReasons> collected = innerMemoryAccounter.streamAllPostponingReasons().collect(Collectors.toList());
         assertEquals("Too large list: " + collected.size(), 1, collected.size());

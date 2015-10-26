@@ -14,7 +14,7 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
-public interface PostponedCurrencyExchangeEventRepository {
+public interface PostponedCurrencyExchangeEventRepository extends Provider<PostponedCurrencyExchangeEventRepository.PostponedExchange, Long> {
 
     void rememberPostponedExchange(
             BigDecimal toBuy,

@@ -5,6 +5,7 @@ import ru.adios.budgeter.api.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -26,6 +27,20 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
     private final ConcurrentHashMap<Integer, Stored<CurrencyExchangeEvent>> table = new ConcurrentHashMap<>(100, 0.75f, 4);
 
     private CurrencyExchangeEventPseudoTable() {}
+
+    @Override
+    public Optional<CurrencyExchangeEvent> getById(Long id) {
+        final Stored<CurrencyExchangeEvent> stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.obj);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
 
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {

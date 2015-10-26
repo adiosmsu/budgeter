@@ -36,6 +36,20 @@ public final class PostponedCurrencyExchangeEventPseudoTable
     private PostponedCurrencyExchangeEventPseudoTable() {}
 
     @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
+
+    @Override
+    public Optional<PostponedExchange> getById(Long id) {
+        final Stored<PostponedExchange> stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.obj);
+    }
+
+    @Override
     public void rememberPostponedExchange(BigDecimal toBuy,
                                           Treasury.BalanceAccount toBuyAccount,
                                           Treasury.BalanceAccount sellAccount,

@@ -3,6 +3,7 @@ package ru.adios.budgeter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -189,6 +190,21 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
         return ratesRepository.isRateStale(to);
     }
 
+    @Override
+    public ImmutableSet<Long> getIndexedForDay(UtcDay day) {
+        return ratesRepository.getIndexedForDay(day);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return ratesRepository.currentSeqValue();
+    }
+
+    @Override
+    public Optional<ConversionRate> getById(Long id) {
+        return ratesRepository.getById(id);
+    }
+
     private Optional<BigDecimal> conversionMultiplierFor(
             ExchangeRatesLoader loader,
             UtcDay day,
@@ -305,7 +321,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                     final BigDecimal rate = entry.getValue();
                     final BigDecimal rateReversed = CurrencyRatesProvider.reverseRate(rate);
                     final CurrencyUnit toUnit = entry.getKey();
-                    accounter.streamRememberedBenefits(day, forRates, toUnit).forEach(postponedMutationEvent -> {
+                    accounter.postponedFundsMutationEventRepository().streamRememberedBenefits(day, forRates, toUnit).forEach(postponedMutationEvent -> {
                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
                         final Submitter.Result res = core.submit();
@@ -313,7 +329,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                             logger.info("Remembered benefits save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
                         }
                     });
-                    accounter.streamRememberedLosses(day, forRates, toUnit).forEach(postponedMutationEvent -> {
+                    accounter.postponedFundsMutationEventRepository().streamRememberedLosses(day, forRates, toUnit).forEach(postponedMutationEvent -> {
                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
                         final Submitter.Result res = core.submit();
@@ -321,7 +337,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                             logger.info("Remembered losses save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
                         }
                     });
-                    accounter.streamRememberedExchanges(day, forRates, toUnit).forEach(postponedExchange -> {
+                    accounter.postponedCurrencyExchangeEventRepository().streamRememberedExchanges(day, forRates, toUnit).forEach(postponedExchange -> {
                         final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedExchange, postponedExchange.sellAccount.getUnit().equals(forRates) ? rate : rateReversed);
                         final Submitter.Result res = core.submit();

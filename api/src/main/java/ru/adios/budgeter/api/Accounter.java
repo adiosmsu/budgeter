@@ -12,7 +12,16 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
-public interface Accounter extends FundsMutationEventRepository, CurrencyExchangeEventRepository, PostponedFundsMutationEventRepository, PostponedCurrencyExchangeEventRepository {
+public interface Accounter {
+
+    FundsMutationEventRepository fundsMutationEventRepository();
+
+    CurrencyExchangeEventRepository currencyExchangeEventRepository();
+
+    PostponedFundsMutationEventRepository postponedFundsMutationEventRepository();
+
+    PostponedCurrencyExchangeEventRepository postponedCurrencyExchangeEventRepository();
+
 
     Stream<PostponingReasons> streamAllPostponingReasons();
 

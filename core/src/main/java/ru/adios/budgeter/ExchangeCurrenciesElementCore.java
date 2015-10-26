@@ -294,7 +294,8 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
             final BigDecimal naturalRate = calculateNaturalRate(sellUnit, buyUnit);
             if (naturalRate == null) {
                 // we don't have rates in question for today yet, conserve operation to commit later
-                accounter.rememberPostponedExchange(buyAmountSmallMoney.getAmount(), boughtAccount, soldAccount, customRateRef, timestampRef.get(), agent);
+                accounter.postponedCurrencyExchangeEventRepository()
+                        .rememberPostponedExchange(buyAmountSmallMoney.getAmount(), boughtAccount, soldAccount, customRateRef, timestampRef.get(), agent);
                 return Result.success(null);
             }
 
@@ -314,7 +315,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
             }
 
             final Money sellAmountSmallMoney = sellAmount.toMoney(RoundingMode.HALF_DOWN);
-            accounter.registerCurrencyExchange(
+            accounter.currencyExchangeEventRepository().registerCurrencyExchange(
                     CurrencyExchangeEvent.builder()
                             .setBought(buyAmountSmallMoney)
                             .setSold(sellAmountSmallMoney)

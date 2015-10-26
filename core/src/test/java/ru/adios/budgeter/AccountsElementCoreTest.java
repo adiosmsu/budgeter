@@ -21,7 +21,7 @@ public class AccountsElementCoreTest {
 
     @Test
     public void testSubmit() throws Exception {
-        Schema.clearSchema();
+        Schema.clearSchemaStatic();
 
         AccountsElementCore accountsElementCore = new AccountsElementCore(Schema.TREASURY);
         accountsElementCore.setName(null);

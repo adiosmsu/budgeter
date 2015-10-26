@@ -10,7 +10,7 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
-public interface CurrencyExchangeEventRepository {
+public interface CurrencyExchangeEventRepository extends Provider<CurrencyExchangeEvent, Long> {
 
     enum Field implements OrderedField {
         TIMESTAMP

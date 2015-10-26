@@ -3,7 +3,7 @@ package ru.adios.budgeter.api;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Optional;
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -32,9 +32,9 @@ public final class FundsMutationSubject {
         this.type = builder.type;
     }
 
-    public final OptionalInt id;
-    public final int parentId;
-    public final int rootId;
+    public final OptionalLong id;
+    public final long parentId;
+    public final long rootId;
     public final boolean childFlag;
     public final Type type;
     public final String name;
@@ -49,14 +49,14 @@ public final class FundsMutationSubject {
         return getInner(rootId);
     }
 
-    private Optional<FundsMutationSubject> getInner(int otherId) {
+    private Optional<FundsMutationSubject> getInner(long otherId) {
         return getInner(id, otherId, this, repository);
     }
 
-    private static Optional<FundsMutationSubject> getInner(OptionalInt id, int otherId, FundsMutationSubject inst, FundsMutationSubjectRepository repository) {
+    private static Optional<FundsMutationSubject> getInner(OptionalLong id, long otherId, FundsMutationSubject inst, FundsMutationSubjectRepository repository) {
         if (id.orElse(-1) == otherId)
             return Optional.ofNullable(inst);
-        return repository.findById(otherId);
+        return repository.getById(otherId);
     }
 
     @Override
@@ -84,8 +84,8 @@ public final class FundsMutationSubject {
 
     @Override
     public int hashCode() {
-        int result = parentId;
-        result = 31 * result + rootId;
+        int result = (int) parentId;
+        result = 31 * result + (int) rootId;
         result = 31 * result + type.hashCode();
         result = 31 * result + name.hashCode();
         return result;
@@ -100,9 +100,9 @@ public final class FundsMutationSubject {
     @NotThreadSafe
     public static final class Builder {
 
-        private OptionalInt id = OptionalInt.empty();
-        private int parentId;
-        private int rootId;
+        private OptionalLong id = OptionalLong.empty();
+        private long parentId;
+        private long rootId;
         public boolean childFlag = false;
         private Type type;
         private String name;
@@ -124,9 +124,9 @@ public final class FundsMutationSubject {
             return this;
         }
 
-        public Builder setId(int id) {
+        public Builder setId(long id) {
             checkArgument(id > 0);
-            this.id = OptionalInt.of(id);
+            this.id = OptionalLong.of(id);
             return this;
         }
 
@@ -140,13 +140,13 @@ public final class FundsMutationSubject {
             return this;
         }
 
-        public Builder setParentId(int parentId) {
+        public Builder setParentId(long parentId) {
             checkArgument(parentId > 0);
             this.parentId = parentId;
             return this;
         }
 
-        public Builder setRootId(int rootId) {
+        public Builder setRootId(long rootId) {
             checkArgument(rootId > 0);
             this.rootId = rootId;
             return this;
@@ -165,7 +165,7 @@ public final class FundsMutationSubject {
             return type;
         }
 
-        public int getParentId() {
+        public long getParentId() {
             return parentId;
         }
 
@@ -176,7 +176,7 @@ public final class FundsMutationSubject {
         private void prepare() {
             checkArgument(id.orElse(1) > 0 && name != null && type != null, "Bad data, possibly uninitialized");
             if (parentId > 0 && rootId == 0) {
-                final FundsMutationSubject parent = repository.findById(parentId).orElseThrow(()
+                final FundsMutationSubject parent = repository.getById(parentId).orElseThrow(()
                         -> new IllegalStateException("No database entry for parent [" + parentId + "] when searching root"));
                 rootId = parent.rootId == 0 ? parentId : parent.rootId;
             }

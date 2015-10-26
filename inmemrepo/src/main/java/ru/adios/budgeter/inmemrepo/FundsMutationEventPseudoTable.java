@@ -33,6 +33,20 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     private FundsMutationEventPseudoTable() {}
 
     @Override
+    public Optional<FundsMutationEvent> getById(Long id) {
+        final StoredFundsMutationEvent stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.obj);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
+
+    @Override
     public void registerBenefit(FundsMutationEvent mutationEvent) {
         store(storedFactory(mutationEvent, FundsMutationDirection.BENEFIT));
     }

@@ -1,7 +1,7 @@
 package ru.adios.budgeter;
 
 import java8.util.Optional;
-import java8.util.OptionalInt;
+import java8.util.OptionalLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.FundsMutationSubject;
@@ -61,9 +61,9 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
         final Optional<FundsMutationSubject> parentRef = repository.findByName(parentName);
 
         if (parentRef.isPresent()) {
-            final OptionalInt idParentRef = parentRef.get().id;
+            final OptionalLong idParentRef = parentRef.get().id;
             if (idParentRef.isPresent()) {
-                subjectBuilder.setParentId(idParentRef.getAsInt());
+                subjectBuilder.setParentId(idParentRef.getAsLong());
                 return true;
             }
         }

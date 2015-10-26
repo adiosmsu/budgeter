@@ -41,6 +41,25 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
     private TreasuryPseudoTable() {}
 
     @Override
+    public Optional<BalanceAccount> getById(Long id) {
+        final StoredBalanceAccount stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.createBalanceAccount());
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
+
+    @Override
+    public void setSequenceValue(Long value) {
+        idSequence.set(value.intValue());
+    }
+
+    @Override
     public Optional<Money> amount(CurrencyUnit unit) {
         final ImmutableList<Integer> idsList = unitIndex.get(unit);
 
@@ -199,7 +218,7 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
             public BalanceAccount apply(Integer id) {
                 final StoredBalanceAccount stored = table.get(id);
                 checkNotNull(stored, "Indexed unit %s not stored for id %s", unit, id);
-                return new BalanceAccount(id.longValue(), stored.name, stored.obj);
+                return stored.createBalanceAccount(id.longValue());
             }
         });
     }
@@ -209,7 +228,7 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
         return StreamSupport.stream(table.values()).map(new Function<StoredBalanceAccount, BalanceAccount>() {
             @Override
             public BalanceAccount apply(StoredBalanceAccount stored) {
-                return new BalanceAccount((long) stored.id, stored.name, stored.obj);
+                return stored.createBalanceAccount();
             }
         });
     }

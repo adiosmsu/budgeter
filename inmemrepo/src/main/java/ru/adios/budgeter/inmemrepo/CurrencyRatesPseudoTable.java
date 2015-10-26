@@ -29,6 +29,20 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
     private CurrencyRatesPseudoTable() {}
 
     @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
+
+    @Override
+    public Optional<ConversionRate> getById(Long id) {
+        final StoredCurrencyRate stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.createConversionRate());
+    }
+
+    @Override
     public boolean addRate(final UtcDay dayUtc, final CurrencyUnit from, final CurrencyUnit to, final BigDecimal rate) {
         final Object[] mutableFlag = new Object[] {this};
         PseudoTable.nonUniqueIndexedInsert(
@@ -78,6 +92,16 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
             final StoredCurrencyRate rate = table.get(id);
             return rate.first.equals(to) || rate.second.equals(to);
         });
+    }
+
+    @Override
+    public ImmutableSet<Long> getIndexedForDay(UtcDay day) {
+        final ImmutableSet<Integer> integers = dayIndex.get(day);
+        final ImmutableSet.Builder<Long> longsBuilder = ImmutableSet.builder();
+        for (final Integer i : integers) {
+            longsBuilder.add(i.longValue());
+        }
+        return longsBuilder.build();
     }
 
     @Nonnull

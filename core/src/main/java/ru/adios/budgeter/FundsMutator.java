@@ -55,7 +55,7 @@ public interface FundsMutator {
             @Override
             Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
-                accounter.registerBenefit(event);
+                accounter.fundsMutationEventRepository().registerBenefit(event);
                 if (mutateFunds) {
                     treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                     return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
@@ -71,7 +71,7 @@ public interface FundsMutator {
 
             @Override
             void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-                accounter.rememberPostponedExchangeableBenefit(event, paidUnit, customRate);
+                accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableBenefit(event, paidUnit, customRate);
             }
 
             @Override
@@ -88,7 +88,7 @@ public interface FundsMutator {
             @Override
             Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
-                accounter.registerLoss(event);
+                accounter.fundsMutationEventRepository().registerLoss(event);
                 if (mutateFunds) {
                     treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                     return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
@@ -104,7 +104,7 @@ public interface FundsMutator {
 
             @Override
             void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-                accounter.rememberPostponedExchangeableLoss(event, paidUnit, customRate);
+                accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableLoss(event, paidUnit, customRate);
             }
 
             @Override

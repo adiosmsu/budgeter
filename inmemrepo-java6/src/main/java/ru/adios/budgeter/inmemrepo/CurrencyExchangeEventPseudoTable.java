@@ -1,5 +1,6 @@
 package ru.adios.budgeter.inmemrepo;
 
+import java8.util.Optional;
 import java8.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
 import java8.util.function.Predicate;
@@ -31,6 +32,20 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
     private final Default def = new Default(this);
 
     private CurrencyExchangeEventPseudoTable() {}
+
+    @Override
+    public Optional<CurrencyExchangeEvent> getById(Long id) {
+        final Stored<CurrencyExchangeEvent> stored = table.get(id.intValue());
+        if (stored == null) {
+            return Optional.empty();
+        }
+        return Optional.of(stored.obj);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
 
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {

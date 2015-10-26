@@ -18,6 +18,16 @@ public class FundsMutationAgentMock implements FundsMutationAgentRepository {
     private final FundsMutationAgentPseudoTable table = Schema.FUNDS_MUTATION_AGENTS;
 
     @Override
+    public Optional<FundsMutationAgent> getById(Long id) {
+        return table.getById(id);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return table.currentSeqValue();
+    }
+
+    @Override
     public FundsMutationAgent addAgent(FundsMutationAgent agent) {
         return table.addAgent(agent);
     }

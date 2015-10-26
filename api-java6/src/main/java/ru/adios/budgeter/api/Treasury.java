@@ -22,7 +22,7 @@ import java.math.RoundingMode;
  *
  * @author Mikhail Kulikov
  */
-public interface Treasury {
+public interface Treasury extends Provider<Treasury.BalanceAccount, Long>, Repository<Long> {
 
     final class Static {
 

@@ -42,19 +42,29 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     private FundsMutationSubjectPseudoTable() {}
 
     @Override
-    public int idSeqNext() {
+    public Optional<FundsMutationSubject> getById(Long id) {
+        return Optional.ofNullable(table.get(id.intValue()));
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return (long) idSequence.get();
+    }
+
+    @Override
+    public long idSeqNext() {
         return idSequence.incrementAndGet();
     }
 
     @Override
-    public int getIdForRateSubject() {
+    public long getIdForRateSubject() {
         return RATES_ID;
     }
 
     @Override
     public void rawAddition(final FundsMutationSubject subject) {
         if (subject.id.isPresent()) {
-            final int idConcrete = subject.id.getAsInt();
+            final int idConcrete = (int) subject.id.getAsLong();
             checkState(PseudoTable.Static.nonUniqueIndexedInsert(
                     table,
                     parentIndex,
@@ -65,7 +75,7 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
                             return subject;
                         }
                     },
-                    Optional.ofNullable(subject.parentId > 0 ? subject.parentId : null),
+                    Optional.ofNullable(subject.parentId > 0 ? (int) subject.parentId : null),
                     Optional.<Consumer<FundsMutationSubject>>empty(),
                     new Consumer() {
                         @Override
@@ -84,17 +94,12 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     }
 
     @Override
-    public void updateChildFlag(int id) {
+    public void updateChildFlag(long id) {
         final long start = System.currentTimeMillis();
         FundsMutationSubject inter;
-        while (!table.replace(id, inter = table.get(id), FundsMutationSubject.builder(this).setFundsMutationSubject(inter).setChildFlag(true).build())) {
+        while (!table.replace((int) id, inter = table.get((int) id), FundsMutationSubject.builder(this).setFundsMutationSubject(inter).setChildFlag(true).build())) {
             checkState(System.currentTimeMillis() - start < 10000, "Record unbelievably busy: unable to set child flag to record with id %s", id);
         }
-    }
-
-    @Override
-    public Optional<FundsMutationSubject> findById(int id) {
-        return Optional.ofNullable(table.get(id));
     }
 
     @Override
@@ -107,8 +112,8 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     }
 
     @Override
-    public Stream<FundsMutationSubject> findByParent(int parentId) {
-        return StreamSupport.stream(parentIndex.get(parentId)).map(new Function<Integer, FundsMutationSubject>() {
+    public Stream<FundsMutationSubject> findByParent(long parentId) {
+        return StreamSupport.stream(parentIndex.get((int) parentId)).map(new Function<Integer, FundsMutationSubject>() {
             @Override
             public FundsMutationSubject apply(Integer integer) {
                 return table.get(integer);

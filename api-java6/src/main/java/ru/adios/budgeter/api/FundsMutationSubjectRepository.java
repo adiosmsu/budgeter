@@ -10,7 +10,7 @@ import java8.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
-public interface FundsMutationSubjectRepository {
+public interface FundsMutationSubjectRepository extends Provider<FundsMutationSubject, Long> {
 
     final class Default {
 
@@ -36,11 +36,9 @@ public interface FundsMutationSubjectRepository {
 
     }
 
-    Optional<FundsMutationSubject> findById(int id);
-
     Optional<FundsMutationSubject> findByName(String name);
 
-    Stream<FundsMutationSubject> findByParent(int parentId);
+    Stream<FundsMutationSubject> findByParent(long parentId);
 
     Stream<FundsMutationSubject> streamAll();
 
@@ -50,10 +48,10 @@ public interface FundsMutationSubjectRepository {
 
     void rawAddition(FundsMutationSubject subject);
 
-    int idSeqNext();
+    long idSeqNext();
 
-    int getIdForRateSubject();
+    long getIdForRateSubject();
 
-    void updateChildFlag(int id);
+    void updateChildFlag(long id);
 
 }

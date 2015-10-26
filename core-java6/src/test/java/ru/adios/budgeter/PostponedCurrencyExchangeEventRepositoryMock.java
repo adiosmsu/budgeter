@@ -23,6 +23,16 @@ public class PostponedCurrencyExchangeEventRepositoryMock implements PostponedCu
     private final PostponedCurrencyExchangeEventPseudoTable table = PostponedCurrencyExchangeEventPseudoTable.INSTANCE;
 
     @Override
+    public Optional<PostponedExchange> getById(Long id) {
+        return table.getById(id);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return table.currentSeqValue();
+    }
+
+    @Override
     public void rememberPostponedExchange(BigDecimal toBuy,
                                           Treasury.BalanceAccount toBuyAccount,
                                           Treasury.BalanceAccount sellAccount,

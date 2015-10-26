@@ -9,7 +9,7 @@ import java8.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
-public interface FundsMutationAgentRepository {
+public interface FundsMutationAgentRepository extends Provider<FundsMutationAgent, Long> {
 
     FundsMutationAgent addAgent(FundsMutationAgent agent);
 

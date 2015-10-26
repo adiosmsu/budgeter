@@ -22,6 +22,16 @@ public class FundsMutationEventRepositoryMock implements FundsMutationEventRepos
     private final FundsMutationEventPseudoTable table = FundsMutationEventPseudoTable.INSTANCE;
 
     @Override
+    public Optional<FundsMutationEvent> getById(Long id) {
+        return table.getById(id);
+    }
+
+    @Override
+    public Long currentSeqValue() {
+        return table.currentSeqValue();
+    }
+
+    @Override
     public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel) {
         return table.getStatsInTimePeriod(from, till, parentLevel);
     }
