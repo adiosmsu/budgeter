@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepository, JdbcRepository<FundsMutationAgent> {
 
     public static final String TABLE_NAME = "funds_mutation_agent";
+    public static final String SEQ_NAME = "seq_funds_mutation_agent";
     public static final String INDEX_NAME = "ix_funds_mutation_agent_name";
     public static final String COL_ID = "id";
     public static final String COL_NAME = "name";
@@ -68,6 +69,11 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     }
 
     @Override
+    public String getSeqName() {
+        return SEQ_NAME;
+    }
+
+    @Override
     public ImmutableList<String> getColumnNames() {
         return COLS;
     }
@@ -103,7 +109,7 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
-                + " (" + COL_ID + ' ' + sqlDialect.integerType() + ' ' + sqlDialect.primaryKeyWithNextValue(null) + ", " + COL_NAME + ' ' + sqlDialect.textType() + ')';
+                + " (" + COL_ID + " BIGINT " + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", " + COL_NAME + ' ' + sqlDialect.textType() + ')';
     }
 
     private String getCreateIndexSql() {
@@ -111,7 +117,11 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     }
 
     String[] getCreateTableSql() {
-        return new String[] {getActualCreateTableSql(), getCreateIndexSql()};
+        return new String[] {
+                getActualCreateTableSql(),
+                sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
+                getCreateIndexSql()
+        };
     }
 
     static final class AgentRowMapper implements AgnosticRowMapper<FundsMutationAgent> {

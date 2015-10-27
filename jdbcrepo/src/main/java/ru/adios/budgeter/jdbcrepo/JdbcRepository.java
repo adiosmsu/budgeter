@@ -38,6 +38,8 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     String getIdColumnName();
 
+    String getSeqName();
+
     ImmutableList<String> getColumnNames();
 
     ImmutableList<?> decomposeObject(ObjType object);
@@ -47,7 +49,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     @Override
     default Long currentSeqValue() {
-        return Common.getSingleColumn(this, getSqlDialect().sequenceCurrentValueSql(getTableName(), null), Common.LONG_ROW_MAPPER);
+        return Common.getSingleColumn(this, getSqlDialect().sequenceCurrentValueSql(getTableName(), getSeqName()), Common.LONG_ROW_MAPPER);
     }
 
     @Override
@@ -77,15 +79,18 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
                 columnNames = builder.build();
             }
 
+            final SqlDialect sqlDialect = repo.getSqlDialect();
             final PreparedStatement statement =
-                    con.prepareStatement(repo.getSqlDialect().insertSql(repo.getTableName(), columnNames), PreparedStatement.RETURN_GENERATED_KEYS);
+                    con.prepareStatement(sqlDialect.insertSql(repo.getTableName(), columnNames), PreparedStatement.RETURN_GENERATED_KEYS);
 
             int i = 1;
             if (withId) {
                 statement.setObject(i++, repo.extractId(object));
             }
             for (final Object o : repo.decomposeObject(object)) {
-                statement.setObject(i++, o);
+                statement.setObject(i++,
+                        sqlDialect.translateForDb(o)
+                );
             }
 
             return statement;

@@ -152,15 +152,19 @@ public interface SqlDialect {
 
     String tableExistsSql(String tableName);
 
-    String integerType();
-
     String textType();
+
+    String decimalType();
 
     String primaryKeyWithNextValue(@Nullable String sequence);
 
     String createIndexSql(String indexName, String tableName, boolean unique, String... columns);
 
+    String createSeq(String seqName, String tableName);
+
     String sequenceCurrentValueSql(@Nullable String tableName, @Nullable String sequenceName);
+
+    String sequenceSetValueSql(@Nullable String tableName, @Nullable String sequenceName);
 
     default String insertSql(String tableName, String... columns) {
         return insertSql(tableName, Arrays.asList(columns));
@@ -175,5 +179,9 @@ public interface SqlDialect {
     }
 
     String selectSql(String tableName, @Nullable String where, List<String> columns);
+
+    Object translateForDb(Object object);
+
+    <T> T translateFromDb(Object object, Class<T> type);
 
 }

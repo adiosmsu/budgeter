@@ -3,6 +3,7 @@ package ru.adios.budgeter.jdbcrepo;
 import org.intellij.lang.annotations.Language;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -17,12 +18,13 @@ public final class SqliteDialect implements SqlDialect {
 
     public static final SqliteDialect INSTANCE = new SqliteDialect();
 
-    private static final String INTEGER_TYPE = "INTEGER";
     private static final String TEXT_TYPE = "TEXT";
+    private static final String DECIMAL_TYPE = TEXT_TYPE;
     private static final String PRIMARY_KEY_WITH_NEXT_VALUE = "PRIMARY KEY AUTOINCREMENT";
 
     @Language("SQLite")
-    public static final String SEQUENCE_CURRENT_VALUE_SQL = "SELECT seq FROM sqlite_sequence WHERE name = ?";
+    public static final String SEQUENCE_CURRENT_VALUE_SQL = "SELECT seq FROM sqlite_sequence WHERE name = ";
+    public static final String SEQUENCE_SET_VALUE_SQL = "UPDATE sqlite_sequence SET seq = ? WHERE name = ";
     public static final String TABLE_EXISTENCE_QUERY = "SELECT name FROM sqlite_master WHERE type='table' AND name = '";
 
     private SqliteDialect() {}
@@ -33,13 +35,13 @@ public final class SqliteDialect implements SqlDialect {
     }
 
     @Override
-    public String integerType() {
-        return INTEGER_TYPE;
+    public String textType() {
+        return TEXT_TYPE;
     }
 
     @Override
-    public String textType() {
-        return TEXT_TYPE;
+    public String decimalType() {
+        return DECIMAL_TYPE;
     }
 
     @Override
@@ -68,8 +70,18 @@ public final class SqliteDialect implements SqlDialect {
     }
 
     @Override
+    public String createSeq(String seqName, String tableName) {
+        return null;
+    }
+
+    @Override
     public String sequenceCurrentValueSql(@Nullable String tableName, @Nullable String sequenceName) {
-        return SEQUENCE_CURRENT_VALUE_SQL;
+        return SEQUENCE_CURRENT_VALUE_SQL + '\'' + tableName + '\'';
+    }
+
+    @Override
+    public String sequenceSetValueSql(@Nullable String tableName, @Nullable String sequenceName) {
+        return SEQUENCE_SET_VALUE_SQL + '\'' + tableName + '\'';
     }
 
     @Override
@@ -109,6 +121,24 @@ public final class SqliteDialect implements SqlDialect {
             sb.append(whereClause);
         }
         return sb.toString();
+    }
+
+    @Override
+    public Object translateForDb(Object object) {
+        if (object instanceof BigDecimal) {
+            return ((BigDecimal) object).stripTrailingZeros().toPlainString();
+        }
+        return object;
+    }
+
+    @Override
+    public <T> T translateFromDb(Object object, Class<T> type) {
+        if (BigDecimal.class.equals(type) && object instanceof CharSequence) {
+            //noinspection unchecked
+            return (T) new BigDecimal(object.toString());
+        }
+        //noinspection unchecked
+        return (T) object;
     }
 
 }

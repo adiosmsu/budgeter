@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectRepository, JdbcRepository<FundsMutationSubject> {
 
     public static final String TABLE_NAME = "funds_mutation_subject";
+    public static final String SEQ_NAME = "seq_funds_mutation_subject";
     public static final String INDEX_NAME = "ix_funds_mutation_subject_name";
     public static final String INDEX_PARENT = "ix_funds_mutation_subject_parent";
     public static final String COL_ID = "id";
@@ -90,6 +91,11 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
         return COL_ID;
     }
 
+    @Override
+    public String getSeqName() {
+        return SEQ_NAME;
+    }
+
 
     @Override
     public Optional<FundsMutationSubject> findByName(String name) {
@@ -134,6 +140,27 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     }
 
 
+    String[] getCreateTableSql() {
+        return new String[] {
+                getActualCreateTableSql(),
+                sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
+                sqlDialect.createIndexSql(INDEX_NAME, TABLE_NAME, true, COL_NAME),
+                sqlDialect.createIndexSql(INDEX_PARENT, TABLE_NAME, false, COL_PARENT_ID)
+        };
+    }
+
+    private String getActualCreateTableSql() {
+        return SqlDialect.CREATE_TABLE + TABLE_NAME
+                + " (" + COL_ID + " BIGINT " + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
+                    + COL_PARENT_ID + " BIGINT, "
+                    + COL_ROOT_ID + " BIGINT, "
+                    + COL_CHILD_FLAG + " BOOLEAN, "
+                    + COL_TYPE + " INT, "
+                    + COL_NAME + ' ' + sqlDialect.textType()
+                + ')';
+    }
+
+
     final class SubjectRowMapper implements AgnosticRowMapper<FundsMutationSubject> {
 
         @Override
@@ -160,4 +187,5 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
         }
 
     }
+
 }

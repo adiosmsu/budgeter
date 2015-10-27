@@ -19,6 +19,8 @@ public final class SourcingBundle implements Bundle {
 
     private final CurrencyExchangeEventJdbcRepository currencyExchangeEvents;
     private final FundsMutationAgentJdbcRepository fundsMutationAgents;
+    private final FundsMutationSubjectJdbcRepository fundsMutationSubjects;
+    private final JdbcTreasury treasury;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
@@ -26,6 +28,8 @@ public final class SourcingBundle implements Bundle {
         jdbcTemplateProvider = new SafeJdbcTemplateProvider(dataSource);
         currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
         fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
+        fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
+        treasury = new JdbcTreasury(jdbcTemplateProvider);
     }
 
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -41,7 +45,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public FundsMutationSubjectRepository fundsMutationSubjects() {
-        return null;
+        return fundsMutationSubjects;
     }
 
     @Override
@@ -66,7 +70,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public Treasury treasury() {
-        return null;
+        return treasury;
     }
 
     @Override
@@ -89,6 +93,9 @@ public final class SourcingBundle implements Bundle {
         final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
         if (jdbcTemplate.query(sqlDialect.tableExistsSql(FundsMutationAgentJdbcRepository.TABLE_NAME), Common.STRING_ROW_MAPPER).isEmpty()) {
             Common.executeMultipleSql(jdbcTemplate, fundsMutationAgents.getCreateTableSql());
+            Common.executeMultipleSql(jdbcTemplate, fundsMutationSubjects.getCreateTableSql());
+            Common.executeMultipleSql(jdbcTemplate, treasury.getCreateTableSql());
+
             // TODO: finish
         }
     }

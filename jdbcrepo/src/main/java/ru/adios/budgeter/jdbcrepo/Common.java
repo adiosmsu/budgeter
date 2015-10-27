@@ -61,7 +61,9 @@ class Common {
 
     static void executeMultipleSql(JdbcTemplate jdbcTemplate, String[] createTableSql) {
         for (String sql : createTableSql) {
-            jdbcTemplate.execute(sql);
+            if (sql != null) {
+                jdbcTemplate.execute(sql);
+            }
         }
     }
 
