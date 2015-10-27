@@ -31,7 +31,6 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     }
 
     final AtomicInteger idSequence = new AtomicInteger(1);
-    private final static int RATES_ID = 1;
 
     private final ConcurrentHashMap<Integer, FundsMutationSubject> table = new ConcurrentHashMap<Integer, FundsMutationSubject>(100, 0.75f, 4);
     private final ConcurrentHashMap<String, Integer> nameUniqueIndex = new ConcurrentHashMap<String, Integer>(100, 0.75f, 4);
@@ -52,17 +51,12 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
     }
 
     @Override
-    public long idSeqNext() {
-        return idSequence.incrementAndGet();
-    }
-
-    @Override
     public long getIdForRateSubject() {
-        return RATES_ID;
+        return fmsRepoDef.getIdForRateSubject();
     }
 
     @Override
-    public void rawAddition(final FundsMutationSubject subject) {
+    public FundsMutationSubject rawAddition(final FundsMutationSubject subject) {
         if (subject.id.isPresent()) {
             final int idConcrete = (int) subject.id.getAsLong();
             checkState(PseudoTable.Static.nonUniqueIndexedInsert(
@@ -84,13 +78,13 @@ public final class FundsMutationSubjectPseudoTable implements FundsMutationSubje
                         }
                     }
             ).equals(subject), "Id %s occupied", idConcrete);
+            return subject;
         } else {
-            rawAddition(FundsMutationSubject.builder(this)
+            return rawAddition(FundsMutationSubject.builder(this)
                     .setFundsMutationSubject(subject)
                     .setId(idSequence.incrementAndGet())
                     .build());
         }
-
     }
 
     @Override

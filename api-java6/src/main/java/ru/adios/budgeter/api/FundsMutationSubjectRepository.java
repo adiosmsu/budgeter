@@ -12,6 +12,8 @@ import java8.util.stream.Stream;
  */
 public interface FundsMutationSubjectRepository extends Provider<FundsMutationSubject, Long> {
 
+    int RATES_ID = 1;
+
     final class Default {
 
         private final FundsMutationSubjectRepository fundsMutationSubjectRepository;
@@ -21,17 +23,15 @@ public interface FundsMutationSubjectRepository extends Provider<FundsMutationSu
         }
 
         public FundsMutationSubject addSubject(FundsMutationSubject subject) {
-            if (subject.parentId == 0) {
-                final FundsMutationSubject.Builder builder = FundsMutationSubject.builder(fundsMutationSubjectRepository).setFundsMutationSubject(subject);
-                if (!subject.id.isPresent())
-                    builder.setId(fundsMutationSubjectRepository.idSeqNext());
-                subject = builder.build();
-            }
-            fundsMutationSubjectRepository.rawAddition(subject);
+            subject = fundsMutationSubjectRepository.rawAddition(subject);
             if (subject.parentId != 0) {
                 fundsMutationSubjectRepository.updateChildFlag(subject.parentId);
             }
             return subject;
+        }
+
+        public long getIdForRateSubject() {
+            return RATES_ID;
         }
 
     }
@@ -46,11 +46,9 @@ public interface FundsMutationSubjectRepository extends Provider<FundsMutationSu
 
     FundsMutationSubject addSubject(FundsMutationSubject subject); // default in java8
 
-    void rawAddition(FundsMutationSubject subject);
+    FundsMutationSubject rawAddition(FundsMutationSubject subject);
 
-    long idSeqNext();
-
-    long getIdForRateSubject();
+    long getIdForRateSubject(); // default in java8
 
     void updateChildFlag(long id);
 

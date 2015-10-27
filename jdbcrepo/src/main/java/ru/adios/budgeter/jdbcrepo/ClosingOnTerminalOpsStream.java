@@ -21,6 +21,15 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClosingOnTerminalOpsStream.class);
 
+    private static <T> void closeSilently(AutoCloseable delegate) {
+        try {
+            delegate.close();
+        } catch (Exception ignore) {
+            logger.warn("Delegate stream close exception", ignore);
+        }
+    }
+
+
     private final Stream<T> delegate;
 
     ClosingOnTerminalOpsStream(Stream<T> delegate) {
@@ -30,35 +39,35 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
     @Override
     public boolean allMatch(Predicate<? super T> predicate) {
         final boolean ret = delegate.allMatch(predicate);
-        closeSilently();
+        closeSilently(delegate);
         return ret;
     }
 
     @Override
     public boolean anyMatch(Predicate<? super T> predicate) {
         final boolean ret = delegate.anyMatch(predicate);
-        closeSilently();
+        closeSilently(delegate);
         return ret;
     }
 
     @Override
     public <R, A> R collect(Collector<? super T, A, R> collector) {
         final R collected = delegate.collect(collector);
-        closeSilently();
+        closeSilently(delegate);
         return collected;
     }
 
     @Override
     public <R> R collect(Supplier<R> supplier, BiConsumer<R, ? super T> accumulator, BiConsumer<R, R> combiner) {
         final R collected = delegate.collect(supplier, accumulator, combiner);
-        closeSilently();
+        closeSilently(delegate);
         return collected;
     }
 
     @Override
     public long count() {
         final long count = delegate.count();
-        closeSilently();
+        closeSilently(delegate);
         return count;
     }
 
@@ -75,14 +84,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
     @Override
     public Optional<T> findAny() {
         final Optional<T> any = delegate.findAny();
-        closeSilently();
+        closeSilently(delegate);
         return any;
     }
 
     @Override
     public Optional<T> findFirst() {
         final Optional<T> first = delegate.findFirst();
-        closeSilently();
+        closeSilently(delegate);
         return first;
     }
 
@@ -109,13 +118,13 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
     @Override
     public void forEach(Consumer<? super T> action) {
         delegate.forEach(action);
-        closeSilently();
+        closeSilently(delegate);
     }
 
     @Override
     public void forEachOrdered(Consumer<? super T> action) {
         delegate.forEachOrdered(action);
-        closeSilently();
+        closeSilently(delegate);
     }
 
     @Override
@@ -146,21 +155,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
     @Override
     public Optional<T> max(Comparator<? super T> comparator) {
         final Optional<T> max = delegate.max(comparator);
-        closeSilently();
+        closeSilently(delegate);
         return max;
     }
 
     @Override
     public Optional<T> min(Comparator<? super T> comparator) {
         final Optional<T> min = delegate.min(comparator);
-        closeSilently();
+        closeSilently(delegate);
         return min;
     }
 
     @Override
     public boolean noneMatch(Predicate<? super T> predicate) {
         final boolean ret = delegate.noneMatch(predicate);
-        closeSilently();
+        closeSilently(delegate);
         return ret;
     }
 
@@ -172,21 +181,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
     @Override
     public Optional<T> reduce(BinaryOperator<T> accumulator) {
         final Optional<T> reduce = delegate.reduce(accumulator);
-        closeSilently();
+        closeSilently(delegate);
         return reduce;
     }
 
     @Override
     public T reduce(T identity, BinaryOperator<T> accumulator) {
         final T reduce = delegate.reduce(identity, accumulator);
-        closeSilently();
+        closeSilently(delegate);
         return reduce;
     }
 
     @Override
     public <U> U reduce(U identity, BiFunction<U, ? super T, U> accumulator, BinaryOperator<U> combiner) {
         final U reduce = delegate.reduce(identity, accumulator, combiner);
-        closeSilently();
+        closeSilently(delegate);
         return reduce;
     }
 
@@ -208,14 +217,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
     @Override
     public Object[] toArray() {
         final Object[] objects = delegate.toArray();
-        closeSilently();
+        closeSilently(delegate);
         return objects;
     }
 
     @Override
     public <A> A[] toArray(IntFunction<A[]> generator) {
         final A[] array = delegate.toArray(generator);
-        closeSilently();
+        closeSilently(delegate);
         return array;
     }
 
@@ -259,14 +268,6 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         delegate.close();
     }
 
-    private void closeSilently() {
-        try {
-            delegate.close();
-        } catch (RuntimeException ignore) {
-            logger.warn("Delegate stream close exception", ignore);
-        }
-    }
-
     public static final class AutoClosingSpliterator<T> implements Spliterator<T> {
 
         private final Spliterator<T> d;
@@ -291,7 +292,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(Consumer<? super T> action) {
             final boolean advance = d.tryAdvance(action);
             if (!advance) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.delegate);
             }
             return advance;
         }
@@ -317,7 +318,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean next = d.hasNext();
             if (!next) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.delegate);
             }
             return next;
         }
@@ -329,7 +330,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public void close() {
-            streamDelegate.closeSilently();
+            closeSilently(streamDelegate.delegate);
         }
 
     }
@@ -342,25 +343,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
             this.d = d;
         }
 
-        private void closeSilently() {
-            try {
-                d.close();
-            } catch (RuntimeException ignore) {
-                logger.warn("Delegate stream close exception", ignore);
-            }
-        }
-
         @Override
         public boolean allMatch(IntPredicate predicate) {
             final boolean ret = d.allMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
         @Override
         public boolean anyMatch(IntPredicate predicate) {
             final boolean ret = d.anyMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
@@ -377,7 +370,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalDouble average() {
             final OptionalDouble average = d.average();
-            closeSilently();
+            closeSilently(d);
             return average;
         }
 
@@ -389,14 +382,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public <R> R collect(Supplier<R> supplier, ObjIntConsumer<R> accumulator, BiConsumer<R, R> combiner) {
             final R collected = d.collect(supplier, accumulator, combiner);
-            closeSilently();
+            closeSilently(d);
             return collected;
         }
 
         @Override
         public long count() {
             final long count = d.count();
-            closeSilently();
+            closeSilently(d);
             return count;
         }
 
@@ -413,14 +406,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalInt findAny() {
             final OptionalInt any = d.findAny();
-            closeSilently();
+            closeSilently(d);
             return any;
         }
 
         @Override
         public OptionalInt findFirst() {
             final OptionalInt first = d.findFirst();
-            closeSilently();
+            closeSilently(d);
             return first;
         }
 
@@ -432,13 +425,13 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public void forEach(IntConsumer action) {
             d.forEach(action);
-            closeSilently();
+            closeSilently(d);
         }
 
         @Override
         public void forEachOrdered(IntConsumer action) {
             d.forEachOrdered(action);
-            closeSilently();
+            closeSilently(d);
         }
 
         @Override
@@ -474,21 +467,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalInt max() {
             final OptionalInt max = d.max();
-            closeSilently();
+            closeSilently(d);
             return max;
         }
 
         @Override
         public OptionalInt min() {
             final OptionalInt min = d.min();
-            closeSilently();
+            closeSilently(d);
             return min;
         }
 
         @Override
         public boolean noneMatch(IntPredicate predicate) {
             final boolean ret = d.noneMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
@@ -505,14 +498,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public int reduce(int identity, IntBinaryOperator op) {
             final int reduced = d.reduce(identity, op);
-            closeSilently();
+            closeSilently(d);
             return reduced;
         }
 
         @Override
         public OptionalInt reduce(IntBinaryOperator op) {
             final OptionalInt reduce = d.reduce(op);
-            closeSilently();
+            closeSilently(d);
             return reduce;
         }
 
@@ -539,21 +532,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public int sum() {
             final int sum = d.sum();
-            closeSilently();
+            closeSilently(d);
             return sum;
         }
 
         @Override
         public IntSummaryStatistics summaryStatistics() {
             final IntSummaryStatistics statistics = d.summaryStatistics();
-            closeSilently();
+            closeSilently(d);
             return statistics;
         }
 
         @Override
         public int[] toArray() {
             final int[] ints = d.toArray();
-            closeSilently();
+            closeSilently(d);
             return ints;
         }
 
@@ -583,14 +576,6 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         private final LongStream d;
 
-        private void closeSilently() {
-            try {
-                d.close();
-            } catch (RuntimeException ignore) {
-                logger.warn("Delegate stream close exception", ignore);
-            }
-        }
-
         public AutoClosingLongStream(LongStream d) {
             this.d = d;
         }
@@ -598,14 +583,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public boolean allMatch(LongPredicate predicate) {
             final boolean ret = d.allMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
         @Override
         public boolean anyMatch(LongPredicate predicate) {
             final boolean ret = d.anyMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
@@ -617,7 +602,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalDouble average() {
             final OptionalDouble average = d.average();
-            closeSilently();
+            closeSilently(d);
             return average;
         }
 
@@ -629,14 +614,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public <R> R collect(Supplier<R> supplier, ObjLongConsumer<R> accumulator, BiConsumer<R, R> combiner) {
             final R collected = d.collect(supplier, accumulator, combiner);
-            closeSilently();
+            closeSilently(d);
             return collected;
         }
 
         @Override
         public long count() {
             final long count = d.count();
-            closeSilently();
+            closeSilently(d);
             return count;
         }
 
@@ -653,14 +638,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalLong findAny() {
             final OptionalLong any = d.findAny();
-            closeSilently();
+            closeSilently(d);
             return any;
         }
 
         @Override
         public OptionalLong findFirst() {
             final OptionalLong first = d.findFirst();
-            closeSilently();
+            closeSilently(d);
             return first;
         }
 
@@ -672,13 +657,13 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public void forEach(LongConsumer action) {
             d.forEach(action);
-            closeSilently();
+            closeSilently(d);
         }
 
         @Override
         public void forEachOrdered(LongConsumer action) {
             d.forEachOrdered(action);
-            closeSilently();
+            closeSilently(d);
         }
 
         @Override
@@ -714,21 +699,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalLong max() {
             final OptionalLong max = d.max();
-            closeSilently();
+            closeSilently(d);
             return max;
         }
 
         @Override
         public OptionalLong min() {
             final OptionalLong min = d.min();
-            closeSilently();
+            closeSilently(d);
             return min;
         }
 
         @Override
         public boolean noneMatch(LongPredicate predicate) {
             final boolean ret = d.noneMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
@@ -745,14 +730,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public long reduce(long identity, LongBinaryOperator op) {
             final long reduced = d.reduce(identity, op);
-            closeSilently();
+            closeSilently(d);
             return reduced;
         }
 
         @Override
         public OptionalLong reduce(LongBinaryOperator op) {
             final OptionalLong reduce = d.reduce(op);
-            closeSilently();
+            closeSilently(d);
             return reduce;
         }
 
@@ -779,21 +764,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public long sum() {
             final long sum = d.sum();
-            closeSilently();
+            closeSilently(d);
             return sum;
         }
 
         @Override
         public LongSummaryStatistics summaryStatistics() {
             final LongSummaryStatistics statistics = d.summaryStatistics();
-            closeSilently();
+            closeSilently(d);
             return statistics;
         }
 
         @Override
         public long[] toArray() {
             final long[] ints = d.toArray();
-            closeSilently();
+            closeSilently(d);
             return ints;
         }
 
@@ -827,32 +812,24 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
             this.d = d;
         }
 
-        private void closeSilently() {
-            try {
-                d.close();
-            } catch (RuntimeException ignore) {
-                logger.warn("Delegate stream close exception", ignore);
-            }
-        }
-
         @Override
         public boolean allMatch(DoublePredicate predicate) {
             final boolean ret = d.allMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
         @Override
         public boolean anyMatch(DoublePredicate predicate) {
             final boolean ret = d.anyMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
         @Override
         public OptionalDouble average() {
             final OptionalDouble average = d.average();
-            closeSilently();
+            closeSilently(d);
             return average;
         }
 
@@ -864,14 +841,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public <R> R collect(Supplier<R> supplier, ObjDoubleConsumer<R> accumulator, BiConsumer<R, R> combiner) {
             final R collected = d.collect(supplier, accumulator, combiner);
-            closeSilently();
+            closeSilently(d);
             return collected;
         }
 
         @Override
         public long count() {
             final long count = d.count();
-            closeSilently();
+            closeSilently(d);
             return count;
         }
 
@@ -888,14 +865,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalDouble findAny() {
             final OptionalDouble any = d.findAny();
-            closeSilently();
+            closeSilently(d);
             return any;
         }
 
         @Override
         public OptionalDouble findFirst() {
             final OptionalDouble first = d.findFirst();
-            closeSilently();
+            closeSilently(d);
             return first;
         }
 
@@ -907,13 +884,13 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public void forEach(DoubleConsumer action) {
             d.forEach(action);
-            closeSilently();
+            closeSilently(d);
         }
 
         @Override
         public void forEachOrdered(DoubleConsumer action) {
             d.forEachOrdered(action);
-            closeSilently();
+            closeSilently(d);
         }
 
         @Override
@@ -949,21 +926,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public OptionalDouble max() {
             final OptionalDouble max = d.max();
-            closeSilently();
+            closeSilently(d);
             return max;
         }
 
         @Override
         public OptionalDouble min() {
             final OptionalDouble min = d.min();
-            closeSilently();
+            closeSilently(d);
             return min;
         }
 
         @Override
         public boolean noneMatch(DoublePredicate predicate) {
             final boolean ret = d.noneMatch(predicate);
-            closeSilently();
+            closeSilently(d);
             return ret;
         }
 
@@ -980,14 +957,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public double reduce(double identity, DoubleBinaryOperator op) {
             final double reduced = d.reduce(identity, op);
-            closeSilently();
+            closeSilently(d);
             return reduced;
         }
 
         @Override
         public OptionalDouble reduce(DoubleBinaryOperator op) {
             final OptionalDouble reduce = d.reduce(op);
-            closeSilently();
+            closeSilently(d);
             return reduce;
         }
 
@@ -1014,21 +991,21 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         @Override
         public double sum() {
             final double sum = d.sum();
-            closeSilently();
+            closeSilently(d);
             return sum;
         }
 
         @Override
         public DoubleSummaryStatistics summaryStatistics() {
             final DoubleSummaryStatistics statistics = d.summaryStatistics();
-            closeSilently();
+            closeSilently(d);
             return statistics;
         }
 
         @Override
         public double[] toArray() {
             final double[] ints = d.toArray();
-            closeSilently();
+            closeSilently(d);
             return ints;
         }
 
@@ -1078,7 +1055,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(IntConsumer action) {
             final boolean ret = d.tryAdvance(action);
             if (!ret) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.d);
             }
             return ret;
         }
@@ -1114,7 +1091,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(LongConsumer action) {
             final boolean ret = d.tryAdvance(action);
             if (!ret) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.d);
             }
             return ret;
         }
@@ -1150,7 +1127,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(DoubleConsumer action) {
             final boolean ret = d.tryAdvance(action);
             if (!ret) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.d);
             }
             return ret;
         }
@@ -1181,14 +1158,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean n = d.hasNext();
             if (!n) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.d);
             }
             return n;
         }
 
         @Override
         public void close() throws Exception {
-            streamDelegate.closeSilently();
+            closeSilently(streamDelegate.d);
         }
 
     }
@@ -1212,14 +1189,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean n = d.hasNext();
             if (!n) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.d);
             }
             return n;
         }
 
         @Override
         public void close() throws Exception {
-            streamDelegate.closeSilently();
+            closeSilently(streamDelegate.d);
         }
 
     }
@@ -1243,14 +1220,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean n = d.hasNext();
             if (!n) {
-                streamDelegate.closeSilently();
+                closeSilently(streamDelegate.d);
             }
             return n;
         }
 
         @Override
         public void close() throws Exception {
-            streamDelegate.closeSilently();
+            closeSilently(streamDelegate.d);
         }
 
     }

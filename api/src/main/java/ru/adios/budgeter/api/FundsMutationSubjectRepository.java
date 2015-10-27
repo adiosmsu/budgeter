@@ -13,6 +13,8 @@ import java.util.stream.Stream;
  */
 public interface FundsMutationSubjectRepository extends Provider<FundsMutationSubject, Long> {
 
+    int RATES_ID = 1;
+
     Optional<FundsMutationSubject> findByName(String name);
 
     Stream<FundsMutationSubject> findByParent(long parentId);
@@ -22,24 +24,18 @@ public interface FundsMutationSubjectRepository extends Provider<FundsMutationSu
     ImmutableList<FundsMutationSubject> nameLikeSearch(String str);
 
     default FundsMutationSubject addSubject(FundsMutationSubject subject) {
-        if (subject.parentId == 0) {
-            final FundsMutationSubject.Builder builder = FundsMutationSubject.builder(this).setFundsMutationSubject(subject);
-            if (!subject.id.isPresent())
-                builder.setId(idSeqNext());
-            subject = builder.build();
-        }
-        rawAddition(subject);
+        subject = rawAddition(subject);
         if (subject.parentId != 0) {
             updateChildFlag(subject.parentId);
         }
         return subject;
     }
 
-    void rawAddition(FundsMutationSubject subject);
+    FundsMutationSubject rawAddition(FundsMutationSubject subject);
 
-    long idSeqNext();
-
-    long getIdForRateSubject();
+    default long getIdForRateSubject() {
+        return RATES_ID;
+    }
 
     void updateChildFlag(long id);
 

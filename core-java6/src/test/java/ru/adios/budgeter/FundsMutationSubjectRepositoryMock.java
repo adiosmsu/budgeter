@@ -49,18 +49,13 @@ public class FundsMutationSubjectRepositoryMock implements FundsMutationSubjectR
     }
 
     @Override
-    public long idSeqNext() {
-        return pseudoTable.idSeqNext();
-    }
-
-    @Override
     public long getIdForRateSubject() {
         return pseudoTable.getIdForRateSubject();
     }
 
     @Override
-    public void rawAddition(FundsMutationSubject subject) {
-        pseudoTable.rawAddition(subject);
+    public FundsMutationSubject rawAddition(FundsMutationSubject subject) {
+        return pseudoTable.rawAddition(subject);
     }
 
     @Override

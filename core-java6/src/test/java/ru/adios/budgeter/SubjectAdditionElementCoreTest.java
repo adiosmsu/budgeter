@@ -19,7 +19,6 @@ public class SubjectAdditionElementCoreTest {
     public void testSubmit() throws Exception {
         Schema.clearSchemaStatic();
 
-        final long id = Schema.FUNDS_MUTATION_SUBJECTS.idSeqNext() + 1;
         final FundsMutationSubjectRepositoryMock subjRepo = new FundsMutationSubjectRepositoryMock();
         SubjectAdditionElementCore core = new SubjectAdditionElementCore(subjRepo);
         core.setName("");
@@ -34,6 +33,8 @@ public class SubjectAdditionElementCoreTest {
 
         core.setName("Еда");
         submit = core.submit();
+        //noinspection ConstantConditions
+        final long id = submit.submitResult.id.getAsLong();
         assertFalse(submit.isSuccessful());
         assertFalse(isFieldInError(submit, SubjectAdditionElementCore.FIELD_NAME));
 
@@ -81,8 +82,8 @@ public class SubjectAdditionElementCoreTest {
                 "Bread fault",
                 FundsMutationSubject.builder(subjRepo)
                         .setName("Хлеб")
-                        .setParentId((int) id)
-                        .setRootId((int) id)
+                        .setParentId(id)
+                        .setRootId(id)
                         .setType(FundsMutationSubject.Type.PRODUCT)
                         .build(),
                 subjOpt.get()

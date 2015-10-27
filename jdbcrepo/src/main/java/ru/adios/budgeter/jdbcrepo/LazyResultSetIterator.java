@@ -1,5 +1,8 @@
 package ru.adios.budgeter.jdbcrepo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.Nullable;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,6 +40,8 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
                         .onClose(iterator::close)
         );
     }
+
+    private static final Logger logger = LoggerFactory.getLogger(LazyResultSetIterator.class);
 
     private final Supplier<ResultSet> resultSetSupplier;
     private final Function<ResultSet, T> retriever;
@@ -112,7 +117,9 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
         if (resultSet != null && !closed) {
             try {
                 resultSet.close();
-            } catch (SQLException ignore) {}
+            } catch (SQLException ignore) {
+                logger.warn("ResultSet close exception", ignore);
+            }
         }
     }
 

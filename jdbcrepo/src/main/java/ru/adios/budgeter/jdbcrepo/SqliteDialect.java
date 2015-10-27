@@ -3,6 +3,7 @@ package ru.adios.budgeter.jdbcrepo;
 import org.intellij.lang.annotations.Language;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -71,32 +72,22 @@ public final class SqliteDialect implements SqlDialect {
         return SEQUENCE_CURRENT_VALUE_SQL;
     }
 
-    @SuppressWarnings("ForLoopReplaceableByForEach")
     @Override
-    public String insertSql(String tableName, String... columns) {
-        final StringBuilder sb = new StringBuilder(25 + tableName.length() + columns.length * 15);
+    public String insertSql(String tableName, List<String> columns) {
+        final int size = columns.size();
+        final StringBuilder sb = new StringBuilder(25 + tableName.length() + size * 15);
+
         sb.append("INSERT INTO ")
                 .append(tableName)
                 .append(" (");
-        final int columnsLength = columns.length;
-        boolean first = true;
-        for (int i = 0; i < columnsLength; i++) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(',');
-            }
-            sb.append(columns[i]);
-        }
+
+        SqlDialect.appendColumns(sb, columns);
+
         sb.append(") VALUES (");
-        first = true;
-        for (int i = 0; i < columnsLength; i++) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(',');
-            }
-            sb.append('?');
+
+        boolean first = true;
+        for (int i = 0; i < size; i++) {
+            first = SqlDialect.appendCol(sb, "?", first);
         }
         return sb.append(')').toString();
     }
@@ -107,8 +98,8 @@ public final class SqliteDialect implements SqlDialect {
     }
 
     @Override
-    public String selectSql(String tableName, @Nullable String whereClause, String... columns) {
-        final StringBuilder sb = new StringBuilder(20 + tableName.length() + columns.length * 15);
+    public String selectSql(String tableName, @Nullable String whereClause, List<String> columns) {
+        final StringBuilder sb = new StringBuilder(20 + tableName.length() + columns.size() * 15);
         sb.append("SELECT ");
         if (SqlDialect.appendColumns(sb, columns)) {
             sb.append('*');
