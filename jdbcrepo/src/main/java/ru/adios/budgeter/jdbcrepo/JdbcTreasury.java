@@ -1,6 +1,7 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.Treasury;
@@ -83,10 +84,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
     @Override
     public ImmutableList<?> decomposeObject(BalanceAccount object) {
         final Money balance = object.getBalance();
-        if (balance != null) {
-            return ImmutableList.of(object.name, object.getUnit().getNumericCode(), balance);
-        }
-        throw new IllegalArgumentException("account isn't ready for insertion");
+        return ImmutableList.of(object.name, object.getUnit().getNumericCode(), balance != null ? balance.getAmount() : BigDecimal.ZERO);
     }
 
     @Nullable
@@ -104,47 +102,81 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
 
     @Override
     public Optional<Money> amount(CurrencyUnit unit) {
-        return null;
+        final Optional<BigDecimal> val = Common.getSingleColumnOptional(
+                this,
+                sqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, COL_CURRENCY_UNIT), "sum(" + COL_BALANCE + ')'),
+                sqlDialect.getRowMapperForType(BigDecimal.class),
+                unit.getNumericCode()
+        );
+
+        return getMoneyFromVal(unit, val);
+    }
+
+    public static Optional<Money> getMoneyFromVal(CurrencyUnit unit, Optional<BigDecimal> val) {
+        if (val.isPresent()) {
+            return Optional.of(Money.of(unit, val.get()));
+        }
+        return Optional.empty();
     }
 
     @Override
     public Optional<Money> accountBalance(String accountName) {
-        return null;
+        return Common.getSingleColumnOptional(
+                this,
+                sqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, COL_NAME), COL_CURRENCY_UNIT, COL_BALANCE),
+                (AgnosticRowMapper<Money>) rs -> {
+                    final int unit = rs.getInt(1);
+                    final BigDecimal balance = getBigDecimalFromDb(rs, 2);
+                    return Money.of(CurrencyUnit.ofNumericCode(unit), balance);
+                },
+                accountName
+        );
     }
 
     @Override
     public void addAmount(Money amount, String accountName) {
-
+        final String sql = SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_BALANCE), ImmutableList.of(COL_NAME))
+                .replace(COL_BALANCE + " = ?", COL_BALANCE + " = " + COL_BALANCE + " + ?");
+        jdbcTemplateProvider.get().update(sql, sqlDialect.translateForDb(amount.getAmount()), accountName);
     }
 
     @Override
     public void registerBalanceAccount(BalanceAccount account) {
-
+        Common.insert(this, account);
     }
 
     @Override
     public Stream<CurrencyUnit> streamRegisteredCurrencies() {
-        return null;
+        final String sql = "SELECT DISTINCT " + COL_CURRENCY_UNIT + " FROM " + TABLE_NAME;
+        final String opName = "streamRegisteredCurrencies";
+        return LazyResultSetIterator.stream(
+                Common.getRsSupplier(jdbcTemplateProvider, sql, opName),
+                Common.getMappingSqlFunction(rs -> CurrencyUnit.ofNumericCode(rs.getInt(1)), sql, opName)
+        );
     }
 
     @Override
     public Stream<BalanceAccount> streamAccountsByCurrency(CurrencyUnit unit) {
-        return null;
+        return Common.streamRequest(this, ImmutableMap.of(COL_CURRENCY_UNIT, unit.getNumericCode()), "streamAccountsByCurrency");
     }
 
     @Override
     public Stream<BalanceAccount> streamRegisteredAccounts() {
-        return null;
+        return Common.streamRequestAll(this, "streamRegisteredAccounts");
     }
 
     @Override
     public BalanceAccount getAccountWithId(BalanceAccount account) {
-        return null;
+        final Optional<BalanceAccount> accountForName = getAccountForName(account.name);
+        if (accountForName.isPresent()) {
+            return accountForName.get();
+        }
+        throw new IllegalArgumentException("Account " + account + " not found if database; unable to enrich with ID");
     }
 
     @Override
     public Optional<BalanceAccount> getAccountForName(String accountName) {
-        return null;
+        return Common.getByOneColumn(accountName, COL_NAME, this);
     }
 
 
@@ -166,6 +198,10 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
                 + ')';
     }
 
+    private BigDecimal getBigDecimalFromDb(ResultSet rs, int position) throws SQLException {
+        return sqlDialect.translateFromDb(rs.getObject(position), BigDecimal.class);
+    }
+
 
     final class AccountRowMapper implements AgnosticRowMapper<Treasury.BalanceAccount> {
 
@@ -174,7 +210,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
             final long id = rs.getLong(1);
             final String name = rs.getString(2);
             final int unitCode = rs.getInt(3);
-            final BigDecimal balance = sqlDialect.translateFromDb(rs.getObject(4), BigDecimal.class);
+            final BigDecimal balance = getBigDecimalFromDb(rs, 4);
 
             if (name == null) {
                 return null;
@@ -184,4 +220,5 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
         }
 
     }
+
 }

@@ -25,7 +25,7 @@ public final class RepoFactory {
     }
 
     public FundsMutationSubjectRepository createFundsMutationSubjects() {
-        return null;
+        return new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
     }
 
     public CurrencyExchangeEventJdbcRepository createCurrencyExchangeEvents() {
@@ -45,7 +45,7 @@ public final class RepoFactory {
     }
 
     public Treasury createTreasury() {
-        return null;
+        return new JdbcTreasury(jdbcTemplateProvider);
     }
 
     public CurrencyRatesRepository createCurrencyRates() {

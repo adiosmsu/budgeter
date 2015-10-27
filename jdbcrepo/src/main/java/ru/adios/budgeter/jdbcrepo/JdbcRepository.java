@@ -49,7 +49,8 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     @Override
     default Long currentSeqValue() {
-        return Common.getSingleColumn(this, getSqlDialect().sequenceCurrentValueSql(getTableName(), getSeqName()), Common.LONG_ROW_MAPPER);
+        final SqlDialect sqlDialect = getSqlDialect();
+        return Common.getSingleColumn(this, sqlDialect.sequenceCurrentValueSql(getTableName(), getSeqName()), sqlDialect.getRowMapperForType(Long.class));
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.SQLStateSQLExceptionTranslator;
@@ -93,25 +94,30 @@ class Common {
     static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, @Nullable String opName) {
         final String sql = repo.getSqlDialect().selectSql(repo.getTableName(), null, repo.getColumnNames());
         return LazyResultSetIterator.stream(
-                Common.getRsSupplier(repo.getTemplateProvider(), sql, opName),
-                Common.getMappingSqlFunction(repo.getRowMapper(), sql, opName)
+                getRsSupplier(repo.getTemplateProvider(), sql, opName),
+                getMappingSqlFunction(repo.getRowMapper(), sql, opName)
         );
     }
 
     static <ObjType> Stream<ObjType> streamRequest(JdbcRepository<ObjType> repo, ImmutableMap<String, Object> columnToValueMap, @Nullable String opName) {
         final String sql = repo.getSqlDialect().selectSql(
                 repo.getTableName(),
-                SqlDialect.generateWhereClause(true, "=", ImmutableList.copyOf(columnToValueMap.keySet())),
+                SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, ImmutableList.copyOf(columnToValueMap.keySet())),
                 repo.getColumnNames()
         );
         return LazyResultSetIterator.stream(
-                Common.getRsSupplierWithParams(repo.getTemplateProvider(), sql, ImmutableList.copyOf(columnToValueMap.values()), opName),
-                Common.getMappingSqlFunction(repo.getRowMapper(), sql, opName)
+                getRsSupplierWithParams(repo.getTemplateProvider(), sql, ImmutableList.copyOf(columnToValueMap.values()), opName),
+                getMappingSqlFunction(repo.getRowMapper(), sql, opName)
         );
     }
 
-    static <ColType> ColType getSingleColumn(JdbcRepository repo, String sql, SingleColumnRowMapper<ColType> rowMapper) throws IncorrectResultSizeDataAccessException  {
-        return repo.getTemplateProvider().get().queryForObject(sql, rowMapper, repo.getTableName());
+    static <ColType> ColType getSingleColumn(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) throws IncorrectResultSizeDataAccessException {
+        return repo.getTemplateProvider().get().queryForObject(sql, rowMapper, params);
+    }
+
+    static <ColType> Optional<ColType> getSingleColumnOptional(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) {
+        List<ColType> list = repo.getTemplateProvider().get().query(sql, rowMapper, params);
+        return getSingleOptional(list);
     }
 
     static <ObjType> Optional<ObjType> getByOneUniqueColumn(Object column, String columnName, JdbcRepository<ObjType> repo) {
@@ -130,7 +136,7 @@ class Common {
     private static <ObjType> Optional<ObjType> innerByOneColumn(Object column, String columnName, JdbcRepository<ObjType> repo, SqlDialect.Op op, boolean unique) {
         String sql = innerByOneColumnSql(columnName, repo, op, unique);
         final List<ObjType> results = innerByOneColumnList(column, repo, sql);
-        return Common.getSingleOptional(results);
+        return getSingleOptional(results);
     }
 
     private static <ObjType> List<ObjType> innerByOneColumnList(Object column, JdbcRepository<ObjType> repo, String sql) {
@@ -143,7 +149,7 @@ class Common {
     private static <ObjType> String innerByOneColumnSql(String columnName, JdbcRepository<ObjType> repo, SqlDialect.Op op, boolean unique) {
         String sql = repo
                 .getSqlDialect()
-                .selectSql(repo.getTableName(), SqlDialect.generateWhereClause(true, op.spelling, columnName), repo.getColumnNames());
+                .selectSql(repo.getTableName(), SqlDialect.generateWhereClause(true, op, columnName), repo.getColumnNames());
         if (unique) {
             sql += " LIMIT 1";
         }

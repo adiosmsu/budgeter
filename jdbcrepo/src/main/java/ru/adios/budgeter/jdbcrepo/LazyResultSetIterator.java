@@ -29,8 +29,8 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
         return innerStream(iterator);
     }
 
-    static <T> Stream<T> stream(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever, String sql) {
-        final LazyResultSetIterator<T> iterator = new LazyResultSetIterator<>(resultSetSupplier, retriever, sql);
+    static <T> Stream<T> stream(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever, String sqlForException) {
+        final LazyResultSetIterator<T> iterator = new LazyResultSetIterator<>(resultSetSupplier, retriever, sqlForException);
         return innerStream(iterator);
     }
 

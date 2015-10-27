@@ -134,7 +134,7 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     @Override
     public void updateChildFlag(long id) {
         jdbcTemplateProvider.get().update(
-                SqlDialect.getUpdateSql(TABLE_NAME, ImmutableList.of(COL_CHILD_FLAG), ImmutableList.of(COL_ID), 1, false),
+                SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_CHILD_FLAG), ImmutableList.of(COL_ID)),
                 true, id
         );
     }

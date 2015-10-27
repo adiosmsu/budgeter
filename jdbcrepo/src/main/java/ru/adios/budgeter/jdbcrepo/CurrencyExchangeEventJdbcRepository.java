@@ -20,17 +20,22 @@ import java.util.stream.Stream;
 @ThreadSafe
 public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEventRepository {
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    public static final String TABLE_NAME = "currency_exchange_event";
+    public static final String SEQ_NAME = "seq_currency_exchange_event";
 
+
+    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
     CurrencyExchangeEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
         this.jdbcTemplateProvider = jdbcTemplateProvider;
     }
 
+
     public void setSqlDialect(SqlDialect sqlDialect) {
         this.sqlDialect = sqlDialect;
     }
+
 
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
@@ -51,5 +56,18 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     public Long currentSeqValue() {
         return null;
     }
+
+    private String getActualCreateTableSql() {
+        return ""; //TODO: impl
+    }
+
+    String[] getCreateTableSql() {
+        return new String[] {
+                getActualCreateTableSql(),
+                sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
+                // TODO: indexes
+        };
+    }
+
 
 }

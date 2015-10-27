@@ -1,5 +1,7 @@
 package ru.adios.budgeter.jdbcrepo;
 
+import org.springframework.jdbc.core.SingleColumnRowMapper;
+
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
@@ -13,11 +15,11 @@ import java.util.function.Consumer;
  */
 public interface SqlDialect {
 
-    static String generateWhereClause(boolean andIfTrue, String op, String... columns) {
+    static String generateWhereClause(boolean andIfTrue, Op op, String... columns) {
         return generateWhereClause(andIfTrue, op, Arrays.asList(columns));
     }
 
-    static String generateWhereClause(boolean andIfTrue, String op, List<String> columns) {
+    static String generateWhereClause(boolean andIfTrue, Op op, List<String> columns) {
         final StringBuilder sb = new StringBuilder(25 * columns.size());
         boolean first = true;
         for (final String c : columns) {
@@ -26,7 +28,7 @@ public interface SqlDialect {
             } else {
                 sb.append(andIfTrue ? " AND" : " OR");
             }
-            sb.append(' ').append(c).append(' ').append(op).append(" ?");
+            sb.append(' ').append(c).append(' ').append(op.spelling).append(" ?");
         }
         return sb.toString();
     }
@@ -67,6 +69,10 @@ public interface SqlDialect {
         }
         sb.append(col);
         return false;
+    }
+
+    static String getUpdateSqlStandard(String tableName, List<String> changingColumns, List<String> selectingColumns) {
+        return getUpdateSql(tableName, changingColumns, selectingColumns, 1, false);
     }
 
     static String getUpdateSql(String tableName, List<String> changingColumns, List<String> selectingColumns, int rowsNumber, boolean opt) {
@@ -183,5 +189,7 @@ public interface SqlDialect {
     Object translateForDb(Object object);
 
     <T> T translateFromDb(Object object, Class<T> type);
+
+    <T> SingleColumnRowMapper<T> getRowMapperForType(Class<T> type);
 
 }

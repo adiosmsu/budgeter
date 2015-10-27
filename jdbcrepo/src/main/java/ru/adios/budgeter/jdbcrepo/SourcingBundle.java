@@ -36,6 +36,8 @@ public final class SourcingBundle implements Bundle {
         this.sqlDialect = sqlDialect;
         currencyExchangeEvents.setSqlDialect(sqlDialect);
         fundsMutationAgents.setSqlDialect(sqlDialect);
+        fundsMutationSubjects.setSqlDialect(sqlDialect);
+        treasury.setSqlDialect(sqlDialect);
         //TODO: finish
     }
 
@@ -92,6 +94,7 @@ public final class SourcingBundle implements Bundle {
     public void createSchemaIfNeeded() {
         final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
         if (jdbcTemplate.query(sqlDialect.tableExistsSql(FundsMutationAgentJdbcRepository.TABLE_NAME), Common.STRING_ROW_MAPPER).isEmpty()) {
+            Common.executeMultipleSql(jdbcTemplate, currencyExchangeEvents.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, fundsMutationAgents.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, fundsMutationSubjects.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, treasury.getCreateTableSql());

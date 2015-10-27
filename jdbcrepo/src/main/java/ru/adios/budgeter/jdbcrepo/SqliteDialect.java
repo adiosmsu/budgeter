@@ -1,9 +1,12 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import org.intellij.lang.annotations.Language;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -18,8 +21,9 @@ public final class SqliteDialect implements SqlDialect {
 
     public static final SqliteDialect INSTANCE = new SqliteDialect();
 
+    private static final int DECIMAL_SCALE = 8;
     private static final String TEXT_TYPE = "TEXT";
-    private static final String DECIMAL_TYPE = TEXT_TYPE;
+    private static final String DECIMAL_TYPE = "INTEGER";
     private static final String PRIMARY_KEY_WITH_NEXT_VALUE = "PRIMARY KEY AUTOINCREMENT";
 
     @Language("SQLite")
@@ -126,19 +130,47 @@ public final class SqliteDialect implements SqlDialect {
     @Override
     public Object translateForDb(Object object) {
         if (object instanceof BigDecimal) {
-            return ((BigDecimal) object).stripTrailingZeros().toPlainString();
+            BigDecimal dec = ((BigDecimal) object).stripTrailingZeros();
+            int scale = dec.scale();
+
+            if (scale >= 0) {
+                if (scale > DECIMAL_SCALE) {
+                    dec = dec.scaleByPowerOfTen(DECIMAL_SCALE - scale);
+                    scale = dec.scale();
+                }
+                return dec.unscaledValue().longValue() * 10 ^ (DECIMAL_SCALE - scale);
+            } else {
+                return dec.toBigInteger().longValue() * 10 ^ DECIMAL_SCALE;
+            }
         }
         return object;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> T translateFromDb(Object object, Class<T> type) {
-        if (BigDecimal.class.equals(type) && object instanceof CharSequence) {
-            //noinspection unchecked
-            return (T) new BigDecimal(object.toString());
+        if (BigDecimal.class.equals(type) && object instanceof Number) {
+            return (T) BigDecimal.valueOf(((Number) object).longValue(), DECIMAL_SCALE).stripTrailingZeros();
         }
-        //noinspection unchecked
         return (T) object;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> SingleColumnRowMapper<T> getRowMapperForType(Class<T> type) {
+        if (type.equals(Long.class)) {
+            return (SingleColumnRowMapper<T>) Common.LONG_ROW_MAPPER;
+        } else if (type.equals(String.class)) {
+            return (SingleColumnRowMapper<T>) Common.STRING_ROW_MAPPER;
+        } else if (type.equals(BigDecimal.class)) {
+            return new SingleColumnRowMapper<T>(type) {
+                @Override
+                protected Object getColumnValue(ResultSet rs, int index, Class<?> requiredType) throws SQLException {
+                    return translateFromDb(super.getColumnValue(rs, index, requiredType), type);
+                }
+            };
+        }
+        throw new IllegalArgumentException(type.toString() + " unsupported");
     }
 
 }
