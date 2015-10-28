@@ -116,8 +116,12 @@ class Common {
     }
 
     static <ColType> Optional<ColType> getSingleColumnOptional(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) {
-        List<ColType> list = repo.getTemplateProvider().get().query(sql, rowMapper, params);
+        List<ColType> list = getSingleColumnList(repo, sql, rowMapper, params);
         return getSingleOptional(list);
+    }
+
+    static <ColType> List<ColType> getSingleColumnList(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) {
+        return repo.getTemplateProvider().get().query(sql, rowMapper, params);
     }
 
     static <ObjType> Optional<ObjType> getByOneUniqueColumn(Object column, String columnName, JdbcRepository<ObjType> repo) {

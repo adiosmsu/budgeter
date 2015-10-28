@@ -1,5 +1,7 @@
 package ru.adios.budgeter.api;
 
+import org.threeten.bp.Instant;
+import org.threeten.bp.LocalDateTime;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneOffset;
 import org.threeten.bp.format.DateTimeFormatter;
@@ -27,6 +29,10 @@ public final class UtcDay implements Comparable<UtcDay> {
 
     public UtcDay(String str, DateTimeFormatter formatter) {
         inner = DateTimeUtils.cutTime(OffsetDateTime.parse(str, formatter.withZone(ZoneOffset.UTC)));
+    }
+
+    public UtcDay(long millisFromEpoch) {
+        inner = OffsetDateTime.of(LocalDateTime.ofInstant(Instant.ofEpochMilli(millisFromEpoch), ZoneOffset.UTC), ZoneOffset.UTC);
     }
 
     @Override

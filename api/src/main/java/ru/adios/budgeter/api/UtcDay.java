@@ -3,6 +3,8 @@ package ru.adios.budgeter.api;
 import ru.adios.budgeter.DateTimeUtils;
 
 import javax.annotation.Nonnull;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +29,10 @@ public final class UtcDay implements Comparable<UtcDay> {
 
     public UtcDay(String str, DateTimeFormatter formatter) {
         inner = DateTimeUtils.cutTime(OffsetDateTime.parse(str, formatter.withZone(ZoneOffset.UTC)));
+    }
+
+    public UtcDay(long millisFromEpoch) {
+        inner = OffsetDateTime.of(LocalDateTime.ofInstant(Instant.ofEpochMilli(millisFromEpoch), ZoneOffset.UTC), ZoneOffset.UTC);
     }
 
     @Override

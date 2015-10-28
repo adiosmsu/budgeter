@@ -2,6 +2,7 @@ package ru.adios.budgeter.jdbcrepo;
 
 import org.intellij.lang.annotations.Language;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
@@ -21,9 +22,10 @@ public final class SqliteDialect implements SqlDialect {
 
     public static final SqliteDialect INSTANCE = new SqliteDialect();
 
-    private static final int DECIMAL_SCALE = 8;
+    private static final int DECIMAL_SCALE = 10;
     private static final String TEXT_TYPE = "TEXT";
-    private static final String DECIMAL_TYPE = "INTEGER";
+    private static final String NUMBER_TYPE = "INTEGER";
+    private static final String DECIMAL_TYPE = NUMBER_TYPE;
     private static final String PRIMARY_KEY_WITH_NEXT_VALUE = "PRIMARY KEY AUTOINCREMENT";
 
     @Language("SQLite")
@@ -32,6 +34,11 @@ public final class SqliteDialect implements SqlDialect {
     public static final String TABLE_EXISTENCE_QUERY = "SELECT name FROM sqlite_master WHERE type='table' AND name = '";
 
     private SqliteDialect() {}
+
+    @Override
+    public String checkNameCase(String nameCapitalized) {
+        return nameCapitalized.toLowerCase();
+    }
 
     @Override
     public String tableExistsSql(String tableName) {
@@ -46,6 +53,16 @@ public final class SqliteDialect implements SqlDialect {
     @Override
     public String decimalType() {
         return DECIMAL_TYPE;
+    }
+
+    @Override
+    public String timestampType() {
+        return TEXT_TYPE;
+    }
+
+    @Override
+    public String timestampWithoutTimezoneType() {
+        return NUMBER_TYPE;
     }
 
     @Override
@@ -142,6 +159,8 @@ public final class SqliteDialect implements SqlDialect {
             } else {
                 return dec.toBigInteger().longValue() * 10 ^ DECIMAL_SCALE;
             }
+        } else if (object instanceof UtcDay) {
+            return ((UtcDay) object).inner.toInstant().toEpochMilli();
         }
         return object;
     }
@@ -151,6 +170,8 @@ public final class SqliteDialect implements SqlDialect {
     public <T> T translateFromDb(Object object, Class<T> type) {
         if (BigDecimal.class.equals(type) && object instanceof Number) {
             return (T) BigDecimal.valueOf(((Number) object).longValue(), DECIMAL_SCALE).stripTrailingZeros();
+        } else if (UtcDay.class.equals(type) && object instanceof Number) {
+            return (T) new UtcDay(((Number) object).longValue());
         }
         return (T) object;
     }
@@ -162,15 +183,23 @@ public final class SqliteDialect implements SqlDialect {
             return (SingleColumnRowMapper<T>) Common.LONG_ROW_MAPPER;
         } else if (type.equals(String.class)) {
             return (SingleColumnRowMapper<T>) Common.STRING_ROW_MAPPER;
-        } else if (type.equals(BigDecimal.class)) {
-            return new SingleColumnRowMapper<T>(type) {
-                @Override
-                protected Object getColumnValue(ResultSet rs, int index, Class<?> requiredType) throws SQLException {
-                    return translateFromDb(super.getColumnValue(rs, index, requiredType), type);
-                }
-            };
+        } else if (type.equals(BigDecimal.class) || type.equals(UtcDay.class)) {
+            return new ArbitrarySingleColumnRowMapper<>(type);
         }
         throw new IllegalArgumentException(type.toString() + " unsupported");
+    }
+
+    private final class ArbitrarySingleColumnRowMapper<T> extends SingleColumnRowMapper<T> {
+
+        private ArbitrarySingleColumnRowMapper(Class<T> requiredType) {
+            super(requiredType);
+        }
+
+        @Override
+        protected Object getColumnValue(ResultSet rs, int index, Class<?> requiredType) throws SQLException {
+            return translateFromDb(super.getColumnValue(rs, index, requiredType), requiredType);
+        }
+
     }
 
 }

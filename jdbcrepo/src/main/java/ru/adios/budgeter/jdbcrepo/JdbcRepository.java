@@ -42,6 +42,28 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     ImmutableList<String> getColumnNames();
 
+    default ImmutableList<String> getColumnNames(boolean withId) {
+        ImmutableList<String> columnNames = getColumnNames();
+        final String idColumnName = getIdColumnName();
+
+        if (idColumnName.equals(columnNames.get(0))) {
+            if (!withId) {
+                final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
+                for (int i = 1; i < columnNames.size(); i++) {
+                    builder.add(columnNames.get(i));
+                }
+                columnNames = builder.build();
+            }
+        } else if (withId) {
+            final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
+            builder.add(idColumnName);
+            builder.addAll(columnNames);
+            columnNames = builder.build();
+        }
+
+        return columnNames;
+    }
+
     ImmutableList<?> decomposeObject(ObjType object);
 
     @Nullable
@@ -72,13 +94,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
         @Override
         public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-            ImmutableList<String> columnNames = repo.getColumnNames();
-            if (withId) {
-                final ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
-                builder.add(repo.getIdColumnName());
-                builder.addAll(columnNames);
-                columnNames = builder.build();
-            }
+            final ImmutableList<String> columnNames = repo.getColumnNames(withId);
 
             final SqlDialect sqlDialect = repo.getSqlDialect();
             final PreparedStatement statement =

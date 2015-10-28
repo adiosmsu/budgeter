@@ -7,4 +7,7 @@ package ru.adios.budgeter.api;
  * @author Mikhail Kulikov
  */
 public interface OrderedField extends RepoOption {
+
+    String name();
+
 }

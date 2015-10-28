@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -189,8 +190,29 @@ public interface CurrencyRatesProvider extends Provider<CurrencyRatesProvider.Co
         public final CurrencyUnit to;
 
         public ConversionPair(CurrencyUnit from, CurrencyUnit to) {
+            checkNotNull(from, "from");
+            checkNotNull(to, "to");
+
             this.from = from;
             this.to = to;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ConversionPair that = (ConversionPair) o;
+
+            return from.equals(that.from)
+                    && to.equals(that.to);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = from.hashCode();
+            result = 31 * result + to.hashCode();
+            return result;
         }
 
     }
@@ -202,9 +224,32 @@ public interface CurrencyRatesProvider extends Provider<CurrencyRatesProvider.Co
         public final BigDecimal rate;
 
         public ConversionRate(UtcDay day, ConversionPair pair, BigDecimal rate) {
+            checkNotNull(day, "day");
+            checkNotNull(pair, "pair");
+            checkNotNull(rate, "rate");
             this.day = day;
             this.pair = pair;
             this.rate = rate;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ConversionRate that = (ConversionRate) o;
+
+            return day.equals(that.day)
+                    && pair.equals(that.pair)
+                    && rate.equals(that.rate);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = day.hashCode();
+            result = 31 * result + pair.hashCode();
+            result = 31 * result + rate.hashCode();
+            return result;
         }
 
     }

@@ -17,6 +17,7 @@ public final class SourcingBundle implements Bundle {
 
     private final SafeJdbcTemplateProvider jdbcTemplateProvider;
 
+    private final CurrencyRatesJdbcRepository currencyRates;
     private final CurrencyExchangeEventJdbcRepository currencyExchangeEvents;
     private final FundsMutationAgentJdbcRepository fundsMutationAgents;
     private final FundsMutationSubjectJdbcRepository fundsMutationSubjects;
@@ -26,6 +27,7 @@ public final class SourcingBundle implements Bundle {
 
     public SourcingBundle(DataSource dataSource) {
         jdbcTemplateProvider = new SafeJdbcTemplateProvider(dataSource);
+        currencyRates = new CurrencyRatesJdbcRepository(jdbcTemplateProvider);
         currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
         fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
         fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
@@ -34,6 +36,7 @@ public final class SourcingBundle implements Bundle {
 
     public void setSqlDialect(SqlDialect sqlDialect) {
         this.sqlDialect = sqlDialect;
+        currencyRates.setSqlDialect(sqlDialect);
         currencyExchangeEvents.setSqlDialect(sqlDialect);
         fundsMutationAgents.setSqlDialect(sqlDialect);
         fundsMutationSubjects.setSqlDialect(sqlDialect);
@@ -77,7 +80,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public CurrencyRatesRepository currencyRates() {
-        return null;
+        return currencyRates;
     }
 
     @Override
@@ -94,6 +97,7 @@ public final class SourcingBundle implements Bundle {
     public void createSchemaIfNeeded() {
         final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
         if (jdbcTemplate.query(sqlDialect.tableExistsSql(FundsMutationAgentJdbcRepository.TABLE_NAME), Common.STRING_ROW_MAPPER).isEmpty()) {
+            Common.executeMultipleSql(jdbcTemplate, currencyRates.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, currencyExchangeEvents.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, fundsMutationAgents.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, fundsMutationSubjects.getCreateTableSql());

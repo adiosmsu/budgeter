@@ -1,6 +1,8 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import ru.adios.budgeter.api.OptLimit;
+import ru.adios.budgeter.api.OrderBy;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -15,8 +17,37 @@ import java.util.function.Consumer;
  */
 public interface SqlDialect {
 
+    static String getWhereClausePostfix(SqlDialect sqlDialect, @Nullable OptLimit limit, OrderBy... orders) {
+        final StringBuilder sb = new StringBuilder(50);
+        appendWhereClausePostfix(sb, sqlDialect, limit, orders);
+        return sb.toString();
+    }
+
+    static void appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, OrderBy... orders) {
+        if (orders.length > 0) {
+            sb.append(" ORDER BY ");
+            boolean first = false;
+            for (final OrderBy orderBy : orders) {
+                first = appendCol(sb, sqlDialect.checkNameCase(orderBy.field.name()), first);
+                sb.append(' ').append(orderBy.order.name());
+            }
+        }
+        if (limit != null) {
+            if (limit.limit > 0) {
+                sb.append(" LIMIT").append(limit.limit);
+            }
+            if (limit.offset > 0) {
+                sb.append(" OFFSET").append(limit.offset);
+            }
+        }
+    }
+
     static String generateWhereClause(boolean andIfTrue, Op op, String... columns) {
         return generateWhereClause(andIfTrue, op, Arrays.asList(columns));
+    }
+
+    static StringBuilder generateWhereClauseBuilder(boolean andIfTrue, Op op, String... columns) {
+        return generateWhereClauseBuilder(andIfTrue, op, Arrays.asList(columns));
     }
 
     static String generateWhereClause(boolean andIfTrue, Op op, List<String> columns) {
@@ -31,6 +62,20 @@ public interface SqlDialect {
             sb.append(' ').append(c).append(' ').append(op.spelling).append(" ?");
         }
         return sb.toString();
+    }
+
+    static StringBuilder generateWhereClauseBuilder(boolean andIfTrue, Op op, List<String> columns) {
+        final StringBuilder sb = new StringBuilder(25 * columns.size());
+        boolean first = true;
+        for (final String c : columns) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(andIfTrue ? " AND" : " OR");
+            }
+            sb.append(' ').append(c).append(' ').append(op.spelling).append(" ?");
+        }
+        return sb;
     }
 
     static boolean appendColumns(StringBuilder sb, String[] columns) {
@@ -156,11 +201,17 @@ public interface SqlDialect {
     String OPTIMIZED_PSEUDO_NAMED_PARAM = "ids";
 
 
+    String checkNameCase(String nameCapitalized);
+
     String tableExistsSql(String tableName);
 
     String textType();
 
     String decimalType();
+
+    String timestampType();
+
+    String timestampWithoutTimezoneType();
 
     String primaryKeyWithNextValue(@Nullable String sequence);
 

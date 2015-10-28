@@ -306,7 +306,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                     @Override
                                     public void run() {
                                         try {
-                                            ratesRepository.addRate(day, from, to, bigDecimal);
+                                            addRateToDelegate(day, from, to, bigDecimal);
                                         } catch (Throwable th) {
                                             logger.error("Rate addition (the one requested) after load from net failed", th);
                                         }
@@ -378,9 +378,9 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                             public void run() {
                                 try {
                                     if (directionFromMainToMapped) {
-                                        ratesRepository.addRate(day, mainUnit, entry.getKey(), entry.getValue());
+                                        addRateToDelegate(day, mainUnit, entry.getKey(), entry.getValue());
                                     } else {
-                                        ratesRepository.addRate(day, entry.getKey(), mainUnit, entry.getValue());
+                                        addRateToDelegate(day, entry.getKey(), mainUnit, entry.getValue());
                                     }
                                 } catch (Throwable th) {
                                     logger.error("Rate addition after load from net failed", th);
@@ -390,6 +390,12 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                         }
                 );
             }
+        }
+    }
+
+    private void addRateToDelegate(UtcDay day, CurrencyUnit from, CurrencyUnit to, BigDecimal bigDecimal) {
+        if (!ratesRepository.addRate(day, from, to, bigDecimal)) {
+            logger.error("Rate addition after load from net failed for some reason");
         }
     }
 

@@ -10,6 +10,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class OrderBy<T extends OrderedField> implements RepoOption {
 
+    public static OrderBy<OrderedFieldDefault> getDefault(String fieldName, Order order) {
+        return new OrderBy<OrderedFieldDefault>(new OrderedFieldDefault(fieldName), order);
+    }
+
     public final T field;
     public final Order order;
 
@@ -18,6 +22,21 @@ public final class OrderBy<T extends OrderedField> implements RepoOption {
         checkNotNull(field, "field");
         this.field = field;
         this.order = order;
+    }
+
+    public static final class OrderedFieldDefault implements OrderedField {
+
+        private final String n;
+
+        public OrderedFieldDefault(String n) {
+            this.n = n;
+        }
+
+        @Override
+        public String name() {
+            return n;
+        }
+
     }
 
 }
