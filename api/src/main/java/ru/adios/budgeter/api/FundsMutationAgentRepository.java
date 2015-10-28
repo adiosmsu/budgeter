@@ -17,4 +17,6 @@ public interface FundsMutationAgentRepository extends Provider<FundsMutationAgen
 
     Optional<FundsMutationAgent> findByName(String name);
 
+    FundsMutationAgent getAgentWithId(FundsMutationAgent agent);
+
 }

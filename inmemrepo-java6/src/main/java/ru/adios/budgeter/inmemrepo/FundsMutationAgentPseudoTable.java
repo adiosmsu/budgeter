@@ -36,7 +36,7 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
         if (stored == null) {
             return Optional.empty();
         }
-        return Optional.of(stored.obj);
+        return Optional.of(FundsMutationAgent.withId(stored.obj, id));
     }
 
     @Override
@@ -62,7 +62,7 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
         return StreamSupport.stream(table.values().getSpliterator(), false).map(new Function<Stored<FundsMutationAgent>, FundsMutationAgent>() {
             @Override
             public FundsMutationAgent apply(Stored<FundsMutationAgent> stored) {
-                return stored.obj;
+                return FundsMutationAgent.withId(stored.obj, stored.id);
             }
         });
     }
@@ -72,7 +72,12 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
         final Integer id = nameUniqueIndex.get(name);
         return id == null
                 ? Optional.<FundsMutationAgent>empty()
-                : Optional.of(table.get(id).obj);
+                : Optional.of(FundsMutationAgent.withId(table.get(id).obj, id.longValue()));
+    }
+
+    @Override
+    public FundsMutationAgent getAgentWithId(FundsMutationAgent agent) {
+        return findByName(agent.name).get();
     }
 
     @Override

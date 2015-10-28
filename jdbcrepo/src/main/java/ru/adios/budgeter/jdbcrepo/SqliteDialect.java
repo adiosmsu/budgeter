@@ -8,6 +8,8 @@ import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -68,6 +70,18 @@ public final class SqliteDialect implements SqlDialect {
     @Override
     public String primaryKeyWithNextValue(@Nullable String sequence) {
         return PRIMARY_KEY_WITH_NEXT_VALUE;
+    }
+
+    @Override
+    public String foreignKey(String[] columns, String otherTable, String[] otherColumns, String keyName) {
+        final StringBuilder sb = new StringBuilder(70);
+        sb.append("FOREIGN KEY(");
+        SqlDialect.appendColumns(sb, columns);
+        sb.append(") REFERENCES")
+                .append(otherTable)
+                .append('(');
+        SqlDialect.appendColumns(sb, otherColumns);
+        return sb.append(')').toString();
     }
 
     @Override
@@ -161,6 +175,8 @@ public final class SqliteDialect implements SqlDialect {
             }
         } else if (object instanceof UtcDay) {
             return ((UtcDay) object).inner.toInstant().toEpochMilli();
+        } else if (object instanceof OffsetDateTime) {
+            return ((OffsetDateTime) object).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         }
         return object;
     }
@@ -172,6 +188,8 @@ public final class SqliteDialect implements SqlDialect {
             return (T) BigDecimal.valueOf(((Number) object).longValue(), DECIMAL_SCALE).stripTrailingZeros();
         } else if (UtcDay.class.equals(type) && object instanceof Number) {
             return (T) new UtcDay(((Number) object).longValue());
+        } else if (OffsetDateTime.class.equals(type) && object instanceof CharSequence) {
+            return (T) OffsetDateTime.parse((CharSequence) object);
         }
         return (T) object;
     }
@@ -183,7 +201,7 @@ public final class SqliteDialect implements SqlDialect {
             return (SingleColumnRowMapper<T>) Common.LONG_ROW_MAPPER;
         } else if (type.equals(String.class)) {
             return (SingleColumnRowMapper<T>) Common.STRING_ROW_MAPPER;
-        } else if (type.equals(BigDecimal.class) || type.equals(UtcDay.class)) {
+        } else if (type.equals(BigDecimal.class) || type.equals(UtcDay.class) || type.equals(OffsetDateTime.class)) {
             return new ArbitrarySingleColumnRowMapper<>(type);
         }
         throw new IllegalArgumentException(type.toString() + " unsupported");

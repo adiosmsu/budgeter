@@ -42,4 +42,9 @@ public class FundsMutationAgentMock implements FundsMutationAgentRepository {
         return table.findByName(name);
     }
 
+    @Override
+    public FundsMutationAgent getAgentWithId(FundsMutationAgent agent) {
+        return table.getAgentWithId(agent);
+    }
+
 }

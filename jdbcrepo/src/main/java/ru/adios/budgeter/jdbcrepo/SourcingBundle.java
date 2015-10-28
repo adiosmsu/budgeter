@@ -28,7 +28,7 @@ public final class SourcingBundle implements Bundle {
     public SourcingBundle(DataSource dataSource) {
         jdbcTemplateProvider = new SafeJdbcTemplateProvider(dataSource);
         currencyRates = new CurrencyRatesJdbcRepository(jdbcTemplateProvider);
-        currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
+        currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(this, jdbcTemplateProvider);
         fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
         fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
         treasury = new JdbcTreasury(jdbcTemplateProvider);

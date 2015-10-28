@@ -344,8 +344,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
         final Optional<FundsMutationAgent> byName = repo.findByName(agentStr);
         eventBuilder.setAgent(byName.orElseGet(() -> {
             final FundsMutationAgent agent = FundsMutationAgent.builder().setName(agentStr).build();
-            repo.addAgent(agent);
-            return agent;
+            return repo.addAgent(agent);
         }));
     }
 

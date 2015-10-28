@@ -349,8 +349,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
             @Override
             public FundsMutationAgent get() {
                 final FundsMutationAgent agent = FundsMutationAgent.builder().setName(agentStr).build();
-                repo.addAgent(agent);
-                return agent;
+                return repo.addAgent(agent);
             }
         }));
     }

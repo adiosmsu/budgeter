@@ -1,6 +1,7 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
 
@@ -10,6 +11,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Date: 10/26/15
@@ -26,7 +29,7 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     public static final String COL_ID = "id";
     public static final String COL_NAME = "name";
 
-    private static final ImmutableList<String> COLS = ImmutableList.of(COL_NAME);
+    private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME);
     private static final AgentRowMapper AGENT_ROW_MAPPER = new AgentRowMapper();
 
 
@@ -92,8 +95,8 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
 
     @Override
     public FundsMutationAgent addAgent(FundsMutationAgent agent) {
-        Common.insert(this, agent);
-        return agent;
+        final GeneratedKeyHolder keyHolder = Common.insert(this, agent);
+        return FundsMutationAgent.withId(agent, keyHolder.getKey().longValue());
     }
 
     @Override
@@ -104,6 +107,13 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     @Override
     public Optional<FundsMutationAgent> findByName(String name) {
         return Common.getByOneUniqueColumn(name, COL_NAME, this);
+    }
+
+    @Override
+    public FundsMutationAgent getAgentWithId(FundsMutationAgent agent) {
+        final Optional<FundsMutationAgent> byName = findByName(agent.name);
+        checkArgument(byName.isPresent(), "Agent with name %s not found in DB", agent.name);
+        return byName.get();
     }
 
 
@@ -128,11 +138,16 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
 
         @Override
         public FundsMutationAgent mapRow(ResultSet rs) throws SQLException {
-            final String name = Common.STRING_ROW_MAPPER.mapRow(rs, 0);
+            return mapRowStartingFrom(1, rs);
+        }
+
+        FundsMutationAgent mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
+            final long id = rs.getLong(start);
+            final String name = rs.getString(start + 1);
             if (name == null) {
                 return null;
             }
-            return FundsMutationAgent.builder().setName(name).build();
+            return FundsMutationAgent.builder().setId(id).setName(name).build();
         }
 
     }

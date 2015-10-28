@@ -42,7 +42,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     ImmutableList<String> getColumnNames();
 
-    default ImmutableList<String> getColumnNames(boolean withId) {
+    default ImmutableList<String> getColumnNamesForInsert(boolean withId) {
         ImmutableList<String> columnNames = getColumnNames();
         final String idColumnName = getIdColumnName();
 
@@ -94,7 +94,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
         @Override
         public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-            final ImmutableList<String> columnNames = repo.getColumnNames(withId);
+            final ImmutableList<String> columnNames = repo.getColumnNamesForInsert(withId);
 
             final SqlDialect sqlDialect = repo.getSqlDialect();
             final PreparedStatement statement =

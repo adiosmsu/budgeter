@@ -8,6 +8,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.SQLStateSQLExceptionTranslator;
+import ru.adios.budgeter.api.OptLimit;
+import ru.adios.budgeter.api.OrderBy;
 
 import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
@@ -93,6 +95,16 @@ class Common {
 
     static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, @Nullable String opName) {
         final String sql = repo.getSqlDialect().selectSql(repo.getTableName(), null, repo.getColumnNames());
+        return LazyResultSetIterator.stream(
+                getRsSupplier(repo.getTemplateProvider(), sql, opName),
+                getMappingSqlFunction(repo.getRowMapper(), sql, opName)
+        );
+    }
+
+    static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, List<OrderBy> options, @Nullable OptLimit limit, @Nullable String opName) {
+        final SqlDialect sqlDialect = repo.getSqlDialect();
+        final String sql = sqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames()) +
+                SqlDialect.getWhereClausePostfix(sqlDialect, limit, options);
         return LazyResultSetIterator.stream(
                 getRsSupplier(repo.getTemplateProvider(), sql, opName),
                 getMappingSqlFunction(repo.getRowMapper(), sql, opName)

@@ -23,8 +23,18 @@ public interface SqlDialect {
         return sb.toString();
     }
 
+    static String getWhereClausePostfix(SqlDialect sqlDialect, @Nullable OptLimit limit, List<OrderBy> orders) {
+        final StringBuilder sb = new StringBuilder(50);
+        appendWhereClausePostfix(sb, sqlDialect, limit, orders);
+        return sb.toString();
+    }
+
     static void appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, OrderBy... orders) {
-        if (orders.length > 0) {
+        appendWhereClausePostfix(sb, sqlDialect, limit, Arrays.asList(orders));
+    }
+
+    static void appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, List<OrderBy> orders) {
+        if (orders.size() > 0) {
             sb.append(" ORDER BY ");
             boolean first = false;
             for (final OrderBy orderBy : orders) {
@@ -214,6 +224,8 @@ public interface SqlDialect {
     String timestampWithoutTimezoneType();
 
     String primaryKeyWithNextValue(@Nullable String sequence);
+
+    String foreignKey(String[] columns, String otherTable, String[] otherColumns, String keyName);
 
     String createIndexSql(String indexName, String tableName, boolean unique, String... columns);
 

@@ -33,8 +33,8 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
     private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME, COL_CURRENCY_UNIT, COL_BALANCE);
 
     private final SafeJdbcTemplateProvider jdbcTemplateProvider;
-    private final AccountRowMapper rowMapper = new AccountRowMapper();
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
+    private final AccountRowMapper rowMapper = new AccountRowMapper(sqlDialect);
 
     public JdbcTreasury(SafeJdbcTemplateProvider jdbcTemplateProvider) {
         this.jdbcTemplateProvider = jdbcTemplateProvider;
@@ -203,14 +203,24 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
     }
 
 
-    final class AccountRowMapper implements AgnosticRowMapper<Treasury.BalanceAccount> {
+    final static class AccountRowMapper implements AgnosticRowMapper<Treasury.BalanceAccount> {
+
+        private final SqlDialect sqlDialect;
+
+        AccountRowMapper(SqlDialect sqlDialect) {
+            this.sqlDialect = sqlDialect;
+        }
 
         @Override
         public Treasury.BalanceAccount mapRow(ResultSet rs) throws SQLException {
-            final long id = rs.getLong(1);
-            final String name = rs.getString(2);
-            final int unitCode = rs.getInt(3);
-            final BigDecimal balance = getBigDecimalFromDb(rs, 4);
+            return mapRowStartingFrom(1, rs);
+        }
+
+        Treasury.BalanceAccount mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
+            final long id = rs.getLong(start);
+            final String name = rs.getString(start + 1);
+            final int unitCode = rs.getInt(start + 2);
+            final BigDecimal balance = sqlDialect.translateFromDb(rs.getObject(start + 3), BigDecimal.class);
 
             if (name == null) {
                 return null;
