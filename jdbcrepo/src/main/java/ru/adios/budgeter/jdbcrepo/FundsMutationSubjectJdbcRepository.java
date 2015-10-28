@@ -161,16 +161,16 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     }
 
 
-    final class SubjectRowMapper implements AgnosticRowMapper<FundsMutationSubject> {
+    final class SubjectRowMapper implements AgnosticPartialRowMapper<FundsMutationSubject> {
 
         @Override
-        public FundsMutationSubject mapRow(ResultSet rs) throws SQLException {
-            final long id = rs.getLong(1);
-            final long parentId = rs.getLong(2);
-            final long rootId = rs.getLong(3);
-            final boolean childFlag = rs.getBoolean(4);
-            final int type = rs.getInt(5);
-            final String name = rs.getString(6);
+        public FundsMutationSubject mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
+            final long id = rs.getLong(start++);
+            final long parentId = rs.getLong(start++);
+            final long rootId = rs.getLong(start++);
+            final boolean childFlag = rs.getBoolean(start++);
+            final int type = rs.getInt(start++);
+            final String name = rs.getString(start);
 
             if (name == null) {
                 return null;

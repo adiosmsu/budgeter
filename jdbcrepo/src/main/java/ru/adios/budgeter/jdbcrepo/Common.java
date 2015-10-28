@@ -10,11 +10,14 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.SQLStateSQLExceptionTranslator;
 import ru.adios.budgeter.api.OptLimit;
 import ru.adios.budgeter.api.OrderBy;
+import ru.adios.budgeter.api.OrderedField;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -170,6 +173,15 @@ class Common {
             sql += " LIMIT 1";
         }
         return sql;
+    }
+
+    @Nonnull
+    static <T extends OrderedField> List<OrderBy> translateOrderBy(List<OrderBy<T>> options) {
+        final List<OrderBy> iHateJava = new ArrayList<>(options.size() + 1);
+        for (final OrderBy<T> option : options) {
+            iHateJava.add(option);
+        }
+        return iHateJava;
     }
 
 

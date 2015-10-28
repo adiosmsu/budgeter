@@ -145,14 +145,19 @@ public final class SqliteDialect implements SqlDialect {
     }
 
     @Override
-    public String selectSql(String tableName, @Nullable String whereClause, List<String> columns) {
+    public String selectSql(String tableName, @Nullable String whereClause, List<String> columns, Join... joins) {
         final StringBuilder sb = new StringBuilder(20 + tableName.length() + columns.size() * 15);
         sb.append("SELECT ");
         if (SqlDialect.appendColumns(sb, columns)) {
             sb.append('*');
         }
-        sb.append(" FROM ").append(tableName).append(" WHERE ");
+        sb.append(" FROM ").append(tableName);
+        for (final Join join : joins) {
+            sb.append(' ');
+            join.appendToBuilder(sb);
+        }
         if (whereClause != null) {
+            sb.append(" WHERE ");
             sb.append(whereClause);
         }
         return sb.toString();

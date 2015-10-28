@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -96,7 +95,6 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     public ImmutableList<?> decomposeObject(CurrencyExchangeEvent object) {
         checkArgument(object.soldAccount.id != null, "Sold account %s without ID", object.soldAccount);
         checkArgument(object.boughtAccount.id != null, "Bought account %s without ID", object.boughtAccount);
-
         checkArgument(object.agent.id.isPresent(), "Agent with name %s without ID", object.agent.name);
 
         return ImmutableList.of(
@@ -105,7 +103,7 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
                 object.soldAccount.id, object.boughtAccount.id,
                 object.rate,
                 object.timestamp,
-                object.agent.id
+                object.agent.id.getAsLong()
         );
     }
 
@@ -163,11 +161,19 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
     @Override
     public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        final List<OrderBy> iHateJava = new ArrayList<>(options.size() + 1);
-        for (final OrderBy<Field> option : options) {
-            iHateJava.add(option);
-        }
-        return Common.streamRequestAll(this, iHateJava, limit, "streamExchangeEvents");
+        final List<OrderBy> iHateJava = Common.translateOrderBy(options);
+
+        final String sql = sqlDialect.selectSql(
+                TABLE_NAME, null, COLS_FOR_SELECT,
+                SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "s", COL_SOLD_ACCOUNT_ID, JdbcTreasury.COL_ID),
+                SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "b", COL_BOUGHT_ACCOUNT_ID, JdbcTreasury.COL_ID),
+                SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID)
+        ) + SqlDialect.getWhereClausePostfix(sqlDialect, limit, iHateJava);
+
+        return LazyResultSetIterator.stream(
+                Common.getRsSupplier(jdbcTemplateProvider, sql, "streamExchangeEvents"),
+                Common.getMappingSqlFunction(rowMapper, sql, "streamExchangeEvents")
+        );
     }
 
 

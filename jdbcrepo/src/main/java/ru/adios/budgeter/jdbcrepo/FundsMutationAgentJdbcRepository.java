@@ -134,14 +134,9 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
         };
     }
 
-    static final class AgentRowMapper implements AgnosticRowMapper<FundsMutationAgent> {
+    static final class AgentRowMapper implements AgnosticPartialRowMapper<FundsMutationAgent> {
 
-        @Override
-        public FundsMutationAgent mapRow(ResultSet rs) throws SQLException {
-            return mapRowStartingFrom(1, rs);
-        }
-
-        FundsMutationAgent mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
+        public FundsMutationAgent mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
             final long id = rs.getLong(start);
             final String name = rs.getString(start + 1);
             if (name == null) {

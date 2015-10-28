@@ -203,7 +203,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
     }
 
 
-    final static class AccountRowMapper implements AgnosticRowMapper<Treasury.BalanceAccount> {
+    final static class AccountRowMapper implements AgnosticPartialRowMapper<BalanceAccount> {
 
         private final SqlDialect sqlDialect;
 
@@ -211,12 +211,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
             this.sqlDialect = sqlDialect;
         }
 
-        @Override
-        public Treasury.BalanceAccount mapRow(ResultSet rs) throws SQLException {
-            return mapRowStartingFrom(1, rs);
-        }
-
-        Treasury.BalanceAccount mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
+        public Treasury.BalanceAccount mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
             final long id = rs.getLong(start);
             final String name = rs.getString(start + 1);
             final int unitCode = rs.getInt(start + 2);

@@ -80,7 +80,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
         return Common.getByOneColumn(id, getIdColumnName(), this);
     }
 
-    final class InsertStatementCreator<ObjType> implements PreparedStatementCreator {
+    class InsertStatementCreator<ObjType> implements PreparedStatementCreator {
 
         private final JdbcRepository<ObjType> repo;
         private final ObjType object;
@@ -94,11 +94,10 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
         @Override
         public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-            final ImmutableList<String> columnNames = repo.getColumnNamesForInsert(withId);
 
             final SqlDialect sqlDialect = repo.getSqlDialect();
             final PreparedStatement statement =
-                    con.prepareStatement(sqlDialect.insertSql(repo.getTableName(), columnNames), PreparedStatement.RETURN_GENERATED_KEYS);
+                    con.prepareStatement(getSql(sqlDialect), PreparedStatement.RETURN_GENERATED_KEYS);
 
             int i = 1;
             if (withId) {
@@ -111,6 +110,10 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
             }
 
             return statement;
+        }
+
+        protected String getSql(SqlDialect sqlDialect) {
+            return sqlDialect.insertSql(repo.getTableName(), repo.getColumnNamesForInsert(withId));
         }
 
     }

@@ -21,6 +21,7 @@ public final class SourcingBundle implements Bundle {
     private final CurrencyExchangeEventJdbcRepository currencyExchangeEvents;
     private final FundsMutationAgentJdbcRepository fundsMutationAgents;
     private final FundsMutationSubjectJdbcRepository fundsMutationSubjects;
+    private final FundsMutationEventJdbcRepository fundsMutationEvents;
     private final JdbcTreasury treasury;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
@@ -31,6 +32,7 @@ public final class SourcingBundle implements Bundle {
         currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(this, jdbcTemplateProvider);
         fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
         fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
+        fundsMutationEvents = new FundsMutationEventJdbcRepository(jdbcTemplateProvider);
         treasury = new JdbcTreasury(jdbcTemplateProvider);
     }
 
@@ -41,6 +43,7 @@ public final class SourcingBundle implements Bundle {
         fundsMutationAgents.setSqlDialect(sqlDialect);
         fundsMutationSubjects.setSqlDialect(sqlDialect);
         treasury.setSqlDialect(sqlDialect);
+        fundsMutationEvents.setSqlDialect(sqlDialect);
         //TODO: finish
     }
 
@@ -60,7 +63,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public FundsMutationEventRepository fundsMutationEvents() {
-        return null;
+        return fundsMutationEvents;
     }
 
     @Override
@@ -102,7 +105,7 @@ public final class SourcingBundle implements Bundle {
             Common.executeMultipleSql(jdbcTemplate, fundsMutationAgents.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, fundsMutationSubjects.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, treasury.getCreateTableSql());
-
+            Common.executeMultipleSql(jdbcTemplate, fundsMutationEvents.getCreateTableSql());
             // TODO: finish
         }
     }

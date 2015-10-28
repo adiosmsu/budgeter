@@ -207,6 +207,53 @@ public interface SqlDialect {
 
     }
 
+    final class Join {
+
+        enum Type {
+            LEFT, INNER
+        }
+
+        private final Type type;
+        private final String mainTable;
+        private final String joinTable;
+        private final String alias;
+        private final String mainColumn;
+        private final String joinColumn;
+
+        Join(Type type, String mainTable, String joinTable, String alias, String mainColumn, String joinColumn) {
+            this.type = type;
+            this.mainTable = mainTable;
+            this.joinTable = joinTable;
+            this.alias = alias;
+            this.mainColumn = mainColumn;
+            this.joinColumn = joinColumn;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder(joinTable.length() + alias.length() + mainColumn.length() + joinColumn.length() + 20);
+            appendToBuilder(sb);
+            return sb.toString();
+        }
+
+        void appendToBuilder(StringBuilder sb) {
+            sb.append(type.name()).append(" JOIN ")
+                    .append(joinTable).append(' ').append(alias)
+                    .append(" ON ")
+                    .append(mainTable).append('.').append(mainColumn)
+                    .append(" = ")
+                    .append(alias).append('.').append(joinColumn);
+        }
+
+    }
+
+    static Join innerJoin(String mainTable, String joinTable, String alias, String mainColumn, String joinColumn) {
+        return new Join(Join.Type.INNER, mainTable, joinTable, alias, mainColumn, joinColumn);
+    }
+    static Join leftJoin(String mainTable, String joinTable, String alias, String mainColumn, String joinColumn) {
+        return new Join(Join.Type.LEFT, mainTable, joinTable, alias, mainColumn, joinColumn);
+    }
+
     String CREATE_TABLE = "CREATE TABLE ";
     String OPTIMIZED_PSEUDO_NAMED_PARAM = "ids";
 
@@ -247,7 +294,7 @@ public interface SqlDialect {
         return selectSql(tableName, where, Arrays.asList(columns));
     }
 
-    String selectSql(String tableName, @Nullable String where, List<String> columns);
+    String selectSql(String tableName, @Nullable String where, List<String> columns, Join... joins);
 
     Object translateForDb(Object object);
 
