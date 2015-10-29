@@ -33,15 +33,15 @@ public final class RepoFactory {
     }
 
     public FundsMutationEventRepository createFundsMutationEvents() {
-        return null;
+        return new FundsMutationEventJdbcRepository(jdbcTemplateProvider);
     }
 
     public PostponedCurrencyExchangeEventRepository createPostponedCurrencyExchangeEvents() {
-        return null;
+        return new PostponedCurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
     }
 
     public PostponedFundsMutationEventRepository createPostponedFundsMutationEvents() {
-        return null;
+        return new PostponedFundsMutationEventJdbcRepository(jdbcTemplateProvider);
     }
 
     public Treasury createTreasury() {
@@ -49,7 +49,7 @@ public final class RepoFactory {
     }
 
     public CurrencyRatesRepository createCurrencyRates() {
-        return null;
+        return new CurrencyRatesJdbcRepository(jdbcTemplateProvider);
     }
 
     public FundsMutationAgentJdbcRepository createFundsMutationAgents() {

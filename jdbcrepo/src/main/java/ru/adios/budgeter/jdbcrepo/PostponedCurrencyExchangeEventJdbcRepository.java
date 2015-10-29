@@ -130,9 +130,8 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
         checkArgument(object.sellAccount.id != null, "Sell account %s without ID", object.sellAccount);
         checkArgument(object.agent.id.isPresent(), "Agent with name %s without ID", object.agent.name);
 
-        // every new inserted object is of today
         return ImmutableList.of(
-                new UtcDay(), object.toBuy, object.toBuyAccount.id, object.sellAccount.id, object.customRate.orElse(null), object.timestamp, object.agent.id
+                new UtcDay(object.timestamp), object.toBuy, object.toBuyAccount.id, object.sellAccount.id, object.customRate.orElse(null), object.timestamp, object.agent.id
         );
     }
 
@@ -168,7 +167,11 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
         final String sql = builder.append("))").toString();
 
         return LazyResultSetIterator.stream(
-                Common.getRsSupplierWithParams(jdbcTemplateProvider, sql, ImmutableList.of(day, oneOf, secondOf, secondOf, oneOf), "streamRememberedExchanges"),
+                Common.getRsSupplierWithParams(
+                        jdbcTemplateProvider, sql,
+                        ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode()),
+                        "streamRememberedExchanges"
+                ),
                 Common.getMappingSqlFunction(rowMapper, sql, "streamRememberedExchanges")
         );
     }

@@ -1,39 +1,37 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.joda.money.CurrencyUnit;
-import org.joda.money.Money;
-import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.FundsMutationEvent;
+import ru.adios.budgeter.api.PostponedFundsMutationEventRepository;
+import ru.adios.budgeter.api.PostponedFundsMutationEventRepository.PostponedMutationEvent;
+import ru.adios.budgeter.api.UtcDay;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * Date: 10/28/15
- * Time: 6:10 AM
+ * Date: 10/29/15
+ * Time: 4:16 AM
  *
  * @author Mikhail Kulikov
  */
-public class FundsMutationEventJdbcRepository implements FundsMutationEventRepository, JdbcRepository<FundsMutationEvent> {
+public class PostponedFundsMutationEventJdbcRepository implements PostponedFundsMutationEventRepository, JdbcRepository<PostponedMutationEvent> {
 
-    public static final String TABLE_NAME = "funds_mutation_event";
-    public static final String SEQ_NAME = "seq_funds_mutation_event";
+    public static final String TABLE_NAME = "postponed_funds_mutation_event";
+    public static final String SEQ_NAME = "seq_postponed_funds_mutation_event";
     public static final String FK_REL_ACC = "fk_fme_relevant_acc";
     public static final String FK_SUBJ = "fk_fme_subject";
     public static final String FK_AGENT = "fk_fme_agent";
+    public static final String INDEX_DAY = "ix_pce_e_day";
     public static final String COL_ID = "id";
-    public static final String COL_DIRECTION = "direction";
+    public static final String COL_DAY = "day";
     public static final String COL_UNIT = "unit";
     public static final String COL_AMOUNT = "amount";
     public static final String COL_RELEVANT_ACCOUNT_ID = "relevant_account_id";
@@ -41,6 +39,8 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     public static final String COL_SUBJECT_ID = "subject_id";
     public static final String COL_TIMESTAMP = "timestamp";
     public static final String COL_AGENT_ID = "agent_id";
+    public static final String COL_CONVERSION_UNIT = "conversion_unit";
+    public static final String COL_CUSTOM_RATE = "custom_rate";
 
     public static final String JOIN_RELEVANT_ACC_ID = "r." + JdbcTreasury.COL_ID;
     public static final String JOIN_RELEVANT_ACC_NAME = "r." + JdbcTreasury.COL_NAME;
@@ -63,30 +63,31 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             COL_QUANTITY,
             JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME,
             COL_TIMESTAMP,
-            JOIN_AGENT_ID, JOIN_AGENT_NAME
+            JOIN_AGENT_ID, JOIN_AGENT_NAME,
+            COL_CONVERSION_UNIT, COL_CUSTOM_RATE
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
-            COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID
+            COL_DAY, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID, COL_CONVERSION_UNIT, COL_CUSTOM_RATE
     );
+
 
     private final SafeJdbcTemplateProvider jdbcTemplateProvider;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
-    private final JdbcTreasury.AccountRowMapper accountRowMapper = new JdbcTreasury.AccountRowMapper(sqlDialect);
-    private final FundsMutationAgentJdbcRepository.AgentRowMapper agentRowMapper = new FundsMutationAgentJdbcRepository.AgentRowMapper();
-    private final FundsMutationSubjectJdbcRepository subjRepo;
-    private final MutationRowMapper rowMapper = new MutationRowMapper();
+    private final FundsMutationEventJdbcRepository mutationRepo;
+    private final PostponedMutationRowMapper rowMapper = new PostponedMutationRowMapper();
 
-    FundsMutationEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
+    public PostponedFundsMutationEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
         this.jdbcTemplateProvider = jdbcTemplateProvider;
-        subjRepo = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
+        mutationRepo = new FundsMutationEventJdbcRepository(jdbcTemplateProvider);
     }
 
-    FundsMutationEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider, FundsMutationSubjectJdbcRepository subjRepo) {
+    public PostponedFundsMutationEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider, FundsMutationEventJdbcRepository mutationRepo) {
         this.jdbcTemplateProvider = jdbcTemplateProvider;
-        this.subjRepo = subjRepo;
+        this.mutationRepo = mutationRepo;
     }
+
 
     @Override
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -99,7 +100,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     }
 
     @Override
-    public AgnosticRowMapper<FundsMutationEvent> getRowMapper() {
+    public AgnosticRowMapper<PostponedMutationEvent> getRowMapper() {
         return rowMapper;
     }
 
@@ -134,77 +135,86 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     }
 
     @Override
-    public ImmutableList<?> decomposeObject(FundsMutationEvent object) {
-        checkArgument(object.relevantBalance.id != null, "Relevant account %s without ID", object.relevantBalance);
-        checkArgument(object.subject.id.isPresent(), "Subject %s without ID", object.subject);
-        checkArgument(object.agent.id.isPresent(), "Agent with name %s without ID", object.agent.name);
+    public ImmutableList<?> decomposeObject(PostponedMutationEvent object) {
+        checkArgument(object.mutationEvent.relevantBalance.id != null, "Relevant account %s without ID", object.mutationEvent.relevantBalance);
+        checkArgument(object.mutationEvent.subject.id.isPresent(), "Subject %s without ID", object.mutationEvent.subject);
+        checkArgument(object.mutationEvent.agent.id.isPresent(), "Agent with name %s without ID", object.mutationEvent.agent.name);
 
         return ImmutableList.of(
-                object.amount.isPositive(),
-                object.amount.getCurrencyUnit().getNumericCode(), object.amount.getAmount(),
-                object.relevantBalance.id,
-                object.quantity,
-                object.subject.id.getAsLong(),
-                object.timestamp,
-                object.agent.id.getAsLong()
+                new UtcDay(object.mutationEvent.timestamp),
+                object.mutationEvent.amount.getCurrencyUnit().getNumericCode(), object.mutationEvent.amount.getAmount(),
+                object.mutationEvent.relevantBalance.id,
+                object.mutationEvent.quantity,
+                object.mutationEvent.subject.id.getAsLong(),
+                object.mutationEvent.timestamp,
+                object.mutationEvent.agent.id.getAsLong(),
+                object.conversionUnit.getNumericCode(),
+                object.customRate.orElse(null)
         );
     }
 
     @Nullable
     @Override
-    public Object extractId(FundsMutationEvent object) {
+    public Object extractId(PostponedMutationEvent object) {
         return null;
     }
 
 
     @Override
-    public void registerBenefit(FundsMutationEvent mutationEvent) {
+    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
         if (mutationEvent.amount.isNegative()) {
-            mutationEvent = negateEvent(mutationEvent);
+            mutationEvent = FundsMutationEventJdbcRepository.negateEvent(mutationEvent);
         }
-        Common.insert(this, mutationEvent);
+        Common.insert(this, new PostponedMutationEvent(mutationEvent, paidUnit, customRate));
     }
 
     @Override
-    public void registerLoss(FundsMutationEvent mutationEvent) {
+    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
         if (mutationEvent.amount.isPositive()) {
-            mutationEvent = negateEvent(mutationEvent);
+            mutationEvent = FundsMutationEventJdbcRepository.negateEvent(mutationEvent);
         }
-        Common.insert(this, mutationEvent);
-    }
-
-    @Nonnull
-    static FundsMutationEvent negateEvent(FundsMutationEvent mutationEvent) {
-        return FundsMutationEvent.builder().setFundsMutationEvent(mutationEvent).setAmount(mutationEvent.amount.negated()).build();
+        Common.insert(this, new PostponedMutationEvent(mutationEvent, paidUnit, customRate));
     }
 
     @Override
-    public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(
-                TABLE_NAME, COLS_FOR_SELECT,
+    public Stream<PostponedMutationEvent> streamRememberedBenefits(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
+        return streamInner(day, oneOf, secondOf, SqlDialect.Op.MORE);
+    }
+
+    @Override
+    public Stream<PostponedMutationEvent> streamRememberedLosses(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
+        return streamInner(day, oneOf, secondOf, SqlDialect.Op.LESS);
+    }
+
+    private Stream<PostponedMutationEvent> streamInner(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, SqlDialect.Op op) {
+        final StringBuilder builder = SqlDialect.selectSqlBuilder(
+                TABLE_NAME,
+                COLS_FOR_SELECT,
                 SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "r", COL_RELEVANT_ACCOUNT_ID, JdbcTreasury.COL_ID),
                 SqlDialect.innerJoin(TABLE_NAME, FundsMutationSubjectJdbcRepository.TABLE_NAME, "s", COL_SUBJECT_ID, FundsMutationSubjectJdbcRepository.COL_ID),
                 SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID)
         );
-        SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
-        final String sql = sb.toString();
+        SqlDialect.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
+        SqlDialect.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, JOIN_RELEVANT_ACC_CURRENCY_UNIT, COL_CONVERSION_UNIT);
+        SqlDialect.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, JOIN_RELEVANT_ACC_CURRENCY_UNIT, COL_CONVERSION_UNIT);
+        SqlDialect.appendWhereClausePart(false, builder.append("))"), true, op, COL_AMOUNT);
+        final String sql = builder.toString();
 
         return LazyResultSetIterator.stream(
-                Common.getRsSupplier(jdbcTemplateProvider, sql, "streamMutationEvents"),
-                Common.getMappingSqlFunction(rowMapper, sql, "streamMutationEvents")
+                Common.getRsSupplierWithParams(
+                        jdbcTemplateProvider, sql,
+                        ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode(), 0),
+                        "streamRememberedExchanges"
+                ),
+                Common.getMappingSqlFunction(rowMapper, sql, "streamRememberedExchanges")
         );
-    }
-
-    @Override
-    public Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel) {
-        return ImmutableMap.of();
     }
 
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
                 + " (" + COL_ID + " BIGINT " + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
-                    + COL_DIRECTION + " BOOLEAN, "
+                    + COL_DAY + ' ' + sqlDialect.timestampWithoutTimezoneType() + ", "
                     + COL_UNIT + " INT, "
                     + COL_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
                     + COL_RELEVANT_ACCOUNT_ID + " BIGINT, "
@@ -212,6 +222,8 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                     + COL_SUBJECT_ID + " BIGINT, "
                     + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
                     + COL_AGENT_ID + " BIGINT, "
+                    + COL_CONVERSION_UNIT + " INT, "
+                    + COL_CUSTOM_RATE + ' ' + sqlDialect.decimalType() + ", "
                     + sqlDialect.foreignKey(new String[] {COL_RELEVANT_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_REL_ACC) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_AGENT_ID}, FundsMutationAgentJdbcRepository.TABLE_NAME, new String[] {FundsMutationAgentJdbcRepository.COL_ID}, FK_AGENT) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_SUBJECT_ID}, FundsMutationSubjectJdbcRepository.TABLE_NAME, new String[] {FundsMutationSubjectJdbcRepository.COL_ID}, FK_SUBJ)
@@ -222,30 +234,20 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
         return new String[] {
                 getActualCreateTableSql(),
                 sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
+                sqlDialect.createIndexSql(INDEX_DAY, TABLE_NAME, false, COL_DAY)
         };
     }
 
 
-    private final class MutationRowMapper implements AgnosticRowMapper<FundsMutationEvent> {
+    private final class PostponedMutationRowMapper implements AgnosticRowMapper<PostponedMutationEvent> {
 
         @Override
-        public FundsMutationEvent mapRow(ResultSet rs) throws SQLException {
-            final int unit = rs.getInt(1);
-            final BigDecimal amount = sqlDialect.translateFromDb(rs.getObject(2), BigDecimal.class);
-            final Treasury.BalanceAccount account = accountRowMapper.mapRowStartingFrom(3, rs);
-            final int quantity = rs.getInt(7);
-            final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(8, rs);
-            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(14), OffsetDateTime.class);
-            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(15, rs);
+        public PostponedMutationEvent mapRow(ResultSet rs) throws SQLException {
+            final FundsMutationEvent fundsMutationEvent = mutationRepo.getRowMapper().mapRow(rs);
+            final int conversionUnit = rs.getInt(16);
+            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(17), BigDecimal.class);
 
-            return FundsMutationEvent.builder()
-                    .setAmount(Money.of(CurrencyUnit.ofNumericCode(unit), amount))
-                    .setRelevantBalance(account)
-                    .setQuantity(quantity)
-                    .setSubject(sub)
-                    .setTimestamp(timestamp)
-                    .setAgent(agent)
-                    .build();
+            return new PostponedMutationEvent(fundsMutationEvent, CurrencyUnit.ofNumericCode(conversionUnit), Optional.ofNullable(customRate));
         }
 
     }

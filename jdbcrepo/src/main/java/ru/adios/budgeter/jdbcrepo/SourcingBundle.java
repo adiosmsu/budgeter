@@ -23,6 +23,7 @@ public final class SourcingBundle implements Bundle {
     private final FundsMutationSubjectJdbcRepository fundsMutationSubjects;
     private final FundsMutationEventJdbcRepository fundsMutationEvents;
     private final PostponedCurrencyExchangeEventJdbcRepository postponedCurrencyExchangeEvents;
+    private final PostponedFundsMutationEventJdbcRepository postponedFundsMutationEvents;
     private final JdbcTreasury treasury;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
@@ -33,8 +34,9 @@ public final class SourcingBundle implements Bundle {
         currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
         fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
         fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
-        fundsMutationEvents = new FundsMutationEventJdbcRepository(jdbcTemplateProvider);
+        fundsMutationEvents = new FundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationSubjects);
         postponedCurrencyExchangeEvents = new PostponedCurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
+        postponedFundsMutationEvents = new PostponedFundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationEvents);
         treasury = new JdbcTreasury(jdbcTemplateProvider);
     }
 
@@ -47,7 +49,7 @@ public final class SourcingBundle implements Bundle {
         treasury.setSqlDialect(sqlDialect);
         fundsMutationEvents.setSqlDialect(sqlDialect);
         postponedCurrencyExchangeEvents.setSqlDialect(sqlDialect);
-        //TODO: finish
+        postponedFundsMutationEvents.setSqlDialect(sqlDialect);
     }
 
     public void setNewDataSource(DataSource dataSource) {
@@ -96,7 +98,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public void clearSchema() {
-
+        // TODO: impl
     }
 
     @Override
@@ -110,13 +112,13 @@ public final class SourcingBundle implements Bundle {
             Common.executeMultipleSql(jdbcTemplate, treasury.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, fundsMutationEvents.getCreateTableSql());
             Common.executeMultipleSql(jdbcTemplate, postponedCurrencyExchangeEvents.getCreateTableSql());
-            // TODO: finish
+            Common.executeMultipleSql(jdbcTemplate, postponedFundsMutationEvents.getCreateTableSql());
         }
     }
 
     @Override
     public void clear(Repo repo) {
-
+        // TODO: impl
     }
 
 }
