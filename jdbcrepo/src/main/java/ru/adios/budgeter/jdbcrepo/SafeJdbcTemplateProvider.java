@@ -18,7 +18,7 @@ final class SafeJdbcTemplateProvider {
 
     private final ThreadLocal<JdbcTemplate> templateThreadLocal = new ThreadLocal<>();
 
-    private DataSource dataSource;
+    private volatile DataSource dataSource;
 
     SafeJdbcTemplateProvider(DataSource dataSource) {
         setDataSource(dataSource);

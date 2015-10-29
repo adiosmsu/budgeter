@@ -83,21 +83,17 @@ class Common {
         return keyHolder;
     }
 
-    static <ObjType> GeneratedKeyHolder insertWithId(JdbcRepository<ObjType> repo, ObjType object) {
+    static <ObjType> int insertWithId(JdbcRepository<ObjType> repo, ObjType object) {
         final Object id = repo.extractId(object);
-        checkArgument(id != null, "Repo %s returns null id value from object", repo);
+        checkArgument(id != null, "Repo returns null id value from object");
 
-        final GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-
-        repo.getTemplateProvider()
+        return repo.getTemplateProvider()
                 .get()
-                .update(repo.getInsertStatementCreatorWithId(object), keyHolder);
-
-        return keyHolder;
+                .update(repo.getInsertStatementCreatorWithId(object));
     }
 
     static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, @Nullable String opName) {
-        final String sql = repo.getSqlDialect().selectSql(repo.getTableName(), null, repo.getColumnNames());
+        final String sql = SqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames());
         return LazyResultSetIterator.stream(
                 getRsSupplier(repo.getTemplateProvider(), sql, opName),
                 getMappingSqlFunction(repo.getRowMapper(), sql, opName)
@@ -106,7 +102,7 @@ class Common {
 
     static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, List<OrderBy> options, @Nullable OptLimit limit, @Nullable String opName) {
         final SqlDialect sqlDialect = repo.getSqlDialect();
-        final String sql = sqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames()) +
+        final String sql = SqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames()) +
                 SqlDialect.getWhereClausePostfix(sqlDialect, limit, options);
         return LazyResultSetIterator.stream(
                 getRsSupplier(repo.getTemplateProvider(), sql, opName),
@@ -115,9 +111,9 @@ class Common {
     }
 
     static <ObjType> Stream<ObjType> streamRequest(JdbcRepository<ObjType> repo, ImmutableMap<String, Object> columnToValueMap, @Nullable String opName) {
-        final String sql = repo.getSqlDialect().selectSql(
+        final String sql = SqlDialect.selectSql(
                 repo.getTableName(),
-                SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, ImmutableList.copyOf(columnToValueMap.keySet())),
+                SqlDialect.generateWhereClausePart(true, SqlDialect.Op.EQUAL, ImmutableList.copyOf(columnToValueMap.keySet())),
                 repo.getColumnNames()
         );
         return LazyResultSetIterator.stream(
@@ -166,9 +162,8 @@ class Common {
     }
 
     private static <ObjType> String innerByOneColumnSql(String columnName, JdbcRepository<ObjType> repo, SqlDialect.Op op, boolean unique) {
-        String sql = repo
-                .getSqlDialect()
-                .selectSql(repo.getTableName(), SqlDialect.generateWhereClause(true, op, columnName), repo.getColumnNames());
+        String sql = SqlDialect
+                .selectSql(repo.getTableName(), SqlDialect.generateWhereClausePart(true, op, columnName), repo.getColumnNames());
         if (unique) {
             sql += " LIMIT 1";
         }

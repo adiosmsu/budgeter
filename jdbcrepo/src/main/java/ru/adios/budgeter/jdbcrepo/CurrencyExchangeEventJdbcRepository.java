@@ -68,7 +68,6 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
 
     private final SafeJdbcTemplateProvider jdbcTemplateProvider;
-    private final SourcingBundle bundle;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
@@ -77,12 +76,6 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     private final ExchangeEventRowMapper rowMapper = new ExchangeEventRowMapper();
 
     CurrencyExchangeEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
-        bundle = null;
-    }
-
-    CurrencyExchangeEventJdbcRepository(SourcingBundle bundle, SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.bundle = bundle;
         this.jdbcTemplateProvider = jdbcTemplateProvider;
     }
 
@@ -163,12 +156,14 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
         final List<OrderBy> iHateJava = Common.translateOrderBy(options);
 
-        final String sql = sqlDialect.selectSql(
-                TABLE_NAME, null, COLS_FOR_SELECT,
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(
+                TABLE_NAME, COLS_FOR_SELECT,
                 SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "s", COL_SOLD_ACCOUNT_ID, JdbcTreasury.COL_ID),
                 SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "b", COL_BOUGHT_ACCOUNT_ID, JdbcTreasury.COL_ID),
                 SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID)
-        ) + SqlDialect.getWhereClausePostfix(sqlDialect, limit, iHateJava);
+        );
+        SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, iHateJava);
+        final String sql = sb.toString();
 
         return LazyResultSetIterator.stream(
                 Common.getRsSupplier(jdbcTemplateProvider, sql, "streamExchangeEvents"),

@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.Treasury.BalanceAccount;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
@@ -19,7 +20,7 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
-public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAccount> {
+public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     public static final String TABLE_NAME = "balance_account";
     public static final String SEQ_NAME = "seq_balance_account";
@@ -104,7 +105,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
     public Optional<Money> amount(CurrencyUnit unit) {
         final Optional<BigDecimal> val = Common.getSingleColumnOptional(
                 this,
-                sqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, COL_CURRENCY_UNIT), "sum(" + COL_BALANCE + ')'),
+                SqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClausePart(true, SqlDialect.Op.EQUAL, COL_CURRENCY_UNIT), "sum(" + COL_BALANCE + ')'),
                 sqlDialect.getRowMapperForType(BigDecimal.class),
                 unit.getNumericCode()
         );
@@ -123,7 +124,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
     public Optional<Money> accountBalance(String accountName) {
         return Common.getSingleColumnOptional(
                 this,
-                sqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, COL_NAME), COL_CURRENCY_UNIT, COL_BALANCE),
+                SqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClausePart(true, SqlDialect.Op.EQUAL, COL_NAME), COL_CURRENCY_UNIT, COL_BALANCE),
                 (AgnosticRowMapper<Money>) rs -> {
                     final int unit = rs.getInt(1);
                     final BigDecimal balance = getBigDecimalFromDb(rs, 2);
@@ -211,7 +212,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
             this.sqlDialect = sqlDialect;
         }
 
-        public Treasury.BalanceAccount mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
+        public BalanceAccount mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
             final long id = rs.getLong(start);
             final String name = rs.getString(start + 1);
             final int unitCode = rs.getInt(start + 2);
@@ -221,7 +222,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<Treasury.BalanceAc
                 return null;
             }
 
-            return new Treasury.BalanceAccount(id, name, Money.of(CurrencyUnit.ofNumericCode(unitCode), balance));
+            return new BalanceAccount(id, name, Money.of(CurrencyUnit.ofNumericCode(unitCode), balance));
         }
 
     }

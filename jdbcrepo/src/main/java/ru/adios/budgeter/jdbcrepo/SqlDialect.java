@@ -17,6 +17,41 @@ import java.util.function.Consumer;
  */
 public interface SqlDialect {
 
+    static String selectSql(String tableName, @Nullable String whereClause, String... columns) {
+        return selectSql(tableName, whereClause, Arrays.asList(columns));
+    }
+
+    static String selectSql(String tableName, @Nullable String whereClause, List<String> columns, Join... joins) {
+        final StringBuilder sb = selectSqlBuilder(tableName, columns, joins);
+
+        if (whereClause != null) {
+            sb.append(" WHERE ");
+            sb.append(whereClause);
+        }
+
+        return sb.toString();
+    }
+
+    static StringBuilder selectSqlBuilder(String tableName, @Nullable String whereClause, String... columns) {
+        return selectSqlBuilder(tableName, Arrays.asList(columns));
+    }
+
+    static StringBuilder selectSqlBuilder(String tableName, List<String> columns, Join... joins) {
+        final StringBuilder sb = new StringBuilder(20 + tableName.length() + columns.size() * 15);
+
+        sb.append("SELECT ");
+        if (appendColumns(sb, columns)) {
+            sb.append('*');
+        }
+        sb.append(" FROM ").append(tableName);
+        for (final Join join : joins) {
+            sb.append(' ');
+            join.appendToBuilder(sb);
+        }
+
+        return sb;
+    }
+
     static String getWhereClausePostfix(SqlDialect sqlDialect, @Nullable OptLimit limit, OrderBy... orders) {
         final StringBuilder sb = new StringBuilder(50);
         appendWhereClausePostfix(sb, sqlDialect, limit, orders);
@@ -52,40 +87,46 @@ public interface SqlDialect {
         }
     }
 
-    static String generateWhereClause(boolean andIfTrue, Op op, String... columns) {
-        return generateWhereClause(andIfTrue, op, Arrays.asList(columns));
+    static String generateWhereClausePart(boolean andIfTrue, Op op, String... columns) {
+        return generateWhereClausePart(andIfTrue, op, Arrays.asList(columns));
     }
 
-    static StringBuilder generateWhereClauseBuilder(boolean andIfTrue, Op op, String... columns) {
-        return generateWhereClauseBuilder(andIfTrue, op, Arrays.asList(columns));
+    static String generateWhereClausePart(boolean andIfTrue, Op op, List<String> columns) {
+        return generateWhereClausePartBuilder(andIfTrue, op, columns).toString();
     }
 
-    static String generateWhereClause(boolean andIfTrue, Op op, List<String> columns) {
+    static StringBuilder generateWhereClausePartBuilder(boolean andIfTrue, Op op, String... columns) {
+        return generateWhereClausePartBuilder(andIfTrue, op, Arrays.asList(columns));
+    }
+
+    static StringBuilder generateWhereClausePartBuilder(boolean andIfTrue, Op op, List<String> columns) {
         final StringBuilder sb = new StringBuilder(25 * columns.size());
-        boolean first = true;
-        for (final String c : columns) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(andIfTrue ? " AND" : " OR");
-            }
-            sb.append(' ').append(c).append(' ').append(op.spelling).append(" ?");
-        }
-        return sb.toString();
-    }
-
-    static StringBuilder generateWhereClauseBuilder(boolean andIfTrue, Op op, List<String> columns) {
-        final StringBuilder sb = new StringBuilder(25 * columns.size());
-        boolean first = true;
-        for (final String c : columns) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(andIfTrue ? " AND" : " OR");
-            }
-            sb.append(' ').append(c).append(' ').append(op.spelling).append(" ?");
-        }
+        appendWhereClausePart(sb, andIfTrue, op, columns);
         return sb;
+    }
+
+    static void appendWhereClausePart(StringBuilder sb, boolean andIfTrue, Op op, String... columns) {
+        appendWhereClausePart(sb, andIfTrue, op, Arrays.asList(columns));
+    }
+
+    static void appendWhereClausePart(StringBuilder sb, boolean andIfTrue, Op op, List<String> columns) {
+        appendWhereClausePart(true, sb, andIfTrue, op, columns);
+    }
+
+    static boolean appendWhereClausePart(boolean first, StringBuilder sb, boolean andIfTrue, Op op, String... columns) {
+        return appendWhereClausePart(first, sb, andIfTrue, op, Arrays.asList(columns));
+    }
+
+    static boolean appendWhereClausePart(boolean first, StringBuilder sb, boolean andIfTrue, Op op, List<String> columns) {
+        for (final String c : columns) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(andIfTrue ? " AND" : " OR");
+            }
+            sb.append(' ').append(c).append(' ').append(op.spelling).append(" ?");
+        }
+        return first;
     }
 
     static boolean appendColumns(StringBuilder sb, String[] columns) {
@@ -250,6 +291,7 @@ public interface SqlDialect {
     static Join innerJoin(String mainTable, String joinTable, String alias, String mainColumn, String joinColumn) {
         return new Join(Join.Type.INNER, mainTable, joinTable, alias, mainColumn, joinColumn);
     }
+
     static Join leftJoin(String mainTable, String joinTable, String alias, String mainColumn, String joinColumn) {
         return new Join(Join.Type.LEFT, mainTable, joinTable, alias, mainColumn, joinColumn);
     }
@@ -289,12 +331,6 @@ public interface SqlDialect {
     String insertSql(String tableName, List<String> columns);
 
     String selectAllSql(String tableName);
-
-    default String selectSql(String tableName, @Nullable String where, String... columns) {
-        return selectSql(tableName, where, Arrays.asList(columns));
-    }
-
-    String selectSql(String tableName, @Nullable String where, List<String> columns, Join... joins);
 
     Object translateForDb(Object object);
 

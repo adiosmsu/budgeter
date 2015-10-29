@@ -2,6 +2,7 @@ package ru.adios.budgeter.jdbcrepo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 import javax.annotation.Nullable;
 import java.sql.ResultSet;
@@ -78,8 +79,6 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
     public boolean hasNext() {
         if (closed) return false;
 
-        prepare();
-
         if (!didNext) {
             hasNext = askNext();
             didNext = true;
@@ -88,33 +87,34 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
     }
 
     @Override
-    public void close() throws RuntimeException {
+    public void close() {
         hasNext = false;
         closeResultSet();
     }
 
-    private void prepare() {
+    private boolean askNext() {
         if (resultSet == null) {
             resultSet = resultSetSupplier.get();
         }
-    }
 
-    private boolean askNext() {
         try {
             final boolean next = resultSet.next();
             if (!next) {
-                resultSet.close();
-                closed = true;
+                closeResultSet();
             }
             return next;
         } catch (SQLException ex) {
             closeResultSet();
             throw Common.EXCEPTION_TRANSLATOR.translate("LazyResultSetIterator", sql, ex);
+        } catch (RuntimeException ex) {
+            closeResultSet();
+            throw new DataAccessResourceFailureException("Driver/wrapper threw unchecked exception", ex);
         }
     }
 
     private void closeResultSet() {
         if (resultSet != null && !closed) {
+            closed = true;
             try {
                 resultSet.close();
             } catch (SQLException ignore) {

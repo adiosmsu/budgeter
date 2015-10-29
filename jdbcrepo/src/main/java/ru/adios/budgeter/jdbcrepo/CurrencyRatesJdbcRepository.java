@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.adios.budgeter.api.CurrencyRatesProvider.ConversionRate;
 import ru.adios.budgeter.api.*;
 
 import javax.annotation.Nullable;
@@ -19,7 +20,7 @@ import java.util.Optional;
  *
  * @author Mikhail Kulikov
  */
-public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, JdbcRepository<CurrencyRatesRepository.ConversionRate> {
+public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, JdbcRepository<ConversionRate> {
 
     public static final String TABLE_NAME = "currency_rate";
     public static final String SEQ_NAME = "seq_currency_rate";
@@ -106,9 +107,11 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_RATE);
+        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM, COL_TO);
         return Common.getSingleColumnOptional(
                 this,
-                sqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM, COL_TO), COL_RATE),
+                sb.toString(),
                 sqlDialect.getRowMapperForType(BigDecimal.class),
                 day, from.getNumericCode(), to.getNumericCode()
         );
@@ -116,11 +119,12 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public Optional<BigDecimal> getLatestOptionalConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {
-        final StringBuilder sqlBuilder = SqlDialect.generateWhereClauseBuilder(true, SqlDialect.Op.EQUAL, COL_FROM, COL_TO);
+        final StringBuilder sqlBuilder = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_RATE);
+        SqlDialect.appendWhereClausePart(sqlBuilder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_FROM, COL_TO);
         SqlDialect.appendWhereClausePostfix(sqlBuilder, sqlDialect, OptLimit.createLimit(1), OrderBy.getDefault(COL_DAY, Order.DESC));
         return Common.getSingleColumnOptional(
                 this,
-                sqlDialect.selectSql(TABLE_NAME, sqlBuilder.toString(), COL_RATE),
+                sqlBuilder.toString(),
                 sqlDialect.getRowMapperForType(BigDecimal.class),
                 from.getNumericCode(), to.getNumericCode()
         );
@@ -128,9 +132,11 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public boolean isRateStale(CurrencyUnit to) {
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_ID);
+        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_TO, COL_DAY);
         return Common.getSingleColumnOptional(
                 this,
-                sqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, COL_TO, COL_DAY), COL_ID),
+                sb.toString(),
                 sqlDialect.getRowMapperForType(Long.class),
                 to.getNumericCode(), new UtcDay()
         ).isPresent();
@@ -138,10 +144,12 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public ImmutableSet<Long> getIndexedForDay(UtcDay day) {
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_ID);
+        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
         return ImmutableSet.copyOf(
                 Common.getSingleColumnList(
                         this,
-                        sqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClause(true, SqlDialect.Op.EQUAL, COL_DAY), COL_ID),
+                        sb.toString(),
                         sqlDialect.getRowMapperForType(Long.class),
                         day
                 )
@@ -168,7 +176,7 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
     }
 
 
-    private final class RateRowMapper implements AgnosticRowMapper<CurrencyRatesRepository.ConversionRate> {
+    private final class RateRowMapper implements AgnosticRowMapper<ConversionRate> {
 
         @Override
         public ConversionRate mapRow(ResultSet rs) throws SQLException {

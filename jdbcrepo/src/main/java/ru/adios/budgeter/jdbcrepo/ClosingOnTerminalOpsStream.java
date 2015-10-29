@@ -19,6 +19,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         return new ClosingOnTerminalOpsStream<>(stream);
     }
 
+
     private static final Logger logger = LoggerFactory.getLogger(ClosingOnTerminalOpsStream.class);
 
     private static <T> void closeSilently(AutoCloseable delegate) {
@@ -32,9 +33,11 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     private final Stream<T> delegate;
 
+
     ClosingOnTerminalOpsStream(Stream<T> delegate) {
         this.delegate = delegate;
     }
+
 
     @Override
     public boolean allMatch(Predicate<? super T> predicate) {
@@ -268,12 +271,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         delegate.close();
     }
 
-    public static final class AutoClosingSpliterator<T> implements Spliterator<T> {
+    public static final class AutoClosingSpliterator<T> implements Spliterator<T>, AutoCloseable {
 
         private final Spliterator<T> d;
         private final ClosingOnTerminalOpsStream<T> streamDelegate;
 
-        public AutoClosingSpliterator(Spliterator<T> d, ClosingOnTerminalOpsStream<T> streamDelegate) {
+        private volatile boolean open = true;
+
+        private AutoClosingSpliterator(Spliterator<T> d, ClosingOnTerminalOpsStream<T> streamDelegate) {
             this.d = d;
             this.streamDelegate = streamDelegate;
         }
@@ -292,7 +297,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(Consumer<? super T> action) {
             final boolean advance = d.tryAdvance(action);
             if (!advance) {
-                closeSilently(streamDelegate.delegate);
+                close();
             }
             return advance;
         }
@@ -302,12 +307,28 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
             return new AutoClosingSpliterator<>(d.trySplit(), streamDelegate);
         }
 
+        @Override
+        public void close() {
+            open = false;
+            closeSilently(streamDelegate.delegate);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
+        }
+
     }
 
     public static final class AutoClosingIterator<T> implements Iterator<T>, AutoCloseable {
 
         private final Iterator<T> d;
         private final ClosingOnTerminalOpsStream<T> streamDelegate;
+
+        private volatile boolean open = true;
 
         private AutoClosingIterator(Iterator<T> d, ClosingOnTerminalOpsStream<T> streamDelegate) {
             this.d = d;
@@ -318,7 +339,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean next = d.hasNext();
             if (!next) {
-                closeSilently(streamDelegate.delegate);
+                close();
             }
             return next;
         }
@@ -330,7 +351,16 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public void close() {
+            open = false;
             closeSilently(streamDelegate.delegate);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
         }
 
     }
@@ -1031,10 +1061,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     }
 
-    public static final class AutoClosingIntSpliterator implements Spliterator.OfInt {
+    public static final class AutoClosingIntSpliterator implements Spliterator.OfInt, AutoCloseable {
 
         private final Spliterator.OfInt d;
         private final AutoClosingIntStream streamDelegate;
+
+        private volatile boolean open = true;
 
         private AutoClosingIntSpliterator(OfInt d, AutoClosingIntStream streamDelegate) {
             this.d = d;
@@ -1055,7 +1087,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(IntConsumer action) {
             final boolean ret = d.tryAdvance(action);
             if (!ret) {
-                closeSilently(streamDelegate.d);
+                close();
             }
             return ret;
         }
@@ -1065,12 +1097,28 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
             return new AutoClosingIntSpliterator(d.trySplit(), streamDelegate);
         }
 
+        @Override
+        public void close() {
+            open = false;
+            closeSilently(streamDelegate.d);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
+        }
+
     }
 
-    public static final class AutoClosingLongSpliterator implements Spliterator.OfLong {
+    public static final class AutoClosingLongSpliterator implements Spliterator.OfLong, AutoCloseable {
 
         private final Spliterator.OfLong d;
         private final AutoClosingLongStream streamDelegate;
+
+        private volatile boolean open = true;
 
         private AutoClosingLongSpliterator(OfLong d, AutoClosingLongStream streamDelegate) {
             this.d = d;
@@ -1091,7 +1139,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(LongConsumer action) {
             final boolean ret = d.tryAdvance(action);
             if (!ret) {
-                closeSilently(streamDelegate.d);
+                close();
             }
             return ret;
         }
@@ -1101,12 +1149,28 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
             return new AutoClosingLongSpliterator(d.trySplit(), streamDelegate);
         }
 
+        @Override
+        public void close() {
+            open = false;
+            closeSilently(streamDelegate.d);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
+        }
+
     }
 
-    public static final class AutoClosingDoubleSpliterator implements Spliterator.OfDouble {
+    public static final class AutoClosingDoubleSpliterator implements Spliterator.OfDouble, AutoCloseable {
 
         private final Spliterator.OfDouble d;
         private final AutoClosingDoubleStream streamDelegate;
+
+        private volatile boolean open = true;
 
         private AutoClosingDoubleSpliterator(OfDouble d, AutoClosingDoubleStream streamDelegate) {
             this.d = d;
@@ -1127,7 +1191,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean tryAdvance(DoubleConsumer action) {
             final boolean ret = d.tryAdvance(action);
             if (!ret) {
-                closeSilently(streamDelegate.d);
+                close();
             }
             return ret;
         }
@@ -1137,12 +1201,28 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
             return new AutoClosingDoubleSpliterator(d.trySplit(), streamDelegate);
         }
 
+        @Override
+        public void close() {
+            open = false;
+            closeSilently(streamDelegate.d);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
+        }
+
     }
 
     public static final class AutoClosingIntIterator implements PrimitiveIterator.OfInt, AutoCloseable {
 
         private final PrimitiveIterator.OfInt d;
         private final AutoClosingIntStream streamDelegate;
+
+        private volatile boolean open = true;
 
         private AutoClosingIntIterator(OfInt d, AutoClosingIntStream streamDelegate) {
             this.d = d;
@@ -1158,14 +1238,23 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean n = d.hasNext();
             if (!n) {
-                closeSilently(streamDelegate.d);
+                close();
             }
             return n;
         }
 
         @Override
-        public void close() throws Exception {
+        public void close()  {
+            open = false;
             closeSilently(streamDelegate.d);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
         }
 
     }
@@ -1174,6 +1263,8 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         private final PrimitiveIterator.OfLong d;
         private final AutoClosingLongStream streamDelegate;
+
+        private volatile boolean open = true;
 
         private AutoClosingLongIterator(OfLong d, AutoClosingLongStream streamDelegate) {
             this.d = d;
@@ -1189,14 +1280,23 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean n = d.hasNext();
             if (!n) {
-                closeSilently(streamDelegate.d);
+                close();
             }
             return n;
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
+            open = false;
             closeSilently(streamDelegate.d);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
         }
 
     }
@@ -1205,6 +1305,8 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         private final PrimitiveIterator.OfDouble d;
         private final AutoClosingDoubleStream streamDelegate;
+
+        private volatile boolean open = true;
 
         private AutoClosingDoubleIterator(OfDouble d, AutoClosingDoubleStream streamDelegate) {
             this.d = d;
@@ -1220,14 +1322,23 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public boolean hasNext() {
             final boolean n = d.hasNext();
             if (!n) {
-                closeSilently(streamDelegate.d);
+                close();
             }
             return n;
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
+            open = false;
             closeSilently(streamDelegate.d);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            if (open) {
+                close();
+            }
+            super.finalize();
         }
 
     }

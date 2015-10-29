@@ -145,26 +145,11 @@ public final class SqliteDialect implements SqlDialect {
     }
 
     @Override
-    public String selectSql(String tableName, @Nullable String whereClause, List<String> columns, Join... joins) {
-        final StringBuilder sb = new StringBuilder(20 + tableName.length() + columns.size() * 15);
-        sb.append("SELECT ");
-        if (SqlDialect.appendColumns(sb, columns)) {
-            sb.append('*');
-        }
-        sb.append(" FROM ").append(tableName);
-        for (final Join join : joins) {
-            sb.append(' ');
-            join.appendToBuilder(sb);
-        }
-        if (whereClause != null) {
-            sb.append(" WHERE ");
-            sb.append(whereClause);
-        }
-        return sb.toString();
-    }
-
-    @Override
     public Object translateForDb(Object object) {
+        if (object == null) {
+            return null;
+        }
+
         if (object instanceof BigDecimal) {
             BigDecimal dec = ((BigDecimal) object).stripTrailingZeros();
             int scale = dec.scale();
@@ -189,6 +174,10 @@ public final class SqliteDialect implements SqlDialect {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T translateFromDb(Object object, Class<T> type) {
+        if (object == null) {
+            return null;
+        }
+
         if (BigDecimal.class.equals(type) && object instanceof Number) {
             return (T) BigDecimal.valueOf(((Number) object).longValue(), DECIMAL_SCALE).stripTrailingZeros();
         } else if (UtcDay.class.equals(type) && object instanceof Number) {

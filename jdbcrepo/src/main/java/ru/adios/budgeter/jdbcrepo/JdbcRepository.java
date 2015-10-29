@@ -94,15 +94,18 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
         @Override
         public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-
             final SqlDialect sqlDialect = repo.getSqlDialect();
-            final PreparedStatement statement =
-                    con.prepareStatement(getSql(sqlDialect), PreparedStatement.RETURN_GENERATED_KEYS);
+            final String sql = getSql(sqlDialect);
+            final PreparedStatement statement;
 
             int i = 1;
             if (withId) {
+                statement = con.prepareStatement(sql);
                 statement.setObject(i++, repo.extractId(object));
+            } else {
+                statement = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             }
+
             for (final Object o : repo.decomposeObject(object)) {
                 statement.setObject(i++,
                         sqlDialect.translateForDb(o)

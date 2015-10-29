@@ -175,12 +175,14 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
 
     @Override
     public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        final String sql = sqlDialect.selectSql(
-                TABLE_NAME, null, COLS_FOR_SELECT,
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(
+                TABLE_NAME, COLS_FOR_SELECT,
                 SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "r", COL_RELEVANT_ACCOUNT_ID, JdbcTreasury.COL_ID),
                 SqlDialect.innerJoin(TABLE_NAME, FundsMutationSubjectJdbcRepository.TABLE_NAME, "s", COL_SUBJECT_ID, FundsMutationSubjectJdbcRepository.COL_ID),
                 SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID)
-        ) + SqlDialect.getWhereClausePostfix(sqlDialect, limit, Common.translateOrderBy(options));
+        );
+        SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
+        final String sql = sb.toString();
 
         return LazyResultSetIterator.stream(
                 Common.getRsSupplier(jdbcTemplateProvider, sql, "streamMutationEvents"),
