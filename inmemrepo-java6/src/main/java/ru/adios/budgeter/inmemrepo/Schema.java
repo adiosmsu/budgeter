@@ -21,6 +21,8 @@ public final class Schema implements Bundle {
     public static final CurrencyRatesPseudoTable CURRENCY_RATES = CurrencyRatesPseudoTable.INSTANCE;
     public static final FundsMutationAgentPseudoTable FUNDS_MUTATION_AGENTS = FundsMutationAgentPseudoTable.INSTANCE;
 
+    public static final InnerMemoryAccounter ACCOUNTER = new InnerMemoryAccounter();
+
     @Override
     public CurrencyExchangeEventRepository currencyExchangeEvents() {
         return CURRENCY_EXCHANGE_EVENTS;
@@ -59,6 +61,11 @@ public final class Schema implements Bundle {
     @Override
     public FundsMutationAgentRepository fundsMutationAgents() {
         return FUNDS_MUTATION_AGENTS;
+    }
+
+    @Override
+    public InnerMemoryAccounter accounter() {
+        return ACCOUNTER;
     }
 
     @Override

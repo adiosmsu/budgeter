@@ -151,9 +151,9 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
-                + " (" + COL_ID + " BIGINT " + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
-                    + COL_PARENT_ID + " BIGINT, "
-                    + COL_ROOT_ID + " BIGINT, "
+                + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
+                    + COL_PARENT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                    + COL_ROOT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_CHILD_FLAG + " BOOLEAN, "
                     + COL_TYPE + " INT, "
                     + COL_NAME + ' ' + sqlDialect.textType()

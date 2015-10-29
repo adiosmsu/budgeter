@@ -35,6 +35,8 @@ public interface Bundle {
 
     FundsMutationAgentRepository fundsMutationAgents();
 
+    Accounter accounter();
+
     void clearSchema();
 
     void createSchemaIfNeeded();

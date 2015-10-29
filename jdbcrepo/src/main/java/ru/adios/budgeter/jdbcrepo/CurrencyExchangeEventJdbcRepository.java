@@ -174,16 +174,16 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
-                + " (" + COL_ID + " BIGINT " + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
+                + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
                     + COL_SOLD_UNIT + " INT, "
                     + COL_SOLD_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
                     + COL_BOUGHT_UNIT + " INT, "
                     + COL_BOUGHT_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
-                    + COL_SOLD_ACCOUNT_ID + " BIGINT, "
-                    + COL_BOUGHT_ACCOUNT_ID + " BIGINT, "
+                    + COL_SOLD_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                    + COL_BOUGHT_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_RATE + ' ' + sqlDialect.decimalType() + ", "
                     + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
-                    + COL_AGENT_ID + " BIGINT, "
+                    + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + sqlDialect.foreignKey(new String[] {COL_SOLD_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_SOLD_ACC) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_BOUGHT_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_BOUGHT_ACC) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_AGENT_ID}, FundsMutationAgentJdbcRepository.TABLE_NAME, new String[] {FundsMutationAgentJdbcRepository.COL_ID}, FK_AGENT)

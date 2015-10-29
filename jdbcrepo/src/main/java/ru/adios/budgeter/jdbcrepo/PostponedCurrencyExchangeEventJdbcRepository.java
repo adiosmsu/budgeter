@@ -179,14 +179,14 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
-                + " (" + COL_ID + " BIGINT " + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
+                + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
                     + COL_DAY + ' ' + sqlDialect.timestampWithoutTimezoneType() + ", "
                     + COL_TO_BUY_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
-                    + COL_TO_BUY_ACCOUNT_ID + " BIGINT, "
-                    + COL_SELL_ACCOUNT_ID + " BIGINT, "
+                    + COL_TO_BUY_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                    + COL_SELL_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_CUSTOM_RATE + ' ' + sqlDialect.decimalType() + ", "
                     + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
-                    + COL_AGENT_ID + " BIGINT, "
+                    + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + sqlDialect.foreignKey(new String[] {COL_TO_BUY_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_TO_BUY_ACC) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_SELL_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_SELL_ACC) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_AGENT_ID}, FundsMutationAgentJdbcRepository.TABLE_NAME, new String[] {FundsMutationAgentJdbcRepository.COL_ID}, FK_AGENT)

@@ -308,6 +308,8 @@ public interface SqlDialect {
 
     String decimalType();
 
+    String bigIntType();
+
     String timestampType();
 
     String timestampWithoutTimezoneType();

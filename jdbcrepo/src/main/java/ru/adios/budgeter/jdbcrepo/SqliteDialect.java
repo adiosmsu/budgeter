@@ -58,6 +58,11 @@ public final class SqliteDialect implements SqlDialect {
     }
 
     @Override
+    public String bigIntType() {
+        return NUMBER_TYPE;
+    }
+
+    @Override
     public String timestampType() {
         return TEXT_TYPE;
     }
@@ -77,7 +82,7 @@ public final class SqliteDialect implements SqlDialect {
         final StringBuilder sb = new StringBuilder(70);
         sb.append("FOREIGN KEY(");
         SqlDialect.appendColumns(sb, columns);
-        sb.append(") REFERENCES")
+        sb.append(") REFERENCES ")
                 .append(otherTable)
                 .append('(');
         SqlDialect.appendColumns(sb, otherColumns);

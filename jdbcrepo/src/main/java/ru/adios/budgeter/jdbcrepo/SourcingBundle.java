@@ -25,6 +25,7 @@ public final class SourcingBundle implements Bundle {
     private final PostponedCurrencyExchangeEventJdbcRepository postponedCurrencyExchangeEvents;
     private final PostponedFundsMutationEventJdbcRepository postponedFundsMutationEvents;
     private final JdbcTreasury treasury;
+    private final JdbcAccounter accounter;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
@@ -38,6 +39,7 @@ public final class SourcingBundle implements Bundle {
         postponedCurrencyExchangeEvents = new PostponedCurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
         postponedFundsMutationEvents = new PostponedFundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationEvents);
         treasury = new JdbcTreasury(jdbcTemplateProvider);
+        accounter = new JdbcAccounter(this);
     }
 
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -94,6 +96,11 @@ public final class SourcingBundle implements Bundle {
     @Override
     public FundsMutationAgentJdbcRepository fundsMutationAgents() {
         return fundsMutationAgents;
+    }
+
+    @Override
+    public Accounter accounter() {
+        return accounter;
     }
 
     @Override

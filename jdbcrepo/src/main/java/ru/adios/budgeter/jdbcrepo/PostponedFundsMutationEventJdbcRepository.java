@@ -213,15 +213,15 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
-                + " (" + COL_ID + " BIGINT " + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
+                + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
                     + COL_DAY + ' ' + sqlDialect.timestampWithoutTimezoneType() + ", "
                     + COL_UNIT + " INT, "
                     + COL_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
-                    + COL_RELEVANT_ACCOUNT_ID + " BIGINT, "
+                    + COL_RELEVANT_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_QUANTITY + " INT, "
-                    + COL_SUBJECT_ID + " BIGINT, "
+                    + COL_SUBJECT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
-                    + COL_AGENT_ID + " BIGINT, "
+                    + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_CONVERSION_UNIT + " INT, "
                     + COL_CUSTOM_RATE + ' ' + sqlDialect.decimalType() + ", "
                     + sqlDialect.foreignKey(new String[] {COL_RELEVANT_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_REL_ACC) + ", "
