@@ -218,10 +218,19 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                 + ')';
     }
 
-    String[] getCreateTableSql() {
+    @Override
+    public String[] getCreateTableSql() {
         return new String[] {
                 getActualCreateTableSql(),
                 sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
+        };
+    }
+
+    @Override
+    public String[] getDropTableSql() {
+        return new String[] {
+                sqlDialect.dropSeqCommand(SEQ_NAME),
+                SqlDialect.dropTableCommand(TABLE_NAME)
         };
     }
 

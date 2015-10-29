@@ -1,5 +1,6 @@
 package ru.adios.budgeter.jdbcrepo;
 
+import com.google.common.collect.ImmutableMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.adios.budgeter.api.*;
 
@@ -16,42 +17,42 @@ import javax.sql.DataSource;
 public final class SourcingBundle implements Bundle {
 
     final SafeJdbcTemplateProvider jdbcTemplateProvider;
-
-    private final CurrencyRatesJdbcRepository currencyRates;
-    private final CurrencyExchangeEventJdbcRepository currencyExchangeEvents;
-    private final FundsMutationAgentJdbcRepository fundsMutationAgents;
-    private final FundsMutationSubjectJdbcRepository fundsMutationSubjects;
-    private final FundsMutationEventJdbcRepository fundsMutationEvents;
-    private final PostponedCurrencyExchangeEventJdbcRepository postponedCurrencyExchangeEvents;
-    private final PostponedFundsMutationEventJdbcRepository postponedFundsMutationEvents;
-    private final JdbcTreasury treasury;
+    private final ImmutableMap<Repo, JdbcRepository> order;
     private final JdbcAccounter accounter;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
     public SourcingBundle(DataSource dataSource) {
         jdbcTemplateProvider = new SafeJdbcTemplateProvider(dataSource);
-        currencyRates = new CurrencyRatesJdbcRepository(jdbcTemplateProvider);
-        currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
-        fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
-        fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
-        fundsMutationEvents = new FundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationSubjects);
-        postponedCurrencyExchangeEvents = new PostponedCurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
-        postponedFundsMutationEvents = new PostponedFundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationEvents);
-        treasury = new JdbcTreasury(jdbcTemplateProvider);
+
+        final CurrencyRatesJdbcRepository currencyRates = new CurrencyRatesJdbcRepository(jdbcTemplateProvider);
+        final CurrencyExchangeEventJdbcRepository currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
+        final FundsMutationAgentJdbcRepository fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
+        final FundsMutationSubjectJdbcRepository fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
+        final FundsMutationEventJdbcRepository fundsMutationEvents = new FundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationSubjects);
+        final PostponedCurrencyExchangeEventJdbcRepository postponedCurrencyExchangeEvents = new PostponedCurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
+        final PostponedFundsMutationEventJdbcRepository postponedFundsMutationEvents = new PostponedFundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationEvents);
+        final JdbcTreasury treasury = new JdbcTreasury(jdbcTemplateProvider);
+
         accounter = new JdbcAccounter(this);
+
+        order = ImmutableMap.<Repo, JdbcRepository>builder()
+                .put(Repo.TREASURY, treasury)
+                .put(Repo.FUNDS_MUTATION_SUBJECTS, fundsMutationSubjects)
+                .put(Repo.FUNDS_MUTATION_AGENTS, fundsMutationAgents)
+                .put(Repo.CURRENCY_RATES, currencyRates)
+                .put(Repo.CURRENCY_EXCHANGE_EVENTS, currencyExchangeEvents)
+                .put(Repo.FUNDS_MUTATION_EVENTS, fundsMutationEvents)
+                .put(Repo.POSTPONED_CURRENCY_EXCHANGE_EVENTS, postponedCurrencyExchangeEvents)
+                .put(Repo.POSTPONED_FUNDS_MUTATION_EVENTS, postponedFundsMutationEvents)
+                .build();
     }
 
     public void setSqlDialect(SqlDialect sqlDialect) {
         this.sqlDialect = sqlDialect;
-        currencyRates.setSqlDialect(sqlDialect);
-        currencyExchangeEvents.setSqlDialect(sqlDialect);
-        fundsMutationAgents.setSqlDialect(sqlDialect);
-        fundsMutationSubjects.setSqlDialect(sqlDialect);
-        treasury.setSqlDialect(sqlDialect);
-        fundsMutationEvents.setSqlDialect(sqlDialect);
-        postponedCurrencyExchangeEvents.setSqlDialect(sqlDialect);
-        postponedFundsMutationEvents.setSqlDialect(sqlDialect);
+        for (final JdbcRepository repository : order.values()) {
+            repository.setSqlDialect(sqlDialect);
+        }
         accounter.setSqlDialect(sqlDialect);
     }
 
@@ -61,42 +62,42 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public FundsMutationSubjectRepository fundsMutationSubjects() {
-        return fundsMutationSubjects;
+        return (FundsMutationSubjectRepository) order.get(Repo.FUNDS_MUTATION_SUBJECTS);
     }
 
     @Override
     public CurrencyExchangeEventJdbcRepository currencyExchangeEvents() {
-        return currencyExchangeEvents;
+        return (CurrencyExchangeEventJdbcRepository) order.get(Repo.CURRENCY_EXCHANGE_EVENTS);
     }
 
     @Override
     public FundsMutationEventRepository fundsMutationEvents() {
-        return fundsMutationEvents;
+        return (FundsMutationEventRepository) order.get(Repo.FUNDS_MUTATION_EVENTS);
     }
 
     @Override
     public PostponedCurrencyExchangeEventRepository postponedCurrencyExchangeEvents() {
-        return postponedCurrencyExchangeEvents;
+        return (PostponedCurrencyExchangeEventRepository) order.get(Repo.POSTPONED_CURRENCY_EXCHANGE_EVENTS);
     }
 
     @Override
     public PostponedFundsMutationEventRepository postponedFundsMutationEvents() {
-        return null;
+        return (PostponedFundsMutationEventRepository) order.get(Repo.POSTPONED_FUNDS_MUTATION_EVENTS);
     }
 
     @Override
     public Treasury treasury() {
-        return treasury;
+        return (Treasury) order.get(Repo.TREASURY);
     }
 
     @Override
     public CurrencyRatesRepository currencyRates() {
-        return currencyRates;
+        return (CurrencyRatesRepository) order.get(Repo.CURRENCY_RATES);
     }
 
     @Override
     public FundsMutationAgentJdbcRepository fundsMutationAgents() {
-        return fundsMutationAgents;
+        return (FundsMutationAgentJdbcRepository) order.get(Repo.FUNDS_MUTATION_AGENTS);
     }
 
     @Override
@@ -106,27 +107,35 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public void clearSchema() {
-        // TODO: impl
+        final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
+        for (final JdbcRepository repo : order.values().asList().reverse()) {
+            Common.executeMultipleSql(jdbcTemplate, repo.getDropTableSql());
+        }
+        createSchema(jdbcTemplate);
     }
 
     @Override
     public void createSchemaIfNeeded() {
         final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
         if (jdbcTemplate.query(sqlDialect.tableExistsSql(FundsMutationAgentJdbcRepository.TABLE_NAME), Common.STRING_ROW_MAPPER).isEmpty()) {
-            Common.executeMultipleSql(jdbcTemplate, currencyRates.getCreateTableSql());
-            Common.executeMultipleSql(jdbcTemplate, currencyExchangeEvents.getCreateTableSql());
-            Common.executeMultipleSql(jdbcTemplate, fundsMutationAgents.getCreateTableSql());
-            Common.executeMultipleSql(jdbcTemplate, fundsMutationSubjects.getCreateTableSql());
-            Common.executeMultipleSql(jdbcTemplate, treasury.getCreateTableSql());
-            Common.executeMultipleSql(jdbcTemplate, fundsMutationEvents.getCreateTableSql());
-            Common.executeMultipleSql(jdbcTemplate, postponedCurrencyExchangeEvents.getCreateTableSql());
-            Common.executeMultipleSql(jdbcTemplate, postponedFundsMutationEvents.getCreateTableSql());
+            createSchema(jdbcTemplate);
+        }
+    }
+
+    private void createSchema(JdbcTemplate jdbcTemplate) {
+        for (final JdbcRepository repo : order.values()) {
+            Common.executeMultipleSql(jdbcTemplate, repo.getCreateTableSql());
         }
     }
 
     @Override
     public void clear(Repo repo) {
-        // TODO: impl
+        clearRepo(jdbcTemplateProvider.get(), order.get(repo));
+    }
+
+    private void clearRepo(JdbcTemplate jdbcTemplate, JdbcRepository repository) {
+        Common.executeMultipleSql(jdbcTemplate, repository.getDropTableSql());
+        Common.executeMultipleSql(jdbcTemplate, repository.getCreateTableSql());
     }
 
 }

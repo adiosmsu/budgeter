@@ -181,12 +181,23 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     }
 
 
-    String[] getCreateTableSql() {
+    @Override
+    public String[] getCreateTableSql() {
         return new String[] {
                 getActualCreateTableSql(),
                 sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
                 sqlDialect.createIndexSql(INDEX_NAME, TABLE_NAME, true, COL_NAME),
                 sqlDialect.createIndexSql(INDEX_UNIT, TABLE_NAME, false, COL_CURRENCY_UNIT)
+        };
+    }
+
+    @Override
+    public String[] getDropTableSql() {
+        return new String[] {
+                sqlDialect.dropSeqCommand(SEQ_NAME),
+                SqlDialect.dropIndexCommand(INDEX_NAME),
+                SqlDialect.dropIndexCommand(INDEX_UNIT),
+                SqlDialect.dropTableCommand(TABLE_NAME)
         };
     }
 

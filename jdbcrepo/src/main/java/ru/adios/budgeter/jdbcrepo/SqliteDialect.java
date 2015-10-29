@@ -115,6 +115,11 @@ public final class SqliteDialect implements SqlDialect {
     }
 
     @Override
+    public String dropSeqCommand(String seqName) {
+        return null;
+    }
+
+    @Override
     public String sequenceCurrentValueSql(@Nullable String tableName, @Nullable String sequenceName) {
         return SEQUENCE_CURRENT_VALUE_SQL + '\'' + tableName + '\'';
     }

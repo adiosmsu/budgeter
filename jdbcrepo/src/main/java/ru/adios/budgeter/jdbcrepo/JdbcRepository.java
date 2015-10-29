@@ -80,6 +80,10 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
         return Common.getByOneColumn(id, getIdColumnName(), this);
     }
 
+    String[] getCreateTableSql();
+
+    String[] getDropTableSql();
+
     class InsertStatementCreator<ObjType> implements PreparedStatementCreator {
 
         private final JdbcRepository<ObjType> repo;

@@ -126,13 +126,24 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
         return sqlDialect.createIndexSql(INDEX_NAME, TABLE_NAME, true, COL_NAME);
     }
 
-    String[] getCreateTableSql() {
+    @Override
+    public String[] getCreateTableSql() {
         return new String[] {
                 getActualCreateTableSql(),
                 sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
                 getCreateIndexSql()
         };
     }
+
+    @Override
+    public String[] getDropTableSql() {
+        return new String[] {
+                sqlDialect.dropSeqCommand(SEQ_NAME),
+                SqlDialect.dropIndexCommand(INDEX_NAME),
+                SqlDialect.dropTableCommand(TABLE_NAME)
+        };
+    }
+
 
     static final class AgentRowMapper implements AgnosticPartialRowMapper<FundsMutationAgent> {
 

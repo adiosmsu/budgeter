@@ -230,11 +230,21 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                 + ')';
     }
 
-    String[] getCreateTableSql() {
+    @Override
+    public String[] getCreateTableSql() {
         return new String[] {
                 getActualCreateTableSql(),
                 sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
                 sqlDialect.createIndexSql(INDEX_DAY, TABLE_NAME, false, COL_DAY)
+        };
+    }
+
+    @Override
+    public String[] getDropTableSql() {
+        return new String[] {
+                sqlDialect.dropSeqCommand(SEQ_NAME),
+                SqlDialect.dropIndexCommand(INDEX_DAY),
+                SqlDialect.dropTableCommand(TABLE_NAME)
         };
     }
 

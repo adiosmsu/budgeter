@@ -235,6 +235,14 @@ public interface SqlDialect {
         } while (i < number);
     }
 
+    static String dropIndexCommand(String indexName) {
+        return "DROP INDEX " + indexName;
+    }
+
+    static String dropTableCommand(String tableName) {
+        return "DROP TABLE " + tableName;
+    }
+
 
     enum Op {
 
@@ -321,6 +329,10 @@ public interface SqlDialect {
     String createIndexSql(String indexName, String tableName, boolean unique, String... columns);
 
     String createSeq(String seqName, String tableName);
+
+    default String dropSeqCommand(String seqName) {
+        return "DROP SEQUENCE " + seqName;
+    }
 
     String sequenceCurrentValueSql(@Nullable String tableName, @Nullable String sequenceName);
 

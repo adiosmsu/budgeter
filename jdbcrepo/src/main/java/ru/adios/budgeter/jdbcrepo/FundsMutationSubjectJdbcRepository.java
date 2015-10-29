@@ -140,12 +140,23 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     }
 
 
-    String[] getCreateTableSql() {
+    @Override
+    public String[] getCreateTableSql() {
         return new String[] {
                 getActualCreateTableSql(),
                 sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
                 sqlDialect.createIndexSql(INDEX_NAME, TABLE_NAME, true, COL_NAME),
                 sqlDialect.createIndexSql(INDEX_PARENT, TABLE_NAME, false, COL_PARENT_ID)
+        };
+    }
+
+    @Override
+    public String[] getDropTableSql() {
+        return new String[] {
+                sqlDialect.dropSeqCommand(SEQ_NAME),
+                SqlDialect.dropIndexCommand(INDEX_NAME),
+                SqlDialect.dropIndexCommand(INDEX_PARENT),
+                SqlDialect.dropTableCommand(TABLE_NAME)
         };
     }
 
