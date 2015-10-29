@@ -15,7 +15,7 @@ import javax.sql.DataSource;
 @ThreadSafe
 public final class SourcingBundle implements Bundle {
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    final SafeJdbcTemplateProvider jdbcTemplateProvider;
 
     private final CurrencyRatesJdbcRepository currencyRates;
     private final CurrencyExchangeEventJdbcRepository currencyExchangeEvents;
@@ -52,6 +52,7 @@ public final class SourcingBundle implements Bundle {
         fundsMutationEvents.setSqlDialect(sqlDialect);
         postponedCurrencyExchangeEvents.setSqlDialect(sqlDialect);
         postponedFundsMutationEvents.setSqlDialect(sqlDialect);
+        accounter.setSqlDialect(sqlDialect);
     }
 
     public void setNewDataSource(DataSource dataSource) {

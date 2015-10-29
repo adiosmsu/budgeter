@@ -1,6 +1,8 @@
 package ru.adios.budgeter.jdbcrepo;
 
+import com.google.common.collect.ImmutableSet;
 import org.intellij.lang.annotations.Language;
+import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.*;
 
 import java.util.stream.Stream;
@@ -13,15 +15,37 @@ import java.util.stream.Stream;
  */
 public class JdbcAccounter implements Accounter {
 
+    @SuppressWarnings("SqlDialectInspection")
     @Language("SQL")
-    private static final String EXCHANGES_SQL = "";
-    @Language("SQL")
-    private static final String MUTATIONS_SQL = "";
+    private static final String SQL =
+            "WITH large AS (" +
+                    "    SELECT DISTINCT e.day, e.unit AS currency_unit" +
+                    "    FROM postponed_funds_mutation_event e" +
+                    "    UNION ALL" +
+                    "    SELECT DISTINCT pc.day, s.currency_unit" +
+                    "    FROM postponed_currency_exchange_event pc" +
+                    "      INNER JOIN balance_account s ON pc.sell_account_id = s.id" +
+                    "    UNION ALL" +
+                    "    SELECT DISTINCT pc.day, b.currency_unit" +
+                    "    FROM postponed_currency_exchange_event pc" +
+                    "      INNER JOIN balance_account b ON pc.to_buy_account_id = b.id" +
+                    "    UNION ALL" +
+                    "    SELECT DISTINCT e.day, e.conversion_unit AS currency_unit" +
+                    "    FROM postponed_funds_mutation_event e) " +
+                    "SELECT DISTINCT l.day, l.currency_unit FROM large l " +
+                    "UNION ALL " +
+                    "SELECT " + Long.MAX_VALUE + " AS day, " + CurrencyUnit.USD.getNumericCode() + " AS currency_unit " +
+                    "ORDER BY day, currency_unit"; // we will rely on data to be ordered so we can imitate partial reduce with Stream API using filter()
 
     private final SourcingBundle bundle;
+    private SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
     JdbcAccounter(SourcingBundle bundle) {
         this.bundle = bundle;
+    }
+
+    void setSqlDialect(SqlDialect sqlDialect) {
+        this.sqlDialect = sqlDialect;
     }
 
     @Override
@@ -56,7 +80,59 @@ public class JdbcAccounter implements Accounter {
 
     @Override
     public Stream<PostponingReasons> streamAllPostponingReasons() {
-        return null;
+        final AccumulationContext context = new AccumulationContext();
+        final LazyResultSetIterator<Pair> iterator = LazyResultSetIterator.<Pair>of(
+                Common.getRsSupplier(bundle.jdbcTemplateProvider, SQL, "streamAllPostponingReasons"),
+                Common.getMappingSqlFunction(
+                        rs -> new Pair(sqlDialect.translateFromDb(rs.getObject(1), UtcDay.class), CurrencyUnit.ofNumericCode(rs.getInt(1))),
+                        SQL, "streamAllPostponingReasons"
+                ),
+                SQL
+        );
+        return iterator.stream()
+                .filter(pair -> {
+                    if (context.builder == null) {
+                        context.builder = ImmutableSet.builder();
+                        context.currentDay = pair.day;
+                        context.builder.add(pair.unit);
+                        return false;
+                    }
+
+                    if (!pair.day.equals(context.currentDay)) {
+                        return true;
+                    } else {
+                        context.builder.add(pair.unit);
+                        return false;
+                    }
+                })
+                .map(pair -> {
+                    final PostponingReasons postponingReasons = new PostponingReasons(context.currentDay, context.builder.build());
+                    if (iterator.hasNext()) {
+                        context.builder = ImmutableSet.builder();
+                        context.currentDay = pair.day;
+                        context.builder.add(pair.unit);
+                    }
+                    return postponingReasons;
+                });
+    }
+
+    private static final class AccumulationContext {
+
+        private ImmutableSet.Builder<CurrencyUnit> builder;
+        private UtcDay currentDay;
+
+    }
+
+    private static final class Pair {
+
+        private final UtcDay day;
+        private final CurrencyUnit unit;
+
+        private Pair(UtcDay day, CurrencyUnit unit) {
+            this.day = day;
+            this.unit = unit;
+        }
+
     }
 
 }

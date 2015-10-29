@@ -27,19 +27,23 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
 
     static <T> Stream<T> stream(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever) {
         final LazyResultSetIterator<T> iterator = new LazyResultSetIterator<>(resultSetSupplier, retriever);
-        return innerStream(iterator);
+        return stream(iterator);
     }
 
     static <T> Stream<T> stream(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever, String sqlForException) {
         final LazyResultSetIterator<T> iterator = new LazyResultSetIterator<>(resultSetSupplier, retriever, sqlForException);
-        return innerStream(iterator);
+        return stream(iterator);
     }
 
-    private static <T> Stream<T> innerStream(LazyResultSetIterator<T> iterator) {
+    static <T> Stream<T> stream(LazyResultSetIterator<T> iterator) {
         return ClosingOnTerminalOpsStream.stream(
                 StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, 0), false)
                         .onClose(iterator::close)
         );
+    }
+
+    static <T> LazyResultSetIterator<T> of(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever, String sqlForException) {
+        return new LazyResultSetIterator<>(resultSetSupplier, retriever, sqlForException);
     }
 
     private static final Logger logger = LoggerFactory.getLogger(LazyResultSetIterator.class);
@@ -64,6 +68,10 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
         this.resultSetSupplier = resultSetSupplier;
         this.retriever = retriever;
         this.sql = sql;
+    }
+
+    Stream<T> stream() {
+        return stream(this);
     }
 
     @Override
