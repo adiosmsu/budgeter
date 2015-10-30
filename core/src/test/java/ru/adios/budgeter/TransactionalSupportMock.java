@@ -2,6 +2,7 @@ package ru.adios.budgeter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.adios.budgeter.api.TransactionalSupport;
 
 /**
  * Date: 6/16/15

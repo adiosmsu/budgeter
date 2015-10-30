@@ -42,7 +42,7 @@ public interface Treasury extends Provider<Treasury.BalanceAccount, Long>, Repos
         addAmount(amount, account.name);
     }
 
-    void registerBalanceAccount(BalanceAccount account);
+    BalanceAccount registerBalanceAccount(BalanceAccount account);
 
     Stream<CurrencyUnit> streamRegisteredCurrencies();
 
@@ -132,10 +132,12 @@ public interface Treasury extends Provider<Treasury.BalanceAccount, Long>, Repos
 
     static BalanceAccount getTransitoryAccount(CurrencyUnit unit, Treasury treasury) {
         final BalanceAccount account = new BalanceAccount("Транзитный счет для " + unit.getCurrencyCode(), unit);
-        if (!treasury.accountBalance(account).isPresent()) {
-            treasury.registerBalanceAccount(account);
+        final Optional<BalanceAccount> accountForName = treasury.getAccountForName(account.name);
+        if (!accountForName.isPresent()) {
+            return treasury.registerBalanceAccount(account);
+        } else {
+            return accountForName.get();
         }
-        return account;
     }
 
     static Money calculateTotalAmount(Treasury treasury, CurrencyUnit unit, CurrencyRatesProvider ratesProvider) {

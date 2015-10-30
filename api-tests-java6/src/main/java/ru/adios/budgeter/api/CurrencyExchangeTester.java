@@ -30,8 +30,7 @@ public final class CurrencyExchangeTester {
     public void testRegisterCurrencyExchange() throws Exception {
         final OffsetDateTime ts = OffsetDateTime.now();
         bundle.clear(Bundle.Repo.FUNDS_MUTATION_AGENTS);
-        final FundsMutationAgent agent = FundsMutationAgent.builder().setName("Test").build();
-        bundle.fundsMutationAgents().addAgent(agent);
+        final FundsMutationAgent agent = bundle.fundsMutationAgents().addAgent(FundsMutationAgent.builder().setName("Test").build());
         CurrencyExchangeEvent exchangeEvent = CurrencyExchangeEvent.builder()
                 .setBought(Money.of(Units.RUB, BigDecimal.valueOf(30000L)))
                 .setSold(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(1000L)))
@@ -48,7 +47,7 @@ public final class CurrencyExchangeTester {
 
     public void testStreamExchangeEvents() throws Exception {
         testRegisterCurrencyExchange();
-        final FundsMutationAgent agent = FundsMutationAgent.builder().setName("Test").build();
+        final FundsMutationAgent agent = bundle.fundsMutationAgents().getAgentWithId(FundsMutationAgent.builder().setName("Test").build());
         CurrencyExchangeEvent exchangeEvent = CurrencyExchangeEvent.builder()
                 .setBought(Money.of(Units.RUB, BigDecimal.valueOf(70000L)))
                 .setSold(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)))

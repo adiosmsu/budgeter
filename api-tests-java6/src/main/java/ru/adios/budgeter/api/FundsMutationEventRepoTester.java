@@ -31,7 +31,7 @@ public final class FundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (final Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(new Supplier<Exception>() {
                 @Override
@@ -77,7 +77,7 @@ public final class FundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (final Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(new Supplier<Exception>() {
                 @Override

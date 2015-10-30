@@ -2,6 +2,8 @@ package ru.adios.budgeter.api;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -20,6 +22,8 @@ import static org.junit.Assert.*;
  */
 public final class TreasuryTester {
 
+    private static final Logger logger = LoggerFactory.getLogger(TreasuryTester.class);
+
     private final Bundle bundle;
 
     public TreasuryTester(Bundle bundle) {
@@ -31,6 +35,7 @@ public final class TreasuryTester {
 
         final Treasury treasury = bundle.treasury();
 
+        final TransactionalSupport txs = bundle.getTransactionalSupport();
         final Treasury.BalanceAccount account = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         final CountDownLatch latch = new CountDownLatch(1);
         for (int i = 0; i < 10; i++) {
@@ -40,7 +45,14 @@ public final class TreasuryTester {
                 } catch (InterruptedException e) {
                     fail("Concurrent interruption fail");
                 }
-                treasury.addAmount(Money.of(CurrencyUnit.USD, BigDecimal.ONE), account.name);
+                if (txs != null) {
+                    txs.runWithTransaction(() -> {
+                        logger.info("Fire transactional");
+                        treasury.addAmount(Money.of(CurrencyUnit.USD, BigDecimal.ONE), account.name);
+                    });
+                } else {
+                    treasury.addAmount(Money.of(CurrencyUnit.USD, BigDecimal.ONE), account.name);
+                }
             }).start();
         }
         latch.countDown();
@@ -49,6 +61,14 @@ public final class TreasuryTester {
         final BigDecimal value = amount.get().getAmount();
         assertEquals("Concurrent add amount does not match", BigDecimal.valueOf(10L).setScale(2, BigDecimal.ROUND_HALF_DOWN), value);
 
+        if (txs != null) {
+            txs.runWithTransaction(() -> testAddAmountInner(treasury));
+        } else {
+            testAddAmountInner(treasury);
+        }
+    }
+
+    private void testAddAmountInner(Treasury treasury) {
         final Treasury.BalanceAccount accountBtc = TestUtils.prepareBalance(bundle, Units.BTC);
         try {
             treasury.addAmount(Money.of(CurrencyUnit.USD, BigDecimal.ONE), accountBtc);

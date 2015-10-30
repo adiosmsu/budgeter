@@ -4,10 +4,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.Treasury.BalanceAccount;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +23,7 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     public static final String TABLE_NAME = "balance_account";
@@ -33,12 +37,12 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME, COL_CURRENCY_UNIT, COL_BALANCE);
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private final SafeJdbcConnector jdbcConnector;
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
     private final AccountRowMapper rowMapper = new AccountRowMapper(sqlDialect);
 
-    public JdbcTreasury(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    public JdbcTreasury(SafeJdbcConnector jdbcConnector) {
+        this.jdbcConnector = jdbcConnector;
     }
 
 
@@ -58,8 +62,8 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     }
 
     @Override
-    public SafeJdbcTemplateProvider getTemplateProvider() {
-        return jdbcTemplateProvider;
+    public SafeJdbcConnector getJdbcConnector() {
+        return jdbcConnector;
     }
 
     @Override
@@ -83,6 +87,11 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     }
 
     @Override
+    public SqlDialect.Join[] getJoins() {
+        return Common.EMPTY_JOINS;
+    }
+
+    @Override
     public ImmutableList<?> decomposeObject(BalanceAccount object) {
         final Money balance = object.getBalance();
         return ImmutableList.of(object.name, object.getUnit().getNumericCode(), balance != null ? balance.getAmount() : BigDecimal.ZERO);
@@ -97,15 +106,17 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public void setSequenceValue(Long value) {
-        jdbcTemplateProvider.get().update(sqlDialect.sequenceSetValueSql(TABLE_NAME, SEQ_NAME), value);
+        jdbcConnector.get().update(sqlDialect.sequenceSetValueSql(TABLE_NAME, SEQ_NAME), value);
     }
 
 
     @Override
     public Optional<Money> amount(CurrencyUnit unit) {
+        final StringBuilder builder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, "sum(" + COL_BALANCE + ')');
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_CURRENCY_UNIT);
         final Optional<BigDecimal> val = Common.getSingleColumnOptional(
                 this,
-                SqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClausePart(true, SqlDialect.Op.EQUAL, COL_CURRENCY_UNIT), "sum(" + COL_BALANCE + ')'),
+                builder.toString(),
                 sqlDialect.getRowMapperForType(BigDecimal.class),
                 unit.getNumericCode()
         );
@@ -122,9 +133,11 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public Optional<Money> accountBalance(String accountName) {
+        final StringBuilder builder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_CURRENCY_UNIT, COL_BALANCE);
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_NAME);
         return Common.getSingleColumnOptional(
                 this,
-                SqlDialect.selectSql(TABLE_NAME, SqlDialect.generateWhereClausePart(true, SqlDialect.Op.EQUAL, COL_NAME), COL_CURRENCY_UNIT, COL_BALANCE),
+                builder.toString(),
                 (AgnosticRowMapper<Money>) rs -> {
                     final int unit = rs.getInt(1);
                     final BigDecimal balance = getBigDecimalFromDb(rs, 2);
@@ -136,14 +149,25 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public void addAmount(Money amount, String accountName) {
-        final String sql = SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_BALANCE), ImmutableList.of(COL_NAME))
-                .replace(COL_BALANCE + " = ?", COL_BALANCE + " = " + COL_BALANCE + " + ?");
-        jdbcTemplateProvider.get().update(sql, sqlDialect.translateForDb(amount.getAmount()), accountName);
+        final Optional<BalanceAccount> accountForName = getAccountForName(accountName);
+        if (!accountForName.isPresent()) {
+            registerBalanceAccount(new BalanceAccount(accountName, amount.getCurrencyUnit()));
+        } else {
+            final CurrencyUnit unit = accountForName.get().getUnit();
+            if (!unit.equals(amount.getCurrencyUnit())) {
+                throw new DataIntegrityViolationException("Trying to add " + amount.getCurrencyUnit() + " to " + unit + " account");
+            }
+        }
+        final String sql = SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_BALANCE), ImmutableList.of(COL_NAME), SqlDialect.Op.ADD, 0);
+        jdbcConnector.get().update(sql, sqlDialect.translateForDb(amount.getAmount()), accountName);
     }
 
     @Override
-    public void registerBalanceAccount(BalanceAccount account) {
-        Common.insert(this, account);
+    public BalanceAccount registerBalanceAccount(BalanceAccount account) {
+        final GeneratedKeyHolder keyHolder = Common.insert(this, account);
+        final Money balance = account.getBalance();
+        final BigDecimal amount = balance != null ? balance.getAmount() : BigDecimal.ZERO;
+        return new BalanceAccount(keyHolder.getKey().longValue(), account.name, Money.of(account.getUnit(), amount));
     }
 
     @Override
@@ -151,7 +175,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
         final String sql = "SELECT DISTINCT " + COL_CURRENCY_UNIT + " FROM " + TABLE_NAME;
         final String opName = "streamRegisteredCurrencies";
         return LazyResultSetIterator.stream(
-                Common.getRsSupplier(jdbcTemplateProvider, sql, opName),
+                Common.getRsSupplier(jdbcConnector, sql, opName),
                 Common.getMappingSqlFunction(rs -> CurrencyUnit.ofNumericCode(rs.getInt(1)), sql, opName)
         );
     }

@@ -33,8 +33,6 @@ public class SubjectAdditionElementCoreTest {
 
         core.setName("Еда");
         submit = core.submit();
-        //noinspection ConstantConditions
-        final long id = submit.submitResult.id.getAsLong();
         assertFalse(submit.isSuccessful());
         assertFalse(isFieldInError(submit, SubjectAdditionElementCore.FIELD_NAME));
 
@@ -56,6 +54,8 @@ public class SubjectAdditionElementCoreTest {
         core.setType(FundsMutationSubject.Type.PRODUCT.ordinal());
         submit = core.submit();
         assertTrue(submit.isSuccessful());
+        //noinspection ConstantConditions
+        final long id = submit.submitResult.id.getAsLong();
 
         Optional<FundsMutationSubject> subjOpt = subjRepo.findByName("Еда");
         assertTrue(subjOpt.isPresent());

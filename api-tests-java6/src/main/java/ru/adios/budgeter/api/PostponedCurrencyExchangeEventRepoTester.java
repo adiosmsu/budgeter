@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 public final class PostponedCurrencyExchangeEventRepoTester {
 
     private final Bundle bundle;
-    private final FundsMutationAgent agent = FundsMutationAgent.builder().setName("Tesy").build();
+    private FundsMutationAgent agent = FundsMutationAgent.builder().setName("Tesy").build();
 
     public PostponedCurrencyExchangeEventRepoTester(Bundle bundle) {
         this.bundle = bundle;
@@ -28,7 +28,17 @@ public final class PostponedCurrencyExchangeEventRepoTester {
 
     public void setUp() {
         bundle.clearSchema();
-        bundle.fundsMutationAgents().addAgent(agent);
+        final TransactionalSupport txs = bundle.getTransactionalSupport();
+        if (txs != null) {
+            txs.runWithTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    agent = bundle.fundsMutationAgents().addAgent(agent);
+                }
+            });
+        } else {
+            agent = bundle.fundsMutationAgents().addAgent(agent);
+        }
     }
 
     public void testRememberPostponedExchange() throws Exception {

@@ -71,18 +71,22 @@ public interface SqlDialect {
     static void appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, List<OrderBy> orders) {
         if (orders.size() > 0) {
             sb.append(" ORDER BY ");
-            boolean first = false;
+            boolean first = true;
             for (final OrderBy orderBy : orders) {
                 first = appendCol(sb, sqlDialect.checkNameCase(orderBy.field.name()), first);
                 sb.append(' ').append(orderBy.order.name());
             }
         }
         if (limit != null) {
-            if (limit.limit > 0) {
-                sb.append(" LIMIT").append(limit.limit);
+            final boolean wasLimit = limit.limit > 0;
+            if (wasLimit) {
+                sb.append(" LIMIT ").append(limit.limit);
             }
             if (limit.offset > 0) {
-                sb.append(" OFFSET").append(limit.offset);
+                if (!wasLimit) {
+                    sb.append(" LIMIT -1");
+                }
+                sb.append(" OFFSET ").append(limit.offset);
             }
         }
     }
@@ -145,15 +149,20 @@ public interface SqlDialect {
     }
 
     static boolean appendColumns(StringBuilder sb, List<String> columns) {
-        return appendColumns(sb, columns, null);
+        return appendColumns(sb, columns, null, null, null);
     }
 
-    static boolean appendColumns(StringBuilder sb, List<String> columns, @Nullable String suffix) {
+    static boolean appendColumns(StringBuilder sb, List<String> columns, @Nullable String suffix, @Nullable Op op, @Nullable Integer ix) {
         boolean first = true;
+        int i = 0;
         for (final String col : columns) {
             first = appendCol(sb, col, first);
             if (suffix != null) {
-                sb.append(suffix);
+                if (op != null && ix != null && ix == i++) {
+                    sb.append('=').append(col).append(op.spelling).append('?');
+                } else {
+                    sb.append(suffix);
+                }
             }
         }
         return first;
@@ -167,17 +176,20 @@ public interface SqlDialect {
         return false;
     }
 
+    static String getUpdateSqlStandard(String tableName, List<String> changingColumns, List<String> selectingColumns, Op op, int ix) {
+        return getUpdateSql(tableName, changingColumns, selectingColumns, 1, false, op, ix);
+    }
     static String getUpdateSqlStandard(String tableName, List<String> changingColumns, List<String> selectingColumns) {
-        return getUpdateSql(tableName, changingColumns, selectingColumns, 1, false);
+        return getUpdateSql(tableName, changingColumns, selectingColumns, 1, false, null, null);
     }
 
-    static String getUpdateSql(String tableName, List<String> changingColumns, List<String> selectingColumns, int rowsNumber, boolean opt) {
+    static String getUpdateSql(String tableName, List<String> changingColumns, List<String> selectingColumns, int rowsNumber, boolean opt, @Nullable Op op, @Nullable Integer ix) {
         final int numberOfSelectingColumns = selectingColumns.size();
         final StringBuilder builder = new StringBuilder(20 + tableName.length() + 16 * changingColumns.size() + 20 * numberOfSelectingColumns);
 
         builder.append("UPDATE ").append(tableName).append(" SET ");
 
-        appendColumns(builder, changingColumns, "=?");
+        appendColumns(builder, changingColumns, "=?", op, ix);
 
         builder.append(" WHERE ");
 
@@ -236,17 +248,18 @@ public interface SqlDialect {
     }
 
     static String dropIndexCommand(String indexName) {
-        return "DROP INDEX " + indexName;
+        return "DROP INDEX IF EXISTS " + indexName;
     }
 
     static String dropTableCommand(String tableName) {
-        return "DROP TABLE " + tableName;
+        return "DROP TABLE IF EXISTS " + tableName;
     }
 
 
     enum Op {
 
-        EQUAL("="), NOT_EQUAL("<>"), LIKE("LIKE"), MORE(">"), MORE_EQ(">="), LESS("<"), LESS_EQ("<=");
+        EQUAL("="), NOT_EQUAL("<>"), LIKE("LIKE"), MORE(">"), MORE_EQ(">="), LESS("<"), LESS_EQ("<="),
+        ADD("+"), SUBTRACT("-"), MULTIPLY("*"), DIVIDE("/");
 
         public final String spelling;
 

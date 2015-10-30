@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.SingleColumnRowMapper;
 import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,9 +21,11 @@ import static com.google.common.base.Preconditions.checkArgument;
  *
  * @author Mikhail Kulikov
  */
+@Immutable
 public final class SqliteDialect implements SqlDialect {
 
     public static final SqliteDialect INSTANCE = new SqliteDialect();
+
 
     private static final int DECIMAL_SCALE = 10;
     private static final String TEXT_TYPE = "TEXT";
@@ -31,9 +34,9 @@ public final class SqliteDialect implements SqlDialect {
     private static final String PRIMARY_KEY_WITH_NEXT_VALUE = "PRIMARY KEY AUTOINCREMENT";
 
     @Language("SQLite")
-    public static final String SEQUENCE_CURRENT_VALUE_SQL = "SELECT seq FROM sqlite_sequence WHERE name = ";
-    public static final String SEQUENCE_SET_VALUE_SQL = "UPDATE sqlite_sequence SET seq = ? WHERE name = ";
-    public static final String TABLE_EXISTENCE_QUERY = "SELECT name FROM sqlite_master WHERE type='table' AND name = '";
+    private static final String SEQUENCE_CURRENT_VALUE_SQL = "SELECT seq FROM sqlite_sequence WHERE name = ";
+    private static final String SEQUENCE_SET_VALUE_SQL = "UPDATE sqlite_sequence SET seq = ? WHERE name = ";
+    private static final String TABLE_EXISTENCE_QUERY = "SELECT name FROM sqlite_master WHERE type='table' AND name = '";
 
     private SqliteDialect() {}
 
@@ -169,9 +172,9 @@ public final class SqliteDialect implements SqlDialect {
                     dec = dec.scaleByPowerOfTen(DECIMAL_SCALE - scale);
                     scale = dec.scale();
                 }
-                return dec.unscaledValue().longValue() * 10 ^ (DECIMAL_SCALE - scale);
+                return dec.unscaledValue().longValue() * (long) Math.pow(10, DECIMAL_SCALE - scale);
             } else {
-                return dec.toBigInteger().longValue() * 10 ^ DECIMAL_SCALE;
+                return dec.toBigInteger().longValue() * (long) Math.pow(10, DECIMAL_SCALE);
             }
         } else if (object instanceof UtcDay) {
             return ((UtcDay) object).inner.toInstant().toEpochMilli();

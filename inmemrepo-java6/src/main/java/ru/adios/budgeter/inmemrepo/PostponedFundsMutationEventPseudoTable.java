@@ -52,12 +52,23 @@ public final class PostponedFundsMutationEventPseudoTable
 
     @Override
     public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+        if (mutationEvent.amount.isNegative()) {
+            mutationEvent = negateEvent(mutationEvent);
+        }
         store(storedFactory(mutationEvent, FundsMutationDirection.BENEFIT, paidUnit, customRate));
     }
 
     @Override
     public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+        if (mutationEvent.amount.isPositive()) {
+            mutationEvent = negateEvent(mutationEvent);
+        }
         store(storedFactory(mutationEvent, FundsMutationDirection.LOSS, paidUnit, customRate));
+    }
+
+    @Nonnull
+    static FundsMutationEvent negateEvent(FundsMutationEvent mutationEvent) {
+        return FundsMutationEvent.builder().setFundsMutationEvent(mutationEvent).setAmount(mutationEvent.amount.negated()).build();
     }
 
     @Override

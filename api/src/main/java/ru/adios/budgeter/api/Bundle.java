@@ -1,5 +1,7 @@
 package ru.adios.budgeter.api;
 
+import javax.annotation.Nullable;
+
 /**
  * Date: 10/26/15
  * Time: 2:12 PM
@@ -18,6 +20,11 @@ public interface Bundle {
         CURRENCY_RATES,
         FUNDS_MUTATION_AGENTS
     }
+
+    @Nullable
+    TransactionalSupport getTransactionalSupport();
+
+    void setTransactionalSupport(@Nullable TransactionalSupport txSupport);
 
     FundsMutationSubjectRepository fundsMutationSubjects();
 

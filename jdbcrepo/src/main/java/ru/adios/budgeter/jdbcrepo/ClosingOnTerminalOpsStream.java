@@ -3,6 +3,7 @@ package ru.adios.budgeter.jdbcrepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.concurrent.Immutable;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
@@ -13,6 +14,7 @@ import java.util.stream.*;
  *
  * @author Mikhail Kulikov
  */
+@Immutable
 public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     static <T> ClosingOnTerminalOpsStream<T> stream(Stream<T> stream) {

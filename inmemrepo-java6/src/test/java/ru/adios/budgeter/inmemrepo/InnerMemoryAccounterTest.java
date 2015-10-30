@@ -13,10 +13,6 @@ public class InnerMemoryAccounterTest {
 
     private final AccounterTester tester = new AccounterTester(Schema.INSTANCE);
 
-    {
-        tester.setAccounter(new InnerMemoryAccounter());
-    }
-
     @Test
     public void testStreamAllPostponingReasons() throws Exception {
         tester.testStreamAllPostponingReasons();

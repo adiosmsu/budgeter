@@ -141,13 +141,13 @@ public final class FundsMutationSubject {
         }
 
         public Builder setParentId(long parentId) {
-            checkArgument(parentId > 0);
+            checkArgument(parentId >= 0, "Parent id must not be negative");
             this.parentId = parentId;
             return this;
         }
 
         public Builder setRootId(long rootId) {
-            checkArgument(rootId > 0);
+            checkArgument(rootId >= 0, "Root id must not be negative");
             this.rootId = rootId;
             return this;
         }

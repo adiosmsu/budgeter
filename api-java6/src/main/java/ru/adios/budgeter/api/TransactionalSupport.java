@@ -1,4 +1,4 @@
-package ru.adios.budgeter;
+package ru.adios.budgeter.api;
 
 /**
  * Date: 6/16/15

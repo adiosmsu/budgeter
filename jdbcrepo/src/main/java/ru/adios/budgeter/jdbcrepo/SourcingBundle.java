@@ -1,11 +1,17 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.sql.DataSource;
+import java.util.Random;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Date: 10/26/15
@@ -16,25 +22,33 @@ import javax.sql.DataSource;
 @ThreadSafe
 public final class SourcingBundle implements Bundle {
 
-    final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private static final Logger logger = LoggerFactory.getLogger(SourcingBundle.class);
+    public static final Random RANDOM = new Random(System.currentTimeMillis());
+
+
+    private final SafeJdbcConnector jdbcConnector;
     private final ImmutableMap<Repo, JdbcRepository> order;
     private final JdbcAccounter accounter;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
     public SourcingBundle(DataSource dataSource) {
-        jdbcTemplateProvider = new SafeJdbcTemplateProvider(dataSource);
+        this(dataSource, null);
+    }
 
-        final CurrencyRatesJdbcRepository currencyRates = new CurrencyRatesJdbcRepository(jdbcTemplateProvider);
-        final CurrencyExchangeEventJdbcRepository currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
-        final FundsMutationAgentJdbcRepository fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
-        final FundsMutationSubjectJdbcRepository fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
-        final FundsMutationEventJdbcRepository fundsMutationEvents = new FundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationSubjects);
-        final PostponedCurrencyExchangeEventJdbcRepository postponedCurrencyExchangeEvents = new PostponedCurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
-        final PostponedFundsMutationEventJdbcRepository postponedFundsMutationEvents = new PostponedFundsMutationEventJdbcRepository(jdbcTemplateProvider, fundsMutationEvents);
-        final JdbcTreasury treasury = new JdbcTreasury(jdbcTemplateProvider);
+    public SourcingBundle(DataSource dataSource, @Nullable JdbcTransactionalSupport txSupport) {
+        jdbcConnector = new SafeJdbcConnector(dataSource, txSupport);
 
-        accounter = new JdbcAccounter(this);
+        final CurrencyRatesJdbcRepository currencyRates = new CurrencyRatesJdbcRepository(jdbcConnector);
+        final CurrencyExchangeEventJdbcRepository currencyExchangeEvents = new CurrencyExchangeEventJdbcRepository(jdbcConnector);
+        final FundsMutationAgentJdbcRepository fundsMutationAgents = new FundsMutationAgentJdbcRepository(jdbcConnector);
+        final FundsMutationSubjectJdbcRepository fundsMutationSubjects = new FundsMutationSubjectJdbcRepository(jdbcConnector);
+        final FundsMutationEventJdbcRepository fundsMutationEvents = new FundsMutationEventJdbcRepository(jdbcConnector, fundsMutationSubjects);
+        final PostponedCurrencyExchangeEventJdbcRepository postponedCurrencyExchangeEvents = new PostponedCurrencyExchangeEventJdbcRepository(jdbcConnector);
+        final PostponedFundsMutationEventJdbcRepository postponedFundsMutationEvents = new PostponedFundsMutationEventJdbcRepository(jdbcConnector, fundsMutationEvents);
+        final JdbcTreasury treasury = new JdbcTreasury(jdbcConnector);
+
+        accounter = new JdbcAccounter(this, jdbcConnector);
 
         order = ImmutableMap.<Repo, JdbcRepository>builder()
                 .put(Repo.TREASURY, treasury)
@@ -48,6 +62,29 @@ public final class SourcingBundle implements Bundle {
                 .build();
     }
 
+    private void executeMultipleSql(JdbcTemplate jdbcTemplate, String[] createTableSql, @Nullable Logger logger) {
+        for (String sql : createTableSql) {
+            if (sql != null) {
+                if (logger != null) {
+                    logger.info(sql);
+                }
+                if (jdbcConnector.transactionalSupport != null) {
+                    jdbcConnector.transactionalSupport.runWithTransaction(() -> jdbcTemplate.execute(sql));
+                    try {
+                        Thread.sleep(RANDOM.nextInt(11) + 1); // Sadly, Sqlite breaks down without this in multiple concurrent connections case (random is not required);
+                        // but no worries - this method is only for DDL
+                    } catch (InterruptedException ignore) {
+                        if (logger != null) {
+                            logger.error("Sleep error", ignore);
+                        }
+                    }
+                } else {
+                    jdbcTemplate.execute(sql);
+                }
+            }
+        }
+    }
+
     public void setSqlDialect(SqlDialect sqlDialect) {
         this.sqlDialect = sqlDialect;
         for (final JdbcRepository repository : order.values()) {
@@ -57,7 +94,24 @@ public final class SourcingBundle implements Bundle {
     }
 
     public void setNewDataSource(DataSource dataSource) {
-        jdbcTemplateProvider.setDataSource(dataSource);
+        jdbcConnector.setDataSource(dataSource, null);
+    }
+
+    public void setNewDataSource(DataSource dataSource, @Nullable JdbcTransactionalSupport txSupport) {
+        jdbcConnector.setDataSource(dataSource, txSupport);
+    }
+
+    @Override
+    @Nullable
+    public JdbcTransactionalSupport getTransactionalSupport() {
+        return jdbcConnector.transactionalSupport;
+    }
+
+    @Override
+    public void setTransactionalSupport(@Nullable TransactionalSupport txSupport) {
+        checkArgument(txSupport == null || txSupport instanceof JdbcTransactionalSupport,
+                "This implementation will only work with JdbcTransactionalSupport instances");
+        jdbcConnector.transactionalSupport = (JdbcTransactionalSupport) txSupport;
     }
 
     @Override
@@ -107,16 +161,16 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public void clearSchema() {
-        final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
+        final JdbcTemplate jdbcTemplate = jdbcConnector.get();
         for (final JdbcRepository repo : order.values().asList().reverse()) {
-            Common.executeMultipleSql(jdbcTemplate, repo.getDropTableSql());
+            executeMultipleSql(jdbcTemplate, repo.getDropTableSql(), logger);
         }
         createSchema(jdbcTemplate);
     }
 
     @Override
     public void createSchemaIfNeeded() {
-        final JdbcTemplate jdbcTemplate = jdbcTemplateProvider.get();
+        final JdbcTemplate jdbcTemplate = jdbcConnector.get();
         if (jdbcTemplate.query(sqlDialect.tableExistsSql(FundsMutationAgentJdbcRepository.TABLE_NAME), Common.STRING_ROW_MAPPER).isEmpty()) {
             createSchema(jdbcTemplate);
         }
@@ -124,18 +178,18 @@ public final class SourcingBundle implements Bundle {
 
     private void createSchema(JdbcTemplate jdbcTemplate) {
         for (final JdbcRepository repo : order.values()) {
-            Common.executeMultipleSql(jdbcTemplate, repo.getCreateTableSql());
+            executeMultipleSql(jdbcTemplate, repo.getCreateTableSql(), logger);
         }
     }
 
     @Override
     public void clear(Repo repo) {
-        clearRepo(jdbcTemplateProvider.get(), order.get(repo));
+        clearRepo(jdbcConnector.get(), order.get(repo));
     }
 
     private void clearRepo(JdbcTemplate jdbcTemplate, JdbcRepository repository) {
-        Common.executeMultipleSql(jdbcTemplate, repository.getDropTableSql());
-        Common.executeMultipleSql(jdbcTemplate, repository.getCreateTableSql());
+        executeMultipleSql(jdbcTemplate, repository.getDropTableSql(), logger);
+        executeMultipleSql(jdbcTemplate, repository.getCreateTableSql(), logger);
     }
 
 }

@@ -42,20 +42,27 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     public static final String COL_TIMESTAMP = "timestamp";
     public static final String COL_AGENT_ID = "agent_id";
 
-    public static final String JOIN_RELEVANT_ACC_ID = "r." + JdbcTreasury.COL_ID;
-    public static final String JOIN_RELEVANT_ACC_NAME = "r." + JdbcTreasury.COL_NAME;
-    public static final String JOIN_RELEVANT_ACC_CURRENCY_UNIT = "r." + JdbcTreasury.COL_CURRENCY_UNIT;
-    public static final String JOIN_RELEVANT_ACC_BALANCE = "r." + JdbcTreasury.COL_BALANCE;
+    private static final String JOIN_RELEVANT_ACC_ID = "r." + JdbcTreasury.COL_ID;
+    private static final String JOIN_RELEVANT_ACC_NAME = "r." + JdbcTreasury.COL_NAME;
+    private static final String JOIN_RELEVANT_ACC_CURRENCY_UNIT = "r." + JdbcTreasury.COL_CURRENCY_UNIT;
+    private static final String JOIN_RELEVANT_ACC_BALANCE = "r." + JdbcTreasury.COL_BALANCE;
 
-    public static final String JOIN_SUBJECT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_ID;
-    public static final String JOIN_SUBJECT_PARENT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_PARENT_ID;
-    public static final String JOIN_SUBJECT_ROOT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_ROOT_ID;
-    public static final String JOIN_SUBJECT_CHILD_FLAG = "s." + FundsMutationSubjectJdbcRepository.COL_CHILD_FLAG;
-    public static final String JOIN_SUBJECT_TYPE = "s." + FundsMutationSubjectJdbcRepository.COL_TYPE;
-    public static final String JOIN_SUBJECT_NAME = "s." + FundsMutationSubjectJdbcRepository.COL_NAME;
+    private static final String JOIN_SUBJECT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_ID;
+    private static final String JOIN_SUBJECT_PARENT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_PARENT_ID;
+    private static final String JOIN_SUBJECT_ROOT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_ROOT_ID;
+    private static final String JOIN_SUBJECT_CHILD_FLAG = "s." + FundsMutationSubjectJdbcRepository.COL_CHILD_FLAG;
+    private static final String JOIN_SUBJECT_TYPE = "s." + FundsMutationSubjectJdbcRepository.COL_TYPE;
+    private static final String JOIN_SUBJECT_NAME = "s." + FundsMutationSubjectJdbcRepository.COL_NAME;
 
-    public static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
-    public static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
+    private static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
+    private static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
+
+    private static final SqlDialect.Join JOIN_RELEVANT_ACCOUNT =
+            SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "r", COL_RELEVANT_ACCOUNT_ID, JdbcTreasury.COL_ID);
+    private static final SqlDialect.Join JOIN_SUBJECT =
+            SqlDialect.innerJoin(TABLE_NAME, FundsMutationSubjectJdbcRepository.TABLE_NAME, "s", COL_SUBJECT_ID, FundsMutationSubjectJdbcRepository.COL_ID);
+    private static final SqlDialect.Join JOIN_AGENT =
+            SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID);
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_UNIT, COL_AMOUNT,
@@ -69,7 +76,8 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID
     );
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+
+    private final SafeJdbcConnector jdbcConnector;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
@@ -78,15 +86,16 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     private final FundsMutationSubjectJdbcRepository subjRepo;
     private final MutationRowMapper rowMapper = new MutationRowMapper();
 
-    FundsMutationEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
-        subjRepo = new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
+    FundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
+        this.jdbcConnector = jdbcConnector;
+        subjRepo = new FundsMutationSubjectJdbcRepository(jdbcConnector);
     }
 
-    FundsMutationEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider, FundsMutationSubjectJdbcRepository subjRepo) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    FundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector, FundsMutationSubjectJdbcRepository subjRepo) {
+        this.jdbcConnector = jdbcConnector;
         this.subjRepo = subjRepo;
     }
+
 
     @Override
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -104,8 +113,8 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     }
 
     @Override
-    public SafeJdbcTemplateProvider getTemplateProvider() {
-        return jdbcTemplateProvider;
+    public SafeJdbcConnector getJdbcConnector() {
+        return jdbcConnector;
     }
 
     @Override
@@ -131,6 +140,15 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     @Override
     public ImmutableList<String> getColumnNamesForInsert(boolean withId) {
         return COLS_FOR_INSERT;
+    }
+
+    @Override
+    public SqlDialect.Join[] getJoins() {
+        return new SqlDialect.Join[] {
+                JOIN_RELEVANT_ACCOUNT,
+                JOIN_SUBJECT,
+                JOIN_AGENT
+        };
     }
 
     @Override
@@ -182,15 +200,15 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
         final StringBuilder sb = SqlDialect.selectSqlBuilder(
                 TABLE_NAME, COLS_FOR_SELECT,
-                SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "r", COL_RELEVANT_ACCOUNT_ID, JdbcTreasury.COL_ID),
-                SqlDialect.innerJoin(TABLE_NAME, FundsMutationSubjectJdbcRepository.TABLE_NAME, "s", COL_SUBJECT_ID, FundsMutationSubjectJdbcRepository.COL_ID),
-                SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID)
+                JOIN_RELEVANT_ACCOUNT,
+                JOIN_SUBJECT,
+                JOIN_AGENT
         );
         SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
         final String sql = sb.toString();
 
         return LazyResultSetIterator.stream(
-                Common.getRsSupplier(jdbcTemplateProvider, sql, "streamMutationEvents"),
+                Common.getRsSupplier(jdbcConnector, sql, "streamMutationEvents"),
                 Common.getMappingSqlFunction(rowMapper, sql, "streamMutationEvents")
         );
     }

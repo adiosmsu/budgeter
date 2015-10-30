@@ -7,6 +7,7 @@ import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
@@ -18,6 +19,7 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectRepository, JdbcRepository<FundsMutationSubject> {
 
     public static final String TABLE_NAME = "funds_mutation_subject";
@@ -27,19 +29,19 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     public static final String COL_ID = "id";
     public static final String COL_PARENT_ID = "parent_id";
     public static final String COL_ROOT_ID = "root_id";
-    public static final String COL_CHILD_FLAG = "child_Flag";
+    public static final String COL_CHILD_FLAG = "child_flag";
     public static final String COL_TYPE = "type";
     public static final String COL_NAME = "name";
 
     private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_PARENT_ID, COL_ROOT_ID, COL_CHILD_FLAG, COL_TYPE, COL_NAME);
 
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private final SafeJdbcConnector jdbcConnector;
     private final SubjectRowMapper rowMapper = new SubjectRowMapper();
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
-    FundsMutationSubjectJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    FundsMutationSubjectJdbcRepository(SafeJdbcConnector jdbcConnector) {
+        this.jdbcConnector = jdbcConnector;
     }
 
 
@@ -51,6 +53,11 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     @Override
     public ImmutableList<String> getColumnNames() {
         return COLS;
+    }
+
+    @Override
+    public SqlDialect.Join[] getJoins() {
+        return Common.EMPTY_JOINS;
     }
 
     @Override
@@ -77,8 +84,8 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     }
 
     @Override
-    public SafeJdbcTemplateProvider getTemplateProvider() {
-        return jdbcTemplateProvider;
+    public SafeJdbcConnector getJdbcConnector() {
+        return jdbcConnector;
     }
 
     @Override
@@ -133,7 +140,7 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
 
     @Override
     public void updateChildFlag(long id) {
-        jdbcTemplateProvider.get().update(
+        jdbcConnector.get().update(
                 SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_CHILD_FLAG), ImmutableList.of(COL_ID)),
                 true, id
         );

@@ -5,6 +5,8 @@ import org.springframework.jdbc.core.PreparedStatementCreator;
 import ru.adios.budgeter.api.Provider;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -16,6 +18,7 @@ import java.util.Optional;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     void setSqlDialect(SqlDialect sqlDialect);
@@ -32,7 +35,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
         return new InsertStatementCreator<>(this, object, true);
     }
 
-    SafeJdbcTemplateProvider getTemplateProvider();
+    SafeJdbcConnector getJdbcConnector();
 
     String getTableName();
 
@@ -64,6 +67,8 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
         return columnNames;
     }
 
+    SqlDialect.Join[] getJoins();
+
     ImmutableList<?> decomposeObject(ObjType object);
 
     @Nullable
@@ -77,13 +82,25 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     @Override
     default Optional<ObjType> getById(Long id) {
-        return Common.getByOneColumn(id, getIdColumnName(), this);
+        return Common.getByOneColumn(id, getTableName() + '.' + getIdColumnName(), this);
     }
 
     String[] getCreateTableSql();
 
     String[] getDropTableSql();
 
+    static Object wrapNull(Object o) {
+        if (o == null) {
+            return new Null();
+        }
+        return o;
+    }
+
+    final class Null {
+        private Null() {}
+    }
+
+    @Immutable
     class InsertStatementCreator<ObjType> implements PreparedStatementCreator {
 
         private final JdbcRepository<ObjType> repo;
@@ -110,7 +127,10 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
                 statement = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             }
 
-            for (final Object o : repo.decomposeObject(object)) {
+            for (Object o : repo.decomposeObject(object)) {
+                if (o instanceof Null) {
+                    o = null;
+                }
                 statement.setObject(i++,
                         sqlDialect.translateForDb(o)
                 );

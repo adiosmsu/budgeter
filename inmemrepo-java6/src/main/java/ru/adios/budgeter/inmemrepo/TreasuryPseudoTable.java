@@ -110,7 +110,7 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
         tDef.addAmount(amount, account);
     }
 
-    private void _addAmount(Money amount, String accountName, boolean createNew) {
+    private BalanceAccount _addAmount(Money amount, String accountName, boolean createNew) {
         checkNotNull(amount, "amount is null");
         checkNotNull(accountName, "accountName is null");
 
@@ -124,7 +124,7 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
         final CurrencyUnit unit = amount.getCurrencyUnit();
 
         final long start = System.currentTimeMillis();
-        final Object[] freshValueContainer = new Object[1];
+        final StoredBalanceAccount[] freshValueContainer = new StoredBalanceAccount[1];
         StoredBalanceAccount moneyStored;
         do {
             moneyStored = table.get(id);
@@ -139,6 +139,8 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
         } while (moneyStored != null
                 ? replaceStoredFailed(id, moneyStored, freshValueContainer)
                 : insertNewStoredFailed(accountName, id, unit, start, freshValueContainer, createNew));
+
+        return freshValueContainer[0].createBalanceAccount();
     }
 
     private boolean replaceStoredFailed(Integer id, StoredBalanceAccount moneyStored, Object[] fresh) {
@@ -202,8 +204,8 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
     }
 
     @Override
-    public void registerBalanceAccount(BalanceAccount account) {
-        _addAmount(Money.zero(account.getUnit()), account.name, true);
+    public BalanceAccount registerBalanceAccount(BalanceAccount account) {
+        return _addAmount(Money.zero(account.getUnit()), account.name, true);
     }
 
     @Override

@@ -33,11 +33,11 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     private static final AgentRowMapper AGENT_ROW_MAPPER = new AgentRowMapper();
 
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private final SafeJdbcConnector jdbcConnector;
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
-    FundsMutationAgentJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    FundsMutationAgentJdbcRepository(SafeJdbcConnector jdbcConnector) {
+        this.jdbcConnector = jdbcConnector;
     }
 
 
@@ -57,8 +57,8 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     }
 
     @Override
-    public SafeJdbcTemplateProvider getTemplateProvider() {
-        return jdbcTemplateProvider;
+    public SafeJdbcConnector getJdbcConnector() {
+        return jdbcConnector;
     }
 
     @Override
@@ -79,6 +79,11 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     @Override
     public ImmutableList<String> getColumnNames() {
         return COLS;
+    }
+
+    @Override
+    public SqlDialect.Join[] getJoins() {
+        return Common.EMPTY_JOINS;
     }
 
     @Override

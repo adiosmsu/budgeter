@@ -15,7 +15,7 @@ public class CurrencyRatesPseudoTableTest {
 
     @Test
     public void testAddRate() throws Exception {
-        tester.testAddRate();
+        tester.testAddRate(1000);
     }
 
     @Test

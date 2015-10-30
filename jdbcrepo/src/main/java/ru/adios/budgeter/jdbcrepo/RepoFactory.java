@@ -2,6 +2,7 @@ package ru.adios.budgeter.jdbcrepo;
 
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.sql.DataSource;
 
@@ -14,46 +15,56 @@ import javax.sql.DataSource;
 @ThreadSafe
 public final class RepoFactory {
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private final SafeJdbcConnector jdbcConnector;
 
     public RepoFactory(DataSource dataSource) {
-        jdbcTemplateProvider = new SafeJdbcTemplateProvider(dataSource);
+        jdbcConnector = new SafeJdbcConnector(dataSource);
     }
+
+    public RepoFactory(DataSource dataSource, @Nullable JdbcTransactionalSupport txSupport) {
+        jdbcConnector = new SafeJdbcConnector(dataSource, txSupport);
+    }
+
 
     public void setNewDataSource(DataSource dataSource) {
-        jdbcTemplateProvider.setDataSource(dataSource);
+        jdbcConnector.setDataSource(dataSource, null);
     }
 
+    public void setNewDataSource(DataSource dataSource, @Nullable JdbcTransactionalSupport txSupport) {
+        jdbcConnector.setDataSource(dataSource, txSupport);
+    }
+
+
     public FundsMutationSubjectRepository createFundsMutationSubjects() {
-        return new FundsMutationSubjectJdbcRepository(jdbcTemplateProvider);
+        return new FundsMutationSubjectJdbcRepository(jdbcConnector);
     }
 
     public CurrencyExchangeEventJdbcRepository createCurrencyExchangeEvents() {
-        return new CurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
+        return new CurrencyExchangeEventJdbcRepository(jdbcConnector);
     }
 
     public FundsMutationEventRepository createFundsMutationEvents() {
-        return new FundsMutationEventJdbcRepository(jdbcTemplateProvider);
+        return new FundsMutationEventJdbcRepository(jdbcConnector);
     }
 
     public PostponedCurrencyExchangeEventRepository createPostponedCurrencyExchangeEvents() {
-        return new PostponedCurrencyExchangeEventJdbcRepository(jdbcTemplateProvider);
+        return new PostponedCurrencyExchangeEventJdbcRepository(jdbcConnector);
     }
 
     public PostponedFundsMutationEventRepository createPostponedFundsMutationEvents() {
-        return new PostponedFundsMutationEventJdbcRepository(jdbcTemplateProvider);
+        return new PostponedFundsMutationEventJdbcRepository(jdbcConnector);
     }
 
     public Treasury createTreasury() {
-        return new JdbcTreasury(jdbcTemplateProvider);
+        return new JdbcTreasury(jdbcConnector);
     }
 
     public CurrencyRatesRepository createCurrencyRates() {
-        return new CurrencyRatesJdbcRepository(jdbcTemplateProvider);
+        return new CurrencyRatesJdbcRepository(jdbcConnector);
     }
 
     public FundsMutationAgentJdbcRepository createFundsMutationAgents() {
-        return new FundsMutationAgentJdbcRepository(jdbcTemplateProvider);
+        return new FundsMutationAgentJdbcRepository(jdbcConnector);
     }
 
 }

@@ -9,6 +9,7 @@ import ru.adios.budgeter.api.CurrencyRatesProvider.ConversionRate;
 import ru.adios.budgeter.api.*;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,28 +21,31 @@ import java.util.Optional;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, JdbcRepository<ConversionRate> {
 
     public static final String TABLE_NAME = "currency_rate";
     public static final String SEQ_NAME = "seq_currency_rate";
     public static final String INDEX_DAY = "ix_currency_rate_day";
+    public static final String INDEX_FROM_TO = "ix_currency_rate_from_to";
     public static final String COL_ID = "id";
     public static final String COL_DAY = "day";
-    public static final String COL_FROM = "from";
-    public static final String COL_TO = "to";
+    public static final String COL_FROM = "from_unit";
+    public static final String COL_TO = "to_unit";
     public static final String COL_RATE = "rate";
 
     private static final Logger logger = LoggerFactory.getLogger(CurrencyRatesJdbcRepository.class);
     private static final ImmutableList<String> COLS = ImmutableList.of(COL_DAY, COL_FROM, COL_TO, COL_RATE);
 
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private final SafeJdbcConnector jdbcConnector;
     private final RateRowMapper rowMapper = new RateRowMapper();
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
-    public CurrencyRatesJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    CurrencyRatesJdbcRepository(SafeJdbcConnector jdbcConnector) {
+        this.jdbcConnector = jdbcConnector;
     }
+
 
     @Override
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -59,8 +63,8 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
     }
 
     @Override
-    public SafeJdbcTemplateProvider getTemplateProvider() {
-        return jdbcTemplateProvider;
+    public SafeJdbcConnector getJdbcConnector() {
+        return jdbcConnector;
     }
 
     @Override
@@ -81,6 +85,11 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
     @Override
     public ImmutableList<String> getColumnNames() {
         return COLS;
+    }
+
+    @Override
+    public SqlDialect.Join[] getJoins() {
+        return Common.EMPTY_JOINS;
     }
 
     @Override
@@ -107,19 +116,19 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_RATE);
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_RATE);
         SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM, COL_TO);
         return Common.getSingleColumnOptional(
                 this,
                 sb.toString(),
                 sqlDialect.getRowMapperForType(BigDecimal.class),
-                day, from.getNumericCode(), to.getNumericCode()
+                sqlDialect.translateForDb(day), from.getNumericCode(), to.getNumericCode()
         );
     }
 
     @Override
     public Optional<BigDecimal> getLatestOptionalConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {
-        final StringBuilder sqlBuilder = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_RATE);
+        final StringBuilder sqlBuilder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_RATE);
         SqlDialect.appendWhereClausePart(sqlBuilder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_FROM, COL_TO);
         SqlDialect.appendWhereClausePostfix(sqlBuilder, sqlDialect, OptLimit.createLimit(1), OrderBy.getDefault(COL_DAY, Order.DESC));
         return Common.getSingleColumnOptional(
@@ -132,26 +141,28 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public boolean isRateStale(CurrencyUnit to) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_ID);
-        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_TO, COL_DAY);
-        return Common.getSingleColumnOptional(
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_ID);
+        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM);
+        SqlDialect.appendWhereClausePart(false, sb, false, SqlDialect.Op.EQUAL, COL_TO);
+        final int toTrans = to.getNumericCode();
+        return !Common.getSingleColumnOptional(
                 this,
                 sb.toString(),
                 sqlDialect.getRowMapperForType(Long.class),
-                to.getNumericCode(), new UtcDay()
+                sqlDialect.translateForDb(new UtcDay()), toTrans, toTrans
         ).isPresent();
     }
 
     @Override
     public ImmutableSet<Long> getIndexedForDay(UtcDay day) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, COL_ID);
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_ID);
         SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
         return ImmutableSet.copyOf(
                 Common.getSingleColumnList(
                         this,
                         sb.toString(),
                         sqlDialect.getRowMapperForType(Long.class),
-                        day
+                        sqlDialect.translateForDb(day)
                 )
         );
     }
@@ -162,7 +173,8 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
         return new String[] {
                 getActualCreateTableSql(),
                 sqlDialect.createSeq(SEQ_NAME, TABLE_NAME),
-                sqlDialect.createIndexSql(INDEX_DAY, TABLE_NAME, false, COL_DAY)
+                sqlDialect.createIndexSql(INDEX_DAY, TABLE_NAME, false, COL_DAY),
+                sqlDialect.createIndexSql(INDEX_FROM_TO, TABLE_NAME, true, COL_DAY, COL_FROM, COL_TO)
         };
     }
 
@@ -171,6 +183,7 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
         return new String[] {
                 sqlDialect.dropSeqCommand(SEQ_NAME),
                 SqlDialect.dropIndexCommand(INDEX_DAY),
+                SqlDialect.dropIndexCommand(INDEX_FROM_TO),
                 SqlDialect.dropTableCommand(TABLE_NAME)
         };
     }

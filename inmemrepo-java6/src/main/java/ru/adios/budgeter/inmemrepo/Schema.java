@@ -2,6 +2,8 @@ package ru.adios.budgeter.inmemrepo;
 
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.Nullable;
+
 /**
  * Date: 6/15/15
  * Time: 12:27 PM
@@ -26,6 +28,19 @@ public final class Schema implements Bundle {
     @Override
     public CurrencyExchangeEventRepository currencyExchangeEvents() {
         return CURRENCY_EXCHANGE_EVENTS;
+    }
+
+    @Nullable
+    @Override
+    public TransactionalSupport getTransactionalSupport() {
+        return null;
+    }
+
+    @Override
+    public void setTransactionalSupport(@Nullable TransactionalSupport txSupport) {
+        if (txSupport != null) {
+            throw new UnsupportedOperationException("This implementation uses hash maps to store data so it's unreasonable to implement any transactional support");
+        }
     }
 
     @Override

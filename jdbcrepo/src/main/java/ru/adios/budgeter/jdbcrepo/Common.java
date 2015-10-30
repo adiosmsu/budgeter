@@ -3,7 +3,6 @@ package ru.adios.budgeter.jdbcrepo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -20,7 +19,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -31,22 +29,22 @@ import static com.google.common.base.Preconditions.checkArgument;
  *
  * @author Mikhail Kulikov
  */
-class Common {
+final class Common {
 
-    static ResultSetSupplier getRsSupplier(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql) {
-        return new ResultSetSupplier(jdbcTemplateProvider, sql, null);
+    static ResultSetSupplier getRsSupplier(SafeJdbcConnector jdbcConnector, String sql) {
+        return new ResultSetSupplier(jdbcConnector, sql, null);
     }
 
-    static ResultSetSupplier getRsSupplier(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql, @Nullable String opName) {
-        return new ResultSetSupplier(jdbcTemplateProvider, sql, opName);
+    static ResultSetSupplier getRsSupplier(SafeJdbcConnector jdbcConnector, String sql, @Nullable String opName) {
+        return new ResultSetSupplier(jdbcConnector, sql, opName);
     }
 
-    static ParametrizedResultSetSupplier getRsSupplierWithParams(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql, List<?> params) {
-        return getRsSupplierWithParams(jdbcTemplateProvider, sql, params, null);
+    static ParametrizedResultSetSupplier getRsSupplierWithParams(SafeJdbcConnector jdbcConnector, SqlDialect sqlDialect, String sql, List<?> params) {
+        return getRsSupplierWithParams(jdbcConnector, sqlDialect, sql, params, null);
     }
 
-    static ParametrizedResultSetSupplier getRsSupplierWithParams(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql, List<?> params, @Nullable String opName) {
-        return new ParametrizedResultSetSupplier(jdbcTemplateProvider, sql, params, opName);
+    static ParametrizedResultSetSupplier getRsSupplierWithParams(SafeJdbcConnector jdbcConnector, SqlDialect sqlDialect, String sql, List<?> params, @Nullable String opName) {
+        return new ParametrizedResultSetSupplier(jdbcConnector, sqlDialect, sql, params, opName);
     }
 
     static <ObjType> SqlFunction<ResultSet, ObjType> getMappingSqlFunction(AgnosticRowMapper<ObjType> rowMapper, @Nullable String sql, @Nullable String opName) {
@@ -55,6 +53,7 @@ class Common {
 
     static final SingleColumnRowMapper<Long> LONG_ROW_MAPPER = new SingleColumnRowMapper<>(Long.class);
     static final SingleColumnRowMapper<String> STRING_ROW_MAPPER = new SingleColumnRowMapper<>(String.class);
+    static final SqlDialect.Join[] EMPTY_JOINS = new SqlDialect.Join[] {};
 
     static final SQLStateSQLExceptionTranslator EXCEPTION_TRANSLATOR = new SQLStateSQLExceptionTranslator();
 
@@ -62,21 +61,13 @@ class Common {
         if (results.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(results.get(0));
-    }
-
-    static void executeMultipleSql(JdbcTemplate jdbcTemplate, String[] createTableSql) {
-        for (String sql : createTableSql) {
-            if (sql != null) {
-                jdbcTemplate.execute(sql);
-            }
-        }
+        return Optional.ofNullable(results.get(0));
     }
 
     static <ObjType> GeneratedKeyHolder insert(JdbcRepository<ObjType> repo, ObjType object) {
         final GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
 
-        repo.getTemplateProvider()
+        repo.getJdbcConnector()
                 .get()
                 .update(repo.getInsertStatementCreator(object), keyHolder);
 
@@ -87,43 +78,47 @@ class Common {
         final Object id = repo.extractId(object);
         checkArgument(id != null, "Repo returns null id value from object");
 
-        return repo.getTemplateProvider()
+        return repo.getJdbcConnector()
                 .get()
                 .update(repo.getInsertStatementCreatorWithId(object));
     }
 
     static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, @Nullable String opName) {
-        final String sql = SqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames());
+        final String sql = SqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames(), repo.getJoins());
         return LazyResultSetIterator.stream(
-                getRsSupplier(repo.getTemplateProvider(), sql, opName),
+                getRsSupplier(repo.getJdbcConnector(), sql, opName),
                 getMappingSqlFunction(repo.getRowMapper(), sql, opName)
         );
     }
 
     static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, List<OrderBy> options, @Nullable OptLimit limit, @Nullable String opName) {
-        final SqlDialect sqlDialect = repo.getSqlDialect();
-        final String sql = SqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames()) +
-                SqlDialect.getWhereClausePostfix(sqlDialect, limit, options);
+        final StringBuilder builder = getRepoSelectBuilder(repo);
+        SqlDialect.appendWhereClausePostfix(builder, repo.getSqlDialect(), limit, options);
+        final String sql = builder.toString();
+
         return LazyResultSetIterator.stream(
-                getRsSupplier(repo.getTemplateProvider(), sql, opName),
+                getRsSupplier(repo.getJdbcConnector(), sql, opName),
                 getMappingSqlFunction(repo.getRowMapper(), sql, opName)
         );
     }
 
     static <ObjType> Stream<ObjType> streamRequest(JdbcRepository<ObjType> repo, ImmutableMap<String, Object> columnToValueMap, @Nullable String opName) {
-        final String sql = SqlDialect.selectSql(
-                repo.getTableName(),
-                SqlDialect.generateWhereClausePart(true, SqlDialect.Op.EQUAL, ImmutableList.copyOf(columnToValueMap.keySet())),
-                repo.getColumnNames()
-        );
+        final StringBuilder builder = getRepoSelectBuilder(repo);
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, ImmutableList.copyOf(columnToValueMap.keySet()));
+        final String sql = builder.toString();
+
         return LazyResultSetIterator.stream(
-                getRsSupplierWithParams(repo.getTemplateProvider(), sql, ImmutableList.copyOf(columnToValueMap.values()), opName),
+                getRsSupplierWithParams(repo.getJdbcConnector(), repo.getSqlDialect(), sql, ImmutableList.copyOf(columnToValueMap.values()), opName),
                 getMappingSqlFunction(repo.getRowMapper(), sql, opName)
         );
     }
 
+    private static <ObjType> StringBuilder getRepoSelectBuilder(JdbcRepository<ObjType> repo) {
+        return SqlDialect.selectSqlBuilder(repo.getTableName(), repo.getColumnNames(), repo.getJoins());
+    }
+
     static <ColType> ColType getSingleColumn(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) throws IncorrectResultSizeDataAccessException {
-        return repo.getTemplateProvider().get().queryForObject(sql, rowMapper, params);
+        return repo.getJdbcConnector().get().queryForObject(sql, rowMapper, params);
     }
 
     static <ColType> Optional<ColType> getSingleColumnOptional(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) {
@@ -132,7 +127,7 @@ class Common {
     }
 
     static <ColType> List<ColType> getSingleColumnList(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) {
-        return repo.getTemplateProvider().get().query(sql, rowMapper, params);
+        return repo.getJdbcConnector().get().query(sql, rowMapper, params);
     }
 
     static <ObjType> Optional<ObjType> getByOneUniqueColumn(Object column, String columnName, JdbcRepository<ObjType> repo) {
@@ -156,18 +151,18 @@ class Common {
 
     private static <ObjType> List<ObjType> innerByOneColumnList(Object column, JdbcRepository<ObjType> repo, String sql) {
         return repo
-                .getTemplateProvider()
+                .getJdbcConnector()
                 .get()
                 .query(sql, repo.getRowMapper(), column);
     }
 
     private static <ObjType> String innerByOneColumnSql(String columnName, JdbcRepository<ObjType> repo, SqlDialect.Op op, boolean unique) {
-        String sql = SqlDialect
-                .selectSql(repo.getTableName(), SqlDialect.generateWhereClausePart(true, op, columnName), repo.getColumnNames());
+        final StringBuilder builder = getRepoSelectBuilder(repo);
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, op, columnName);
         if (unique) {
-            sql += " LIMIT 1";
+            builder.append(" LIMIT 1");
         }
-        return sql;
+        return builder.toString();
     }
 
     @Nonnull
@@ -180,49 +175,18 @@ class Common {
     }
 
 
-    static class ResultSetSupplier implements Supplier<ResultSet> {
-
-        private final SafeJdbcTemplateProvider jdbcTemplateProvider;
-        private final String sql;
-        @Nullable
-        private final String op;
-
-        ResultSetSupplier(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql) {
-            this(jdbcTemplateProvider, sql, null);
-        }
-
-        ResultSetSupplier(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql, @Nullable String op) {
-            this.jdbcTemplateProvider = jdbcTemplateProvider;
-            this.sql = sql;
-            this.op = op;
-        }
-
-        @Override
-        public ResultSet get() {
-            try {
-                final PreparedStatement statement = jdbcTemplateProvider.get().getDataSource().getConnection().prepareStatement(sql);
-                enrichStatement(statement);
-                return statement.executeQuery();
-            } catch (SQLException e) {
-                //noinspection SqlDialectInspection
-                throw Common.EXCEPTION_TRANSLATOR.translate(op != null ? op : "ResultSetSupplier.get()", sql, e);
-            }
-        }
-
-        protected void enrichStatement(PreparedStatement statement) throws SQLException {}
-
-    }
-
     static final class ParametrizedResultSetSupplier extends ResultSetSupplier {
 
         private final List<?> params;
+        private final SqlDialect sqlDialect;
 
-        ParametrizedResultSetSupplier(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql, List<?> params) {
-            this(jdbcTemplateProvider, sql, params, null);
+        ParametrizedResultSetSupplier(SafeJdbcConnector jdbcConnector, SqlDialect sqlDialect, String sql, List<?> params) {
+            this(jdbcConnector, sqlDialect, sql, params, null);
         }
 
-        ParametrizedResultSetSupplier(SafeJdbcTemplateProvider jdbcTemplateProvider, String sql, List<?> params, @Nullable String op) {
-            super(jdbcTemplateProvider, sql, op);
+        ParametrizedResultSetSupplier(SafeJdbcConnector jdbcConnector, SqlDialect sqlDialect, String sql, List<?> params, @Nullable String op) {
+            super(jdbcConnector, sql, op);
+            this.sqlDialect = sqlDialect;
             this.params = params;
         }
 
@@ -230,7 +194,7 @@ class Common {
         protected void enrichStatement(PreparedStatement statement) throws SQLException {
             int i = 1;
             for (final Object o : params) {
-                statement.setObject(i++, o);
+                statement.setObject(i++, sqlDialect.translateForDb(o));
             }
         }
 

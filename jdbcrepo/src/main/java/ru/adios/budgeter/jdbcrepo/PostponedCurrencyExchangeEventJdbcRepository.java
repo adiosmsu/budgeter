@@ -9,6 +9,7 @@ import ru.adios.budgeter.api.Treasury.BalanceAccount;
 import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,6 +25,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCurrencyExchangeEventRepository, JdbcRepository<PostponedExchange> {
 
     public static final String TABLE_NAME = "postponed_currency_exchange_event";
@@ -54,6 +56,13 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     public static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
     public static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
 
+    public static final SqlDialect.Join JOIN_TO_BUY_ACCOUNT =
+            SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "b", COL_TO_BUY_ACCOUNT_ID, JdbcTreasury.COL_ID);
+    public static final SqlDialect.Join JOIN_SELL_ACCOUNT =
+            SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "s", COL_SELL_ACCOUNT_ID, JdbcTreasury.COL_ID);
+    public static final SqlDialect.Join JOIN_AGENT =
+            SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID);
+
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_TO_BUY_AMOUNT,
             JOIN_TO_BUY_ACC_ID, JOIN_TO_BUY_ACC_NAME, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_TO_BUY_ACC_BALANCE,
@@ -66,7 +75,7 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     );
 
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private final SafeJdbcConnector jdbcConnector;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
@@ -74,8 +83,8 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     private final FundsMutationAgentJdbcRepository.AgentRowMapper agentRowMapper = new FundsMutationAgentJdbcRepository.AgentRowMapper();
     private final PostponedExchangeEventRowMapper rowMapper = new PostponedExchangeEventRowMapper();
 
-    public PostponedCurrencyExchangeEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    public PostponedCurrencyExchangeEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
+        this.jdbcConnector = jdbcConnector;
     }
 
 
@@ -95,8 +104,8 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     }
 
     @Override
-    public SafeJdbcTemplateProvider getTemplateProvider() {
-        return jdbcTemplateProvider;
+    public SafeJdbcConnector getJdbcConnector() {
+        return jdbcConnector;
     }
 
     @Override
@@ -125,13 +134,28 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     }
 
     @Override
+    public SqlDialect.Join[] getJoins() {
+        return new SqlDialect.Join[] {
+                JOIN_TO_BUY_ACCOUNT,
+                JOIN_SELL_ACCOUNT,
+                JOIN_AGENT
+        };
+    }
+
+    @Override
     public ImmutableList<?> decomposeObject(PostponedExchange object) {
         checkArgument(object.toBuyAccount.id != null, "To-buy account %s without ID", object.toBuyAccount);
         checkArgument(object.sellAccount.id != null, "Sell account %s without ID", object.sellAccount);
         checkArgument(object.agent.id.isPresent(), "Agent with name %s without ID", object.agent.name);
 
         return ImmutableList.of(
-                new UtcDay(object.timestamp), object.toBuy, object.toBuyAccount.id, object.sellAccount.id, object.customRate.orElse(null), object.timestamp, object.agent.id
+                new UtcDay(object.timestamp),
+                object.toBuy,
+                object.toBuyAccount.id,
+                object.sellAccount.id,
+                JdbcRepository.wrapNull(object.customRate.orElse(null)),
+                object.timestamp,
+                object.agent.id.getAsLong()
         );
     }
 
@@ -157,9 +181,9 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
         final StringBuilder builder = SqlDialect.selectSqlBuilder(
                 TABLE_NAME,
                 COLS_FOR_SELECT,
-                SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "b", COL_TO_BUY_ACCOUNT_ID, JdbcTreasury.COL_ID),
-                SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "s", COL_SELL_ACCOUNT_ID, JdbcTreasury.COL_ID),
-                SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID)
+                JOIN_TO_BUY_ACCOUNT,
+                JOIN_SELL_ACCOUNT,
+                JOIN_AGENT
         );
         SqlDialect.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
         SqlDialect.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_CURRENCY_UNIT);
@@ -168,7 +192,7 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
 
         return LazyResultSetIterator.stream(
                 Common.getRsSupplierWithParams(
-                        jdbcTemplateProvider, sql,
+                        jdbcConnector, sqlDialect, sql,
                         ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode()),
                         "streamRememberedExchanges"
                 ),

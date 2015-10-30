@@ -5,13 +5,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Spliterators;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -23,14 +23,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @author Mikhail Kulikov
  */
+@NotThreadSafe
 public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
 
-    static <T> Stream<T> stream(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever) {
+    static <T> Stream<T> stream(ResultSetSupplier resultSetSupplier, Function<ResultSet, T> retriever) {
         final LazyResultSetIterator<T> iterator = new LazyResultSetIterator<>(resultSetSupplier, retriever);
         return stream(iterator);
     }
 
-    static <T> Stream<T> stream(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever, String sqlForException) {
+    static <T> Stream<T> stream(ResultSetSupplier resultSetSupplier, Function<ResultSet, T> retriever, String sqlForException) {
         final LazyResultSetIterator<T> iterator = new LazyResultSetIterator<>(resultSetSupplier, retriever, sqlForException);
         return stream(iterator);
     }
@@ -42,13 +43,14 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
         );
     }
 
-    static <T> LazyResultSetIterator<T> of(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever, String sqlForException) {
+    static <T> LazyResultSetIterator<T> of(ResultSetSupplier resultSetSupplier, Function<ResultSet, T> retriever, String sqlForException) {
         return new LazyResultSetIterator<>(resultSetSupplier, retriever, sqlForException);
     }
 
     private static final Logger logger = LoggerFactory.getLogger(LazyResultSetIterator.class);
 
-    private final Supplier<ResultSet> resultSetSupplier;
+
+    private final ResultSetSupplier resultSetSupplier;
     private final Function<ResultSet, T> retriever;
     @Nullable
     private final String sql;
@@ -58,11 +60,11 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
     private boolean hasNext = false;
     private boolean closed = false;
 
-    LazyResultSetIterator(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever) {
+    LazyResultSetIterator(ResultSetSupplier resultSetSupplier, Function<ResultSet, T> retriever) {
         this(resultSetSupplier, retriever, null);
     }
 
-    LazyResultSetIterator(Supplier<ResultSet> resultSetSupplier, Function<ResultSet, T> retriever, @Nullable String sql) {
+    LazyResultSetIterator(ResultSetSupplier resultSetSupplier, Function<ResultSet, T> retriever, @Nullable String sql) {
         checkNotNull(resultSetSupplier, "resultSetSupplier");
         checkNotNull(retriever, "retriever");
         this.resultSetSupplier = resultSetSupplier;
@@ -97,7 +99,7 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
     @Override
     public void close() {
         hasNext = false;
-        closeResultSet();
+        closeResultSet(false);
     }
 
     private boolean askNext() {
@@ -108,25 +110,37 @@ public class LazyResultSetIterator<T> implements Iterator<T>, AutoCloseable {
         try {
             final boolean next = resultSet.next();
             if (!next) {
-                closeResultSet();
+                closeResultSet(false);
             }
             return next;
         } catch (SQLException ex) {
-            closeResultSet();
+            closeResultSet(true);
             throw Common.EXCEPTION_TRANSLATOR.translate("LazyResultSetIterator", sql, ex);
         } catch (RuntimeException ex) {
-            closeResultSet();
+            closeResultSet(true);
             throw new DataAccessResourceFailureException("Driver/wrapper threw unchecked exception", ex);
         }
     }
 
-    private void closeResultSet() {
+    private void closeResultSet(boolean eatException) {
         if (resultSet != null && !closed) {
             closed = true;
             try {
                 resultSet.close();
             } catch (SQLException ignore) {
                 logger.warn("ResultSet close exception", ignore);
+            }
+            if (eatException) {
+                try {
+                    resultSetSupplier.close();
+                } catch (RuntimeException eaten) {
+                    logger.warn(
+                            "Statement and connection close exception; unable to rethrow it because another exception already caught up the stack",
+                            eaten
+                    );
+                }
+            } else {
+                resultSetSupplier.close();
             }
         }
     }

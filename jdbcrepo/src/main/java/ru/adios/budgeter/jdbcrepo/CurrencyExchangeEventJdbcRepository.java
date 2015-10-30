@@ -41,19 +41,25 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     public static final String COL_TIMESTAMP = "timestamp";
     public static final String COL_AGENT_ID = "agent_id";
 
-    public static final String JOIN_SOLD_ACC_ID = "s." + JdbcTreasury.COL_ID;
-    public static final String JOIN_SOLD_ACC_NAME = "s." + JdbcTreasury.COL_NAME;
-    public static final String JOIN_SOLD_ACC_CURRENCY_UNIT = "s." + JdbcTreasury.COL_CURRENCY_UNIT;
-    public static final String JOIN_SOLD_ACC_BALANCE = "s." + JdbcTreasury.COL_BALANCE;
+    private static final String JOIN_SOLD_ACC_ID = "s." + JdbcTreasury.COL_ID;
+    private static final String JOIN_SOLD_ACC_NAME = "s." + JdbcTreasury.COL_NAME;
+    private static final String JOIN_SOLD_ACC_CURRENCY_UNIT = "s." + JdbcTreasury.COL_CURRENCY_UNIT;
+    private static final String JOIN_SOLD_ACC_BALANCE = "s." + JdbcTreasury.COL_BALANCE;
 
-    public static final String JOIN_BOUGHT_ACC_ID = "b." + JdbcTreasury.COL_ID;
-    public static final String JOIN_BOUGHT_ACC_NAME = "b." + JdbcTreasury.COL_NAME;
-    public static final String JOIN_BOUGHT_ACC_CURRENCY_UNIT = "b." + JdbcTreasury.COL_CURRENCY_UNIT;
-    public static final String JOIN_BOUGHT_ACC_BALANCE = "b." + JdbcTreasury.COL_BALANCE;
+    private static final String JOIN_BOUGHT_ACC_ID = "b." + JdbcTreasury.COL_ID;
+    private static final String JOIN_BOUGHT_ACC_NAME = "b." + JdbcTreasury.COL_NAME;
+    private static final String JOIN_BOUGHT_ACC_CURRENCY_UNIT = "b." + JdbcTreasury.COL_CURRENCY_UNIT;
+    private static final String JOIN_BOUGHT_ACC_BALANCE = "b." + JdbcTreasury.COL_BALANCE;
 
-    public static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
-    public static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
+    private static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
+    private static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
 
+    private static final SqlDialect.Join JOIN_SOLD_ACCOUNT =
+            SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "s", COL_SOLD_ACCOUNT_ID, JdbcTreasury.COL_ID);
+    private static final SqlDialect.Join JOIN_BOUGHT_ACCOUNT =
+            SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "b", COL_BOUGHT_ACCOUNT_ID, JdbcTreasury.COL_ID);
+    private static final SqlDialect.Join JOIN_AGENT =
+            SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID);
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_SOLD_UNIT, COL_SOLD_AMOUNT, COL_BOUGHT_UNIT, COL_BOUGHT_AMOUNT,
@@ -67,7 +73,7 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     );
 
 
-    private final SafeJdbcTemplateProvider jdbcTemplateProvider;
+    private final SafeJdbcConnector jdbcConnector;
 
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
@@ -75,9 +81,10 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     private final FundsMutationAgentJdbcRepository.AgentRowMapper agentRowMapper = new FundsMutationAgentJdbcRepository.AgentRowMapper();
     private final ExchangeEventRowMapper rowMapper = new ExchangeEventRowMapper();
 
-    CurrencyExchangeEventJdbcRepository(SafeJdbcTemplateProvider jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    CurrencyExchangeEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
+        this.jdbcConnector = jdbcConnector;
     }
+
 
     @Override
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -111,8 +118,8 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     }
 
     @Override
-    public SafeJdbcTemplateProvider getTemplateProvider() {
-        return jdbcTemplateProvider;
+    public SafeJdbcConnector getJdbcConnector() {
+        return jdbcConnector;
     }
 
     @Override
@@ -140,6 +147,15 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
         return COLS_FOR_INSERT;
     }
 
+    @Override
+    public SqlDialect.Join[] getJoins() {
+        return new SqlDialect.Join[] {
+                JOIN_SOLD_ACCOUNT,
+                JOIN_BOUGHT_ACCOUNT,
+                JOIN_AGENT
+        };
+    }
+
     @Nullable
     @Override
     public Object extractId(CurrencyExchangeEvent object) {
@@ -158,15 +174,15 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
         final StringBuilder sb = SqlDialect.selectSqlBuilder(
                 TABLE_NAME, COLS_FOR_SELECT,
-                SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "s", COL_SOLD_ACCOUNT_ID, JdbcTreasury.COL_ID),
-                SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "b", COL_BOUGHT_ACCOUNT_ID, JdbcTreasury.COL_ID),
-                SqlDialect.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID)
+                JOIN_SOLD_ACCOUNT,
+                JOIN_BOUGHT_ACCOUNT,
+                JOIN_AGENT
         );
         SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, iHateJava);
         final String sql = sb.toString();
 
         return LazyResultSetIterator.stream(
-                Common.getRsSupplier(jdbcTemplateProvider, sql, "streamExchangeEvents"),
+                Common.getRsSupplier(jdbcConnector, sql, "streamExchangeEvents"),
                 Common.getMappingSqlFunction(rowMapper, sql, "streamExchangeEvents")
         );
     }

@@ -86,8 +86,8 @@ public class TreasuryMock implements Treasury {
     }
 
     @Override
-    public void registerBalanceAccount(BalanceAccount account) {
-        table.registerBalanceAccount(account);
+    public BalanceAccount registerBalanceAccount(BalanceAccount account) {
+        return table.registerBalanceAccount(account);
     }
 
     @Override

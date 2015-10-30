@@ -30,7 +30,7 @@ public final class FundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
@@ -71,7 +71,7 @@ public final class FundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }

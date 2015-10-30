@@ -37,7 +37,7 @@ public final class PostponedFundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
@@ -63,7 +63,7 @@ public final class PostponedFundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
@@ -79,7 +79,7 @@ public final class PostponedFundsMutationEventRepoTester {
         final PostponedFundsMutationEventRepository postMutRepo = bundle.postponedFundsMutationEvents();
         postMutRepo.rememberPostponedExchangeableLoss(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         final Long id = postMutRepo.currentSeqValue();
-        assertEquals("Wrong remembered event", Money.of(Units.RUB, BigDecimal.valueOf(777L)), postMutRepo.getById(id).get().mutationEvent.amount);
+        assertEquals("Wrong remembered event", Money.of(Units.RUB, BigDecimal.valueOf(-777L)), postMutRepo.getById(id).get().mutationEvent.amount);
     }
 
     public void testStreamRememberedBenefits() throws Exception {
@@ -90,7 +90,7 @@ public final class PostponedFundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
@@ -135,7 +135,7 @@ public final class PostponedFundsMutationEventRepoTester {
         FundsMutationSubject food;
         try {
             food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            subjectRepository.addSubject(food);
+            food = subjectRepository.addSubject(food);
         } catch (Exception ignore) {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
@@ -165,11 +165,11 @@ public final class PostponedFundsMutationEventRepoTester {
 
         final List<PostponedFundsMutationEventRepository.PostponedMutationEvent> collected =
                 postMutRepo.streamRememberedLosses(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.toList());
-        assertEquals(collected.size(), 1);
-        assertEquals("Wrong event streamed", collected.get(0).mutationEvent.amount, Money.of(Units.RUB, BigDecimal.valueOf(1001L)));
+        assertEquals(1, collected.size());
+        assertEquals("Wrong event streamed", Money.of(Units.RUB, BigDecimal.valueOf(-1001L)), collected.get(0).mutationEvent.amount);
 
         final long count = postMutRepo.streamRememberedLosses(new UtcDay(OffsetDateTime.of(1971, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.USD, CurrencyUnit.EUR).count();
-        assertEquals(count, 0);
+        assertEquals(0, count);
     }
 
 }

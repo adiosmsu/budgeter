@@ -2,7 +2,6 @@ package ru.adios.budgeter.inmemrepo;
 
 import org.junit.Before;
 import org.junit.Test;
-import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepoTester;
 
 /**
@@ -14,8 +13,6 @@ import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepoTester;
 public class PostponedCurrencyExchangeEventPseudoTableTest {
 
     private final PostponedCurrencyExchangeEventRepoTester tester = new PostponedCurrencyExchangeEventRepoTester(Schema.INSTANCE);
-
-    private final FundsMutationAgent agent = FundsMutationAgent.builder().setName("Tesy").build();
 
     @Before
     public void setUp() {

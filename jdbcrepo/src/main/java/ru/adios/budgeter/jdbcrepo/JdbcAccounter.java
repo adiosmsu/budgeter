@@ -5,6 +5,7 @@ import org.intellij.lang.annotations.Language;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.*;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.stream.Stream;
 
 /**
@@ -13,36 +14,41 @@ import java.util.stream.Stream;
  *
  * @author Mikhail Kulikov
  */
+@ThreadSafe
 public class JdbcAccounter implements Accounter {
 
     @SuppressWarnings("SqlDialectInspection")
     @Language("SQL")
     private static final String SQL =
             "WITH large AS (" +
-                    "    SELECT DISTINCT e.day, e.unit AS currency_unit" +
-                    "    FROM postponed_funds_mutation_event e" +
-                    "    UNION ALL" +
-                    "    SELECT DISTINCT pc.day, s.currency_unit" +
-                    "    FROM postponed_currency_exchange_event pc" +
-                    "      INNER JOIN balance_account s ON pc.sell_account_id = s.id" +
-                    "    UNION ALL" +
-                    "    SELECT DISTINCT pc.day, b.currency_unit" +
-                    "    FROM postponed_currency_exchange_event pc" +
-                    "      INNER JOIN balance_account b ON pc.to_buy_account_id = b.id" +
-                    "    UNION ALL" +
-                    "    SELECT DISTINCT e.day, e.conversion_unit AS currency_unit" +
-                    "    FROM postponed_funds_mutation_event e) " +
+                    "SELECT DISTINCT e.day, e.unit AS currency_unit" +
+                    " FROM postponed_funds_mutation_event e" +
+                    " UNION ALL" +
+                    " SELECT DISTINCT pc.day, s.currency_unit" +
+                    " FROM postponed_currency_exchange_event pc" +
+                    " INNER JOIN balance_account s ON pc.sell_account_id = s.id" +
+                    " UNION ALL" +
+                    " SELECT DISTINCT pc.day, b.currency_unit" +
+                    " FROM postponed_currency_exchange_event pc" +
+                    " INNER JOIN balance_account b ON pc.to_buy_account_id = b.id" +
+                    " UNION ALL" +
+                    " SELECT DISTINCT e.day, e.conversion_unit AS currency_unit" +
+                    " FROM postponed_funds_mutation_event e) " +
                     "SELECT DISTINCT l.day, l.currency_unit FROM large l " +
                     "UNION ALL " +
                     "SELECT " + Long.MAX_VALUE + " AS day, " + CurrencyUnit.USD.getNumericCode() + " AS currency_unit " +
                     "ORDER BY day, currency_unit"; // we will rely on data to be ordered so we can imitate partial reduce with Stream API using filter()
 
+
     private final SourcingBundle bundle;
+    private final SafeJdbcConnector jdbcConnector;
     private SqlDialect sqlDialect = SqliteDialect.INSTANCE;
 
-    JdbcAccounter(SourcingBundle bundle) {
+    JdbcAccounter(SourcingBundle bundle, SafeJdbcConnector jdbcConnector) {
         this.bundle = bundle;
+        this.jdbcConnector = jdbcConnector;
     }
+
 
     void setSqlDialect(SqlDialect sqlDialect) {
         this.sqlDialect = sqlDialect;
@@ -82,9 +88,9 @@ public class JdbcAccounter implements Accounter {
     public Stream<PostponingReasons> streamAllPostponingReasons() {
         final AccumulationContext context = new AccumulationContext();
         final LazyResultSetIterator<Pair> iterator = LazyResultSetIterator.<Pair>of(
-                Common.getRsSupplier(bundle.jdbcTemplateProvider, SQL, "streamAllPostponingReasons"),
+                Common.getRsSupplier(jdbcConnector, SQL, "streamAllPostponingReasons"),
                 Common.getMappingSqlFunction(
-                        rs -> new Pair(sqlDialect.translateFromDb(rs.getObject(1), UtcDay.class), CurrencyUnit.ofNumericCode(rs.getInt(1))),
+                        rs -> new Pair(sqlDialect.translateFromDb(rs.getObject(1), UtcDay.class), CurrencyUnit.ofNumericCode(rs.getInt(2))),
                         SQL, "streamAllPostponingReasons"
                 ),
                 SQL

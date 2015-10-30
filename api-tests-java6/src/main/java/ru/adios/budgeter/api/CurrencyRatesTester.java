@@ -7,6 +7,8 @@ import java8.util.function.Function;
 import java8.util.function.Predicate;
 import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneOffset;
 
@@ -30,6 +32,8 @@ import static org.junit.Assert.*;
  */
 public final class CurrencyRatesTester {
 
+    private static final Logger logger = LoggerFactory.getLogger(CurrencyRatesTester.class);
+
     public static final List<CurrencyUnit> REG_UNITS = CurrencyUnit.registeredCurrencies();
 
     private final Bundle bundle;
@@ -38,7 +42,7 @@ public final class CurrencyRatesTester {
         this.bundle = bundle;
     }
 
-    public void testAddRate() throws Exception {
+    public void testAddRate(long workerSleepMillis) throws Exception {
         bundle.clear(Bundle.Repo.CURRENCY_RATES);
 
         final CurrencyRatesRepository ratesRepository = bundle.currencyRates();
@@ -60,13 +64,27 @@ public final class CurrencyRatesTester {
                     CurrencyUnit unit = REG_UNITS.get(counter.getAndIncrement());
                     if (unit.equals(rub))
                         unit = REG_UNITS.get(counter.getAndIncrement());
+                    final CurrencyUnit unitFin = unit;
                     checker.add(unit);
-                    ratesRepository.addRate(new UtcDay(), rub, unit, BigDecimal.ONE);
+                    final UtcDay dayUtc = new UtcDay();
+                    final TransactionalSupport txSupport = bundle.getTransactionalSupport();
+                    if (txSupport != null) {
+                        logger.info("Firing transactional");
+                        txSupport.runWithTransaction(new Runnable() {
+                            @Override
+                            public void run() {
+                                ratesRepository.addRate(dayUtc, rub, unitFin, BigDecimal.ONE);
+                            }
+                        });
+                    } else {
+                        ratesRepository.addRate(dayUtc, rub, unit, BigDecimal.ONE);
+                    }
+                    logger.info("Added rate: {}, {}, {}, {}", dayUtc, rub, unit, BigDecimal.ONE);
                 }
             }).start();
         }
         latch.countDown();
-        Thread.sleep(1000);
+        Thread.sleep(workerSleepMillis);
 
         final ImmutableSet<Long> indexed = ratesRepository.getIndexedForDay(new UtcDay());
         StreamSupport.stream(indexed).forEach(new Consumer<Long>() {
@@ -91,10 +109,34 @@ public final class CurrencyRatesTester {
                     }).findFirst().isPresent());
         }
 
-        assertFalse("Double insert passed", ratesRepository.addRate(new UtcDay(), Units.RUB, REG_UNITS.get(0), BigDecimal.ONE));
+        final TransactionalSupport txSupport = bundle.getTransactionalSupport();
+        if (txSupport != null) {
+            logger.info("Firing transactional");
+            txSupport.runWithTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    testAddRateInner1(ratesRepository, checker);
+                }
+            });
+            txSupport.runWithTransaction(new Runnable() {
+                @Override
+                public void run() {
+                    testAddRateInner2(ratesRepository, checker);
+                }
+            });
+        } else {
+            testAddRateInner1(ratesRepository, checker);
+            testAddRateInner2(ratesRepository, checker);
+        }
+    }
 
+    private void testAddRateInner1(CurrencyRatesRepository ratesRepository, CopyOnWriteArraySet<CurrencyUnit> checker) {
+        assertFalse("Double insert passed", ratesRepository.addRate(new UtcDay(), Units.RUB, REG_UNITS.get(0), BigDecimal.ONE));
+    }
+
+    private void testAddRateInner2(CurrencyRatesRepository ratesRepository, CopyOnWriteArraySet<CurrencyUnit> checker) {
         try {
-            ratesRepository.addRate(new UtcDay(), REG_UNITS.get(0), Units.RUB, BigDecimal.ONE);
+            assertTrue(ratesRepository.addRate(new UtcDay(), REG_UNITS.get(0), Units.RUB, BigDecimal.ONE));
         } catch (Exception ignored) {
             final StringWriter writer = new StringWriter();
             ignored.printStackTrace(new PrintWriter(writer));

@@ -28,10 +28,12 @@ public interface Treasury extends Provider<Treasury.BalanceAccount, Long>, Repos
 
         public static BalanceAccount getTransitoryAccount(CurrencyUnit unit, Treasury treasury) {
             final BalanceAccount account = new BalanceAccount("Транзитный счет для " + unit.getCurrencyCode(), unit);
-            if (!treasury.accountBalance(account.name).isPresent()) {
-                treasury.registerBalanceAccount(account);
+            final Optional<BalanceAccount> accountForName = treasury.getAccountForName(account.name);
+            if (!accountForName.isPresent()) {
+                return treasury.registerBalanceAccount(account);
+            } else {
+                return accountForName.get();
             }
-            return account;
         }
 
         public static Money calculateTotalAmount(final Treasury treasury, final CurrencyUnit unit, final CurrencyRatesProvider ratesProvider) {
@@ -140,7 +142,7 @@ public interface Treasury extends Provider<Treasury.BalanceAccount, Long>, Repos
 
     void addAmount(Money amount, BalanceAccount account); // default in java8
 
-    void registerBalanceAccount(BalanceAccount account);
+    BalanceAccount registerBalanceAccount(BalanceAccount account);
 
     Stream<CurrencyUnit> streamRegisteredCurrencies();
 
