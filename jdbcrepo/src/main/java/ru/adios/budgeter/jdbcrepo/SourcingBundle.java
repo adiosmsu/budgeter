@@ -161,7 +161,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public void clearSchema() {
-        final JdbcTemplate jdbcTemplate = jdbcConnector.get();
+        final JdbcTemplate jdbcTemplate = jdbcConnector.getJdbcTemplate();
         for (final JdbcRepository repo : order.values().asList().reverse()) {
             executeMultipleSql(jdbcTemplate, repo.getDropTableSql(), logger);
         }
@@ -170,7 +170,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public void createSchemaIfNeeded() {
-        final JdbcTemplate jdbcTemplate = jdbcConnector.get();
+        final JdbcTemplate jdbcTemplate = jdbcConnector.getJdbcTemplate();
         if (jdbcTemplate.query(sqlDialect.tableExistsSql(FundsMutationAgentJdbcRepository.TABLE_NAME), Common.STRING_ROW_MAPPER).isEmpty()) {
             createSchema(jdbcTemplate);
         }
@@ -184,7 +184,7 @@ public final class SourcingBundle implements Bundle {
 
     @Override
     public void clear(Repo repo) {
-        clearRepo(jdbcConnector.get(), order.get(repo));
+        clearRepo(jdbcConnector.getJdbcTemplate(), order.get(repo));
     }
 
     private void clearRepo(JdbcTemplate jdbcTemplate, JdbcRepository repository) {

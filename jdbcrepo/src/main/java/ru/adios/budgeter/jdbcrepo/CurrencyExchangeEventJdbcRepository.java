@@ -80,9 +80,18 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     private final JdbcTreasury.AccountRowMapper accountRowMapper = new JdbcTreasury.AccountRowMapper(sqlDialect);
     private final FundsMutationAgentJdbcRepository.AgentRowMapper agentRowMapper = new FundsMutationAgentJdbcRepository.AgentRowMapper();
     private final ExchangeEventRowMapper rowMapper = new ExchangeEventRowMapper();
+    private final LazySupplier supIdSql = new LazySupplier();
+    private final String insertSql = JdbcRepository.super.getInsertSql(false);
+    private final String sqlStreamExEvBuilder;
 
     CurrencyExchangeEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
         this.jdbcConnector = jdbcConnector;
+        sqlStreamExEvBuilder = SqlDialect.selectSqlBuilder(
+                TABLE_NAME, COLS_FOR_SELECT,
+                JOIN_SOLD_ACCOUNT,
+                JOIN_BOUGHT_ACCOUNT,
+                JOIN_AGENT
+        ).toString();
     }
 
 
@@ -162,6 +171,16 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
         return null;
     }
 
+    @Override
+    public String getInsertSql(boolean withId) {
+        return insertSql;
+    }
+
+    @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
 
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
@@ -170,15 +189,8 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
     @Override
     public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        final List<OrderBy> iHateJava = Common.translateOrderBy(options);
-
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(
-                TABLE_NAME, COLS_FOR_SELECT,
-                JOIN_SOLD_ACCOUNT,
-                JOIN_BOUGHT_ACCOUNT,
-                JOIN_AGENT
-        );
-        SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, iHateJava);
+        final StringBuilder sb = new StringBuilder(sqlStreamExEvBuilder.length() + 20 * options.size() + 15).append(sqlStreamExEvBuilder);
+        SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
         final String sql = sb.toString();
 
         return LazyResultSetIterator.stream(

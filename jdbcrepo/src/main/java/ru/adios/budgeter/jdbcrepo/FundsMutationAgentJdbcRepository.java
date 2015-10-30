@@ -35,6 +35,10 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
 
     private final SafeJdbcConnector jdbcConnector;
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
+    private final LazySupplier supIdSql = new LazySupplier();
+    private final LazySupplier supStreamAll = new LazySupplier();
+    private final LazySupplier supFindByName = new LazySupplier();
+    private final String insertSql = JdbcRepository.super.getInsertSql(false);
 
     FundsMutationAgentJdbcRepository(SafeJdbcConnector jdbcConnector) {
         this.jdbcConnector = jdbcConnector;
@@ -97,6 +101,16 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
         return null;
     }
 
+    @Override
+    public String getInsertSql(boolean withId) {
+        return insertSql;
+    }
+
+    @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
 
     @Override
     public FundsMutationAgent addAgent(FundsMutationAgent agent) {
@@ -106,12 +120,12 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
 
     @Override
     public Stream<FundsMutationAgent> streamAll() {
-        return Common.streamRequestAll(this, "streamAll");
+        return Common.streamRequestAll(this, supStreamAll, "streamAll");
     }
 
     @Override
     public Optional<FundsMutationAgent> findByName(String name) {
-        return Common.getByOneUniqueColumn(name, COL_NAME, this);
+        return Common.getByOneUniqueColumn(name, COL_NAME, this, supFindByName);
     }
 
     @Override

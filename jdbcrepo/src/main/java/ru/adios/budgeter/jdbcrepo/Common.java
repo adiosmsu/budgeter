@@ -68,7 +68,7 @@ final class Common {
         final GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
 
         repo.getJdbcConnector()
-                .get()
+                .getJdbcTemplate()
                 .update(repo.getInsertStatementCreator(object), keyHolder);
 
         return keyHolder;
@@ -79,12 +79,12 @@ final class Common {
         checkArgument(id != null, "Repo returns null id value from object");
 
         return repo.getJdbcConnector()
-                .get()
+                .getJdbcTemplate()
                 .update(repo.getInsertStatementCreatorWithId(object));
     }
 
-    static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, @Nullable String opName) {
-        final String sql = SqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames(), repo.getJoins());
+    static <ObjType> Stream<ObjType> streamRequestAll(JdbcRepository<ObjType> repo, JdbcRepository.LazySupplier supplyingDelegate, @Nullable String opName) {
+        final String sql = supplyingDelegate.getOrCompute(() -> SqlDialect.selectSql(repo.getTableName(), null, repo.getColumnNames(), repo.getJoins()));
         return LazyResultSetIterator.stream(
                 getRsSupplier(repo.getJdbcConnector(), sql, opName),
                 getMappingSqlFunction(repo.getRowMapper(), sql, opName)
@@ -102,14 +102,16 @@ final class Common {
         );
     }
 
-    static <ObjType> Stream<ObjType> streamRequest(JdbcRepository<ObjType> repo, ImmutableMap<String, Object> columnToValueMap, @Nullable String opName) {
-        final StringBuilder builder = getRepoSelectBuilder(repo);
-        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, ImmutableList.copyOf(columnToValueMap.keySet()));
-        final String sql = builder.toString();
+    static <ObjType> Stream<ObjType> streamRequest(JdbcRepository<ObjType> repo, JdbcRepository.LazySupplier supDel, ImmutableMap<String, Object> colToVal, @Nullable String op) {
+        String sql = supDel.getOrCompute(() -> {
+            final StringBuilder builder = getRepoSelectBuilder(repo);
+            SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, ImmutableList.copyOf(colToVal.keySet()));
+            return builder.toString();
+        });
 
         return LazyResultSetIterator.stream(
-                getRsSupplierWithParams(repo.getJdbcConnector(), repo.getSqlDialect(), sql, ImmutableList.copyOf(columnToValueMap.values()), opName),
-                getMappingSqlFunction(repo.getRowMapper(), sql, opName)
+                getRsSupplierWithParams(repo.getJdbcConnector(), repo.getSqlDialect(), sql, ImmutableList.copyOf(colToVal.values()), op),
+                getMappingSqlFunction(repo.getRowMapper(), sql, op)
         );
     }
 
@@ -118,7 +120,7 @@ final class Common {
     }
 
     static <ColType> ColType getSingleColumn(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) throws IncorrectResultSizeDataAccessException {
-        return repo.getJdbcConnector().get().queryForObject(sql, rowMapper, params);
+        return repo.getJdbcConnector().getJdbcTemplate().queryForObject(sql, rowMapper, params);
     }
 
     static <ColType> Optional<ColType> getSingleColumnOptional(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) {
@@ -127,32 +129,31 @@ final class Common {
     }
 
     static <ColType> List<ColType> getSingleColumnList(JdbcRepository repo, String sql, RowMapper<ColType> rowMapper, Object... params) {
-        return repo.getJdbcConnector().get().query(sql, rowMapper, params);
+        return repo.getJdbcConnector().getJdbcTemplate().query(sql, rowMapper, params);
     }
 
-    static <ObjType> Optional<ObjType> getByOneUniqueColumn(Object column, String columnName, JdbcRepository<ObjType> repo) {
-        return innerByOneColumn(column, columnName, repo, SqlDialect.Op.EQUAL, true);
+    static <ObjType> Optional<ObjType> getByOneUniqueColumn(Object column, String columnName, JdbcRepository<ObjType> repo, JdbcRepository.LazySupplier supplyingDelegate) {
+        return innerByOneColumn(column, columnName, repo, SqlDialect.Op.EQUAL, true, supplyingDelegate);
     }
 
-    static <ObjType> Optional<ObjType> getByOneColumn(Object column, String columnName, JdbcRepository<ObjType> repo) {
-        return innerByOneColumn(column, columnName, repo, SqlDialect.Op.EQUAL, false);
+    static <ObjType> Optional<ObjType> getByOneColumn(Object column, String columnName, JdbcRepository<ObjType> repo, JdbcRepository.LazySupplier supplyingDelegate) {
+        return innerByOneColumn(column, columnName, repo, SqlDialect.Op.EQUAL, false, supplyingDelegate);
     }
 
-    static <ObjType> List<ObjType> getByOneColumnList(Object column, String columnName, JdbcRepository<ObjType> repo, SqlDialect.Op op) {
-        String sql = innerByOneColumnSql(columnName, repo, op, false);
+    static <ObjType> List<ObjType> getByOneColumnList(Object column, String columnName, JdbcRepository<ObjType> repo, JdbcRepository.LazySupplier lazySupplier, SqlDialect.Op op) {
+        String sql = lazySupplier.getOrCompute(() -> innerByOneColumnSql(columnName, repo, op, false));
         return innerByOneColumnList(column, repo, sql);
     }
 
-    private static <ObjType> Optional<ObjType> innerByOneColumn(Object column, String columnName, JdbcRepository<ObjType> repo, SqlDialect.Op op, boolean unique) {
-        String sql = innerByOneColumnSql(columnName, repo, op, unique);
-        final List<ObjType> results = innerByOneColumnList(column, repo, sql);
+    private static <ObjType> Optional<ObjType> innerByOneColumn(Object col, String colNm, JdbcRepository<ObjType> repo, SqlDialect.Op op, boolean unique, JdbcRepository.LazySupplier sd) {
+        final List<ObjType> results = innerByOneColumnList(col, repo, sd.getOrCompute(() -> innerByOneColumnSql(colNm, repo, op, unique)));
         return getSingleOptional(results);
     }
 
     private static <ObjType> List<ObjType> innerByOneColumnList(Object column, JdbcRepository<ObjType> repo, String sql) {
         return repo
                 .getJdbcConnector()
-                .get()
+                .getJdbcTemplate()
                 .query(sql, repo.getRowMapper(), column);
     }
 

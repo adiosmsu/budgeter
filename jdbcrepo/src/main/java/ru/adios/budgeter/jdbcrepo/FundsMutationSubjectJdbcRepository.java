@@ -35,10 +35,19 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
 
     private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_PARENT_ID, COL_ROOT_ID, COL_CHILD_FLAG, COL_TYPE, COL_NAME);
 
+    private static final String SQL_UPDATE_CHILD_FLAG = SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_CHILD_FLAG), ImmutableList.of(COL_ID));
+
 
     private final SafeJdbcConnector jdbcConnector;
     private final SubjectRowMapper rowMapper = new SubjectRowMapper();
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
+    private final LazySupplier supIdSql = new LazySupplier();
+    private final LazySupplier supFindByName = new LazySupplier();
+    private final LazySupplier supFindByParent = new LazySupplier();
+    private final LazySupplier supStreamAll = new LazySupplier();
+    private final LazySupplier supNameLikeSearch = new LazySupplier();
+    private final String insertSqlFalse = JdbcRepository.super.getInsertSql(false);
+    private final String insertSqlTrue = JdbcRepository.super.getInsertSql(true);
 
     FundsMutationSubjectJdbcRepository(SafeJdbcConnector jdbcConnector) {
         this.jdbcConnector = jdbcConnector;
@@ -74,6 +83,16 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     }
 
     @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
+    @Override
+    public String getInsertSql(boolean withId) {
+        return withId ? insertSqlTrue : insertSqlFalse;
+    }
+
+    @Override
     public SqlDialect getSqlDialect() {
         return sqlDialect;
     }
@@ -106,22 +125,22 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
 
     @Override
     public Optional<FundsMutationSubject> findByName(String name) {
-        return Common.getByOneUniqueColumn(name, COL_NAME, this);
+        return Common.getByOneUniqueColumn(name, COL_NAME, this, supFindByName);
     }
 
     @Override
     public Stream<FundsMutationSubject> findByParent(long parentId) {
-        return Common.streamRequest(this, ImmutableMap.of(COL_PARENT_ID, parentId), "findByParent");
+        return Common.streamRequest(this, supFindByParent, ImmutableMap.of(COL_PARENT_ID, parentId), "findByParent");
     }
 
     @Override
     public Stream<FundsMutationSubject> streamAll() {
-        return Common.streamRequestAll(this, "streamAll");
+        return Common.streamRequestAll(this, supStreamAll, "streamAll");
     }
 
     @Override
     public ImmutableList<FundsMutationSubject> nameLikeSearch(String str) {
-        return ImmutableList.copyOf(Common.getByOneColumnList(str, COL_NAME, this, SqlDialect.Op.LIKE));
+        return ImmutableList.copyOf(Common.getByOneColumnList(str, COL_NAME, this, supNameLikeSearch, SqlDialect.Op.LIKE));
     }
 
     @Override
@@ -140,10 +159,7 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
 
     @Override
     public void updateChildFlag(long id) {
-        jdbcConnector.get().update(
-                SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_CHILD_FLAG), ImmutableList.of(COL_ID)),
-                true, id
-        );
+        jdbcConnector.getJdbcTemplate().update(SQL_UPDATE_CHILD_FLAG, true, id);
     }
 
 

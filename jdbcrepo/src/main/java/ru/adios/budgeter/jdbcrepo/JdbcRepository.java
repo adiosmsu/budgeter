@@ -11,6 +11,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 /**
  * Date: 10/27/15
@@ -82,12 +84,19 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
 
     @Override
     default Optional<ObjType> getById(Long id) {
-        return Common.getByOneColumn(id, getTableName() + '.' + getIdColumnName(), this);
+        return Common.getByOneColumn(id, getTableName() + '.' + getIdColumnName(), this, getIdLazySupplier());
     }
+
+    LazySupplier getIdLazySupplier();
 
     String[] getCreateTableSql();
 
     String[] getDropTableSql();
+
+    default String getInsertSql(boolean withId) {
+        return getSqlDialect().insertSql(getTableName(), getColumnNamesForInsert(withId));
+    }
+
 
     static Object wrapNull(Object o) {
         if (o == null) {
@@ -116,7 +125,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
         @Override
         public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
             final SqlDialect sqlDialect = repo.getSqlDialect();
-            final String sql = getSql(sqlDialect);
+            final String sql = repo.getInsertSql(withId);
             final PreparedStatement statement;
 
             int i = 1;
@@ -139,8 +148,20 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
             return statement;
         }
 
-        protected String getSql(SqlDialect sqlDialect) {
-            return sqlDialect.insertSql(repo.getTableName(), repo.getColumnNamesForInsert(withId));
+    }
+
+    @ThreadSafe
+    final class LazySupplier {
+
+        private final AtomicReference<String> ref = new AtomicReference<>(null);
+
+        String getOrCompute(Supplier<String> sqlSupplier) {
+            String s = ref.get();
+            if (s == null) {
+                s = sqlSupplier.get();
+                ref.compareAndSet(null, s);
+            }
+            return s;
         }
 
     }

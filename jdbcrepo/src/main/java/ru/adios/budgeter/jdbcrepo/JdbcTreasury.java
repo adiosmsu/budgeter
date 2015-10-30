@@ -36,15 +36,42 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     public static final String COL_BALANCE = "balance";
 
     private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME, COL_CURRENCY_UNIT, COL_BALANCE);
+    private static final String SQL_AMOUNT = getSupAmountSql();
+
+    private static String getSupAmountSql() {
+        final StringBuilder builder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, "sum(" + COL_BALANCE + ')');
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_CURRENCY_UNIT);
+        return builder.toString();
+    }
+    private static final String SQL_ACCOUNT_BALANCE = getAccBalSql();
+    private static String getAccBalSql() {
+        final StringBuilder builder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_CURRENCY_UNIT, COL_BALANCE);
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_NAME);
+        return builder.toString();
+    }
+    private static final String SQL_ADD_AMOUNT = SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_BALANCE), ImmutableList.of(COL_NAME), SqlDialect.Op.ADD, 0);
+    private static final String SQL_STREAM_REGISTERED_CURRENCIES = "SELECT DISTINCT " + COL_CURRENCY_UNIT + " FROM " + TABLE_NAME;
+
 
     private final SafeJdbcConnector jdbcConnector;
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
     private final AccountRowMapper rowMapper = new AccountRowMapper(sqlDialect);
+    private final String seqValSql = sqlDialect.sequenceSetValueSql(TABLE_NAME, SEQ_NAME);
+    private final String insertSql = JdbcRepository.super.getInsertSql(false);
+    private LazySupplier supStreamAccountsByCur = new LazySupplier();
+    private LazySupplier supStreamRegAcc = new LazySupplier();
+    private LazySupplier supAccForName = new LazySupplier();
+    private LazySupplier supIdSql = new LazySupplier();
 
     public JdbcTreasury(SafeJdbcConnector jdbcConnector) {
         this.jdbcConnector = jdbcConnector;
     }
 
+
+    @Override
+    public String getInsertSql(boolean withId) {
+        return insertSql;
+    }
 
     @Override
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -103,28 +130,23 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
         return object.id;
     }
 
+    @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
 
     @Override
     public void setSequenceValue(Long value) {
-        jdbcConnector.get().update(sqlDialect.sequenceSetValueSql(TABLE_NAME, SEQ_NAME), value);
+        jdbcConnector.getJdbcTemplate().update(seqValSql, value);
     }
 
 
     @Override
     public Optional<Money> amount(CurrencyUnit unit) {
-        final StringBuilder builder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, "sum(" + COL_BALANCE + ')');
-        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_CURRENCY_UNIT);
-        final Optional<BigDecimal> val = Common.getSingleColumnOptional(
-                this,
-                builder.toString(),
-                sqlDialect.getRowMapperForType(BigDecimal.class),
-                unit.getNumericCode()
-        );
+        final Optional<BigDecimal> val =
+                Common.getSingleColumnOptional(this, SQL_AMOUNT, sqlDialect.getRowMapperForType(BigDecimal.class), unit.getNumericCode());
 
-        return getMoneyFromVal(unit, val);
-    }
-
-    public static Optional<Money> getMoneyFromVal(CurrencyUnit unit, Optional<BigDecimal> val) {
         if (val.isPresent()) {
             return Optional.of(Money.of(unit, val.get()));
         }
@@ -133,11 +155,9 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public Optional<Money> accountBalance(String accountName) {
-        final StringBuilder builder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_CURRENCY_UNIT, COL_BALANCE);
-        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_NAME);
         return Common.getSingleColumnOptional(
                 this,
-                builder.toString(),
+                SQL_ACCOUNT_BALANCE,
                 (AgnosticRowMapper<Money>) rs -> {
                     final int unit = rs.getInt(1);
                     final BigDecimal balance = getBigDecimalFromDb(rs, 2);
@@ -158,8 +178,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
                 throw new DataIntegrityViolationException("Trying to add " + amount.getCurrencyUnit() + " to " + unit + " account");
             }
         }
-        final String sql = SqlDialect.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_BALANCE), ImmutableList.of(COL_NAME), SqlDialect.Op.ADD, 0);
-        jdbcConnector.get().update(sql, sqlDialect.translateForDb(amount.getAmount()), accountName);
+        jdbcConnector.getJdbcTemplate().update(SQL_ADD_AMOUNT, sqlDialect.translateForDb(amount.getAmount()), accountName);
     }
 
     @Override
@@ -172,22 +191,21 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public Stream<CurrencyUnit> streamRegisteredCurrencies() {
-        final String sql = "SELECT DISTINCT " + COL_CURRENCY_UNIT + " FROM " + TABLE_NAME;
         final String opName = "streamRegisteredCurrencies";
         return LazyResultSetIterator.stream(
-                Common.getRsSupplier(jdbcConnector, sql, opName),
-                Common.getMappingSqlFunction(rs -> CurrencyUnit.ofNumericCode(rs.getInt(1)), sql, opName)
+                Common.getRsSupplier(jdbcConnector, SQL_STREAM_REGISTERED_CURRENCIES, opName),
+                Common.getMappingSqlFunction(rs -> CurrencyUnit.ofNumericCode(rs.getInt(1)), SQL_STREAM_REGISTERED_CURRENCIES, opName)
         );
     }
 
     @Override
     public Stream<BalanceAccount> streamAccountsByCurrency(CurrencyUnit unit) {
-        return Common.streamRequest(this, ImmutableMap.of(COL_CURRENCY_UNIT, unit.getNumericCode()), "streamAccountsByCurrency");
+        return Common.streamRequest(this, supStreamAccountsByCur, ImmutableMap.of(COL_CURRENCY_UNIT, unit.getNumericCode()), "streamAccountsByCurrency");
     }
 
     @Override
     public Stream<BalanceAccount> streamRegisteredAccounts() {
-        return Common.streamRequestAll(this, "streamRegisteredAccounts");
+        return Common.streamRequestAll(this, supStreamRegAcc, "streamRegisteredAccounts");
     }
 
     @Override
@@ -201,7 +219,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public Optional<BalanceAccount> getAccountForName(String accountName) {
-        return Common.getByOneColumn(accountName, COL_NAME, this);
+        return Common.getByOneColumn(accountName, COL_NAME, this, supAccForName);
     }
 
 

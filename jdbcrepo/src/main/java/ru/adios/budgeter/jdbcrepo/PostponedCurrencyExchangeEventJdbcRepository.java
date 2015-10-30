@@ -74,6 +74,21 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
             COL_DAY, COL_TO_BUY_AMOUNT, COL_TO_BUY_ACCOUNT_ID, COL_SELL_ACCOUNT_ID, COL_CUSTOM_RATE, COL_TIMESTAMP, COL_AGENT_ID
     );
 
+    private static final String SQL_STREAM_REM_EX = getExStreamSql();
+    private static String getExStreamSql() {
+        final StringBuilder builder = SqlDialect.selectSqlBuilder(
+                TABLE_NAME,
+                COLS_FOR_SELECT,
+                JOIN_TO_BUY_ACCOUNT,
+                JOIN_SELL_ACCOUNT,
+                JOIN_AGENT
+        );
+        SqlDialect.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
+        SqlDialect.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_CURRENCY_UNIT);
+        SqlDialect.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_CURRENCY_UNIT);
+        return builder.append("))").toString();
+    }
+
 
     private final SafeJdbcConnector jdbcConnector;
 
@@ -82,6 +97,8 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     private final JdbcTreasury.AccountRowMapper accountRowMapper = new JdbcTreasury.AccountRowMapper(sqlDialect);
     private final FundsMutationAgentJdbcRepository.AgentRowMapper agentRowMapper = new FundsMutationAgentJdbcRepository.AgentRowMapper();
     private final PostponedExchangeEventRowMapper rowMapper = new PostponedExchangeEventRowMapper();
+    private final LazySupplier supIdSql = new LazySupplier();
+    private final String insertSql = JdbcRepository.super.getInsertSql(false);
 
     public PostponedCurrencyExchangeEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
         this.jdbcConnector = jdbcConnector;
@@ -165,6 +182,16 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
         return null;
     }
 
+    @Override
+    public String getInsertSql(boolean withId) {
+        return insertSql;
+    }
+
+    @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
 
     @Override
     public void rememberPostponedExchange(BigDecimal toBuy,
@@ -178,25 +205,13 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
 
     @Override
     public Stream<PostponedExchange> streamRememberedExchanges(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        final StringBuilder builder = SqlDialect.selectSqlBuilder(
-                TABLE_NAME,
-                COLS_FOR_SELECT,
-                JOIN_TO_BUY_ACCOUNT,
-                JOIN_SELL_ACCOUNT,
-                JOIN_AGENT
-        );
-        SqlDialect.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
-        SqlDialect.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_CURRENCY_UNIT);
-        SqlDialect.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_CURRENCY_UNIT);
-        final String sql = builder.append("))").toString();
-
         return LazyResultSetIterator.stream(
                 Common.getRsSupplierWithParams(
-                        jdbcConnector, sqlDialect, sql,
+                        jdbcConnector, sqlDialect, SQL_STREAM_REM_EX,
                         ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode()),
                         "streamRememberedExchanges"
                 ),
-                Common.getMappingSqlFunction(rowMapper, sql, "streamRememberedExchanges")
+                Common.getMappingSqlFunction(rowMapper, SQL_STREAM_REM_EX, "streamRememberedExchanges")
         );
     }
 

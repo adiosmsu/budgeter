@@ -37,15 +37,41 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
     private static final Logger logger = LoggerFactory.getLogger(CurrencyRatesJdbcRepository.class);
     private static final ImmutableList<String> COLS = ImmutableList.of(COL_DAY, COL_FROM, COL_TO, COL_RATE);
 
+    private static final String SQL_CONV_MULTI_STRAIGHT = getConversionMultiStraightSql();
+    private static String getConversionMultiStraightSql() {
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_RATE);
+        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM, COL_TO);
+        return sb.toString();
+    }
+    private static final String SQL_RATE_STALE = getRateStaleSql();
+    private static String getRateStaleSql() {
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_ID);
+        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM);
+        SqlDialect.appendWhereClausePart(false, sb, false, SqlDialect.Op.EQUAL, COL_TO);
+        return sb.toString();
+    }
+    private static final String SQL_INDEXED_4D = getIndexedDaySql();
+    private static String getIndexedDaySql() {
+        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_ID);
+        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
+        return sb.toString();
+    }
+
 
     private final SafeJdbcConnector jdbcConnector;
     private final RateRowMapper rowMapper = new RateRowMapper();
     private volatile SqlDialect sqlDialect = SqliteDialect.INSTANCE;
+    private final LazySupplier supIdSql = new LazySupplier();
+    private final String insertSql = JdbcRepository.super.getInsertSql(false);
+    private final String sqlLatestOptConvMulti;
 
     CurrencyRatesJdbcRepository(SafeJdbcConnector jdbcConnector) {
         this.jdbcConnector = jdbcConnector;
+        final StringBuilder sqlBuilder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_RATE);
+        SqlDialect.appendWhereClausePart(sqlBuilder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_FROM, COL_TO);
+        SqlDialect.appendWhereClausePostfix(sqlBuilder, sqlDialect, OptLimit.createLimit(1), OrderBy.getDefault(COL_DAY, Order.DESC));
+        sqlLatestOptConvMulti = sqlBuilder.toString();
     }
-
 
     @Override
     public void setSqlDialect(SqlDialect sqlDialect) {
@@ -103,6 +129,16 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
         return null;
     }
 
+    @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
+    @Override
+    public String getInsertSql(boolean withId) {
+        return insertSql;
+    }
+
 
     @Override
     public boolean addRate(UtcDay dayUtc, CurrencyUnit from, CurrencyUnit to, BigDecimal rate) {
@@ -116,11 +152,9 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public Optional<BigDecimal> getConversionMultiplierStraight(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_RATE);
-        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM, COL_TO);
         return Common.getSingleColumnOptional(
                 this,
-                sb.toString(),
+                SQL_CONV_MULTI_STRAIGHT,
                 sqlDialect.getRowMapperForType(BigDecimal.class),
                 sqlDialect.translateForDb(day), from.getNumericCode(), to.getNumericCode()
         );
@@ -128,12 +162,9 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public Optional<BigDecimal> getLatestOptionalConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {
-        final StringBuilder sqlBuilder = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_RATE);
-        SqlDialect.appendWhereClausePart(sqlBuilder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_FROM, COL_TO);
-        SqlDialect.appendWhereClausePostfix(sqlBuilder, sqlDialect, OptLimit.createLimit(1), OrderBy.getDefault(COL_DAY, Order.DESC));
         return Common.getSingleColumnOptional(
                 this,
-                sqlBuilder.toString(),
+                sqlLatestOptConvMulti,
                 sqlDialect.getRowMapperForType(BigDecimal.class),
                 from.getNumericCode(), to.getNumericCode()
         );
@@ -141,13 +172,10 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public boolean isRateStale(CurrencyUnit to) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_ID);
-        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY, COL_FROM);
-        SqlDialect.appendWhereClausePart(false, sb, false, SqlDialect.Op.EQUAL, COL_TO);
         final int toTrans = to.getNumericCode();
         return !Common.getSingleColumnOptional(
                 this,
-                sb.toString(),
+                SQL_RATE_STALE,
                 sqlDialect.getRowMapperForType(Long.class),
                 sqlDialect.translateForDb(new UtcDay()), toTrans, toTrans
         ).isPresent();
@@ -155,12 +183,10 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
 
     @Override
     public ImmutableSet<Long> getIndexedForDay(UtcDay day) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(TABLE_NAME, null, COL_ID);
-        SqlDialect.appendWhereClausePart(sb.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
         return ImmutableSet.copyOf(
                 Common.getSingleColumnList(
                         this,
-                        sb.toString(),
+                        SQL_INDEXED_4D,
                         sqlDialect.getRowMapperForType(Long.class),
                         sqlDialect.translateForDb(day)
                 )

@@ -79,6 +79,23 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
             COL_DAY, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID, COL_CONVERSION_UNIT, COL_CUSTOM_RATE
     );
 
+    private static final String SQL_STREAM_LOSSES = getStreamInnerSql(SqlDialect.Op.LESS);
+    private static final String SQL_STREAM_BENEFITS = getStreamInnerSql(SqlDialect.Op.MORE);
+    private static String getStreamInnerSql(SqlDialect.Op op) {
+        final StringBuilder builder = SqlDialect.selectSqlBuilder(
+                TABLE_NAME,
+                COLS_FOR_SELECT,
+                JOIN_RELEVANT_ACCOUNT,
+                JOIN_SUBJECT,
+                JOIN_AGENT
+        );
+        SqlDialect.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
+        SqlDialect.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
+        SqlDialect.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
+        SqlDialect.appendWhereClausePart(false, builder.append("))"), true, op, COL_AMOUNT);
+        return builder.toString();
+    }
+
 
     private final SafeJdbcConnector jdbcConnector;
 
@@ -86,10 +103,11 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     private final FundsMutationEventJdbcRepository mutationRepo;
     private final PostponedMutationRowMapper rowMapper = new PostponedMutationRowMapper();
+    private final LazySupplier supIdSql = new LazySupplier();
+    private final String insertSql = JdbcRepository.super.getInsertSql(false);
 
     public PostponedFundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
-        this.jdbcConnector = jdbcConnector;
-        mutationRepo = new FundsMutationEventJdbcRepository(jdbcConnector);
+        this(jdbcConnector, new FundsMutationEventJdbcRepository(jdbcConnector));
     }
 
     public PostponedFundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector, FundsMutationEventJdbcRepository mutationRepo) {
@@ -177,6 +195,16 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
         return null;
     }
 
+    @Override
+    public String getInsertSql(boolean withId) {
+        return insertSql;
+    }
+
+    @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
 
     @Override
     public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
@@ -196,28 +224,15 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     @Override
     public Stream<PostponedMutationEvent> streamRememberedBenefits(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        return streamInner(day, oneOf, secondOf, SqlDialect.Op.MORE);
+        return streamInner(day, oneOf, secondOf, SQL_STREAM_BENEFITS);
     }
 
     @Override
     public Stream<PostponedMutationEvent> streamRememberedLosses(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        return streamInner(day, oneOf, secondOf, SqlDialect.Op.LESS);
+        return streamInner(day, oneOf, secondOf, SQL_STREAM_LOSSES);
     }
 
-    private Stream<PostponedMutationEvent> streamInner(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, SqlDialect.Op op) {
-        final StringBuilder builder = SqlDialect.selectSqlBuilder(
-                TABLE_NAME,
-                COLS_FOR_SELECT,
-                JOIN_RELEVANT_ACCOUNT,
-                JOIN_SUBJECT,
-                JOIN_AGENT
-        );
-        SqlDialect.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
-        SqlDialect.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
-        SqlDialect.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
-        SqlDialect.appendWhereClausePart(false, builder.append("))"), true, op, COL_AMOUNT);
-        final String sql = builder.toString();
-
+    private Stream<PostponedMutationEvent> streamInner(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, String sql) {
         return LazyResultSetIterator.stream(
                 Common.getRsSupplierWithParams(
                         jdbcConnector, sqlDialect, sql,

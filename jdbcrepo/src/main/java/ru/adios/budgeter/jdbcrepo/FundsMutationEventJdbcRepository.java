@@ -85,15 +85,23 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     private final FundsMutationAgentJdbcRepository.AgentRowMapper agentRowMapper = new FundsMutationAgentJdbcRepository.AgentRowMapper();
     private final FundsMutationSubjectJdbcRepository subjRepo;
     private final MutationRowMapper rowMapper = new MutationRowMapper();
+    private final LazySupplier supIdSql = new LazySupplier();
+    private final String insertSql = JdbcRepository.super.getInsertSql(false);
+    private final String buildStreamMutationEvent;
 
     FundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
-        this.jdbcConnector = jdbcConnector;
-        subjRepo = new FundsMutationSubjectJdbcRepository(jdbcConnector);
+        this(jdbcConnector, new FundsMutationSubjectJdbcRepository(jdbcConnector));
     }
 
     FundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector, FundsMutationSubjectJdbcRepository subjRepo) {
         this.jdbcConnector = jdbcConnector;
         this.subjRepo = subjRepo;
+        buildStreamMutationEvent = SqlDialect.selectSqlBuilder(
+                TABLE_NAME, COLS_FOR_SELECT,
+                JOIN_RELEVANT_ACCOUNT,
+                JOIN_SUBJECT,
+                JOIN_AGENT
+        ).toString();
     }
 
 
@@ -174,6 +182,16 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
         return null;
     }
 
+    @Override
+    public String getInsertSql(boolean withId) {
+        return insertSql;
+    }
+
+    @Override
+    public LazySupplier getIdLazySupplier() {
+        return supIdSql;
+    }
+
 
     @Override
     public void registerBenefit(FundsMutationEvent mutationEvent) {
@@ -198,12 +216,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
 
     @Override
     public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        final StringBuilder sb = SqlDialect.selectSqlBuilder(
-                TABLE_NAME, COLS_FOR_SELECT,
-                JOIN_RELEVANT_ACCOUNT,
-                JOIN_SUBJECT,
-                JOIN_AGENT
-        );
+        final StringBuilder sb = new StringBuilder(buildStreamMutationEvent.length() + options.size() * 20 + 15).append(buildStreamMutationEvent);
         SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
         final String sql = sb.toString();
 

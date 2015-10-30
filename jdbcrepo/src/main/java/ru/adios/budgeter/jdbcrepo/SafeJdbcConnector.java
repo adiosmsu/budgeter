@@ -39,7 +39,7 @@ final class SafeJdbcConnector {
         templateThreadLocal.set(new JdbcTemplate(dataSource));
     }
 
-    JdbcTemplate get() {
+    JdbcTemplate getJdbcTemplate() {
         JdbcTemplate jdbcTemplate = templateThreadLocal.get();
         if (jdbcTemplate == null) {
             jdbcTemplate = new JdbcTemplate(dataSource);
