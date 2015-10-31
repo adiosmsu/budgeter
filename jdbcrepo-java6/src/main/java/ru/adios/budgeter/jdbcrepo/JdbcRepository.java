@@ -62,7 +62,7 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
         }
 
         public String getInsertSql(boolean withId) {
-            return jdbcRepository.getSqlDialect().insertSql(jdbcRepository.getTableName(), getColumnNamesForInsert(withId));
+            return jdbcRepository.getSqlDialect().insertSql(jdbcRepository.getTableName(), jdbcRepository.getColumnNamesForInsert(withId));
         }
 
         @Override
