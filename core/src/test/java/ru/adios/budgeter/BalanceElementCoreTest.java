@@ -3,10 +3,7 @@ package ru.adios.budgeter;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
-import ru.adios.budgeter.api.NoRateException;
-import ru.adios.budgeter.api.Treasury;
-import ru.adios.budgeter.api.Units;
-import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
@@ -21,36 +18,57 @@ import static org.junit.Assert.*;
  */
 public class BalanceElementCoreTest {
 
-    private final TreasuryMock treasury = new TreasuryMock();
-    private final CurrencyRatesRepositoryMock ratesRepository = new CurrencyRatesRepositoryMock();
-    private BalanceElementCore core = new BalanceElementCore(treasury, ratesRepository);
-
     @Test
     public void testSetTotalUnit() throws Exception {
+        testSetTotalUnitWith(Schema.INSTANCE, TestUtils.CASE_INNER);
+        testSetTotalUnitWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+    }
+
+    public void testSetTotalUnitWith(Bundle bundle, String caseName) throws Exception {
+        caseName += ": ";
+        BalanceElementCore core = new BalanceElementCore(bundle.treasury(), bundle.currencyRates());
         core.setTotalUnit(null);
+        assertNull(caseName + "set total unit null failed", core.getTotalUnit());
         core.setTotalUnit(CurrencyUnit.USD);
+        assertEquals(caseName + "set USD unit null failed", CurrencyUnit.USD, core.getTotalUnit());
     }
 
     @Test
     public void testStreamIndividualBalances() throws Exception {
-        treasury.clear();
+        testStreamIndividualBalancesWith(Schema.INSTANCE, TestUtils.CASE_INNER);
+        testStreamIndividualBalancesWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+    }
+
+    public void testStreamIndividualBalancesWith(Bundle bundle, String caseName) throws Exception {
+        final String cn = caseName + ": ";
+        final Treasury treasury = bundle.treasury();
+        BalanceElementCore core = new BalanceElementCore(treasury, bundle.currencyRates());
+        bundle.clearSchema();
         treasury.addAmount(Money.of(CurrencyUnit.USD, 1000), "usd");
         treasury.addAmount(Money.of(CurrencyUnit.EUR, 500), "eur");
-        core.streamIndividualBalances().forEach(money -> assertEquals("Wrong balance for " + money,
+        core.streamIndividualBalances().forEach(money -> assertEquals(cn + "Wrong balance for " + money,
                 money.getCurrencyUnit().equals(CurrencyUnit.USD) ? BigDecimal.valueOf(1000).stripTrailingZeros() : BigDecimal.valueOf(500).stripTrailingZeros(),
                 money.getAmount().stripTrailingZeros()));
     }
 
     @Test
     public void testGetTotalBalance() throws Exception {
-        treasury.clear();
-        ratesRepository.clear();
+        testGetTotalBalanceWith(Schema.INSTANCE, TestUtils.CASE_INNER);
+        testGetTotalBalanceWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+    }
+
+    public void testGetTotalBalanceWith(Bundle bundle, String caseName) throws Exception {
+        caseName += ": ";
+        bundle.clearSchema();
+        final Treasury treasury = bundle.treasury();
+        final CurrencyRatesRepository ratesRepository = bundle.currencyRates();
+        BalanceElementCore core = new BalanceElementCore(treasury, ratesRepository);
         treasury.addAmount(Money.of(CurrencyUnit.USD, 1000), "usd");
         treasury.addAmount(Money.of(CurrencyUnit.EUR, 500), "eur");
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(55));
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(65));
         core.setTotalUnit(Units.RUB);
-        assertEquals("Wrong total balance", Money.of(Units.RUB, BigDecimal.valueOf(87500.)), core.getTotalBalance());
+        assertEquals(caseName + "Wrong total balance", Money.of(Units.RUB, BigDecimal.valueOf(87500.)), core.getTotalBalance());
 
         // same total unit test
         Schema.clearSchemaStatic();
@@ -59,26 +77,34 @@ public class BalanceElementCoreTest {
         core.getTotalBalance();
 
         // no total unit set test
-        Schema.clearSchemaStatic();
+        bundle.clearSchema();
         treasury.registerBalanceAccount(new Treasury.BalanceAccount("Тест", Units.RUB));
         final BalanceElementCore balanceElementCore = new BalanceElementCore(treasury, ratesRepository);
         try {
             balanceElementCore.getTotalBalance();
-            fail("No way to get exchange rate between RUB and USD but it worked anyway!");
+            fail(caseName + "No way to get exchange rate between RUB and USD but it worked anyway!");
         } catch (NoRateException ignore) {}
     }
 
     @Test
     public void testNoTodayRate() throws Exception {
-        ratesRepository.clear();
-        treasury.clear();
+        testNoTodayRateWith(Schema.INSTANCE, TestUtils.CASE_INNER);
+        testNoTodayRateWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+    }
+
+    public void testNoTodayRateWith(Bundle bundle, String caseName) throws Exception {
+        caseName += ": ";
+        bundle.clearSchema();
+        final Treasury treasury = bundle.treasury();
+        final CurrencyRatesRepository ratesRepository = bundle.currencyRates();
+        BalanceElementCore core = new BalanceElementCore(treasury, ratesRepository);
         treasury.addAmount(Money.of(CurrencyUnit.USD, 1000), "usd");
         treasury.addAmount(Money.of(CurrencyUnit.EUR, 500), "eur");
-        assertTrue("Miraculously rates present", core.noTodayRate());
+        assertTrue(caseName + "Miraculously rates present", core.noTodayRate());
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(55));
         ratesRepository.addRate(new UtcDay(), CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(65));
         core.setTotalUnit(Units.RUB);
-        assertFalse("Rates don't present though we added them", core.noTodayRate());
+        assertFalse(caseName + "Rates don't present though we added them", core.noTodayRate());
     }
 
 }

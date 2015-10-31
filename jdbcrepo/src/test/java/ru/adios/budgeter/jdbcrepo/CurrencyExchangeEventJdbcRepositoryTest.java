@@ -21,24 +21,20 @@ public class CurrencyExchangeEventJdbcRepositoryTest {
 
     @Test
     public void testRegisterCurrencyExchange() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRegisterCurrencyExchange();
-            }
-        });
+        final TestCheckedRunnable r = tester::testRegisterCurrencyExchange;
+        TestContext.BUNDLE.tryExecuteInTransaction(r);
     }
 
     @Test
     public void testStreamExchangeEvents() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamExchangeEvents();
-            }
-        });
+        final TestCheckedRunnable r = tester::testStreamExchangeEvents;
+        TestContext.BUNDLE.tryExecuteInTransaction(r);
+    }
+
+    @Test
+    public void testStreamForDay() throws Exception {
+        final TestCheckedRunnable r = tester::testStreamForDay;
+        TestContext.BUNDLE.tryExecuteInTransaction(r);
     }
 
 }

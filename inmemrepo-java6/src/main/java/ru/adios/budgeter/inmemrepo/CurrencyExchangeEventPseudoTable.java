@@ -62,7 +62,7 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
                 .map(new Function<Stored<CurrencyExchangeEvent>, CurrencyExchangeEvent>() {
                     @Override
                     public CurrencyExchangeEvent apply(Stored<CurrencyExchangeEvent> stored) {
-                        return stored.obj;
+                        return constructValid(stored);
                     }
                 })
                 .sorted(new Comparator<CurrencyExchangeEvent>() {
@@ -103,6 +103,7 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
         return table;
     }
 
+    @Override
     public Stream<CurrencyExchangeEvent> streamForDay(final UtcDay day) {
         return StreamSupport.stream(table.values().getSpliterator(), false)
                 .filter(new Predicate<Stored<CurrencyExchangeEvent>>() {
@@ -114,9 +115,16 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
                 .map(new Function<Stored<CurrencyExchangeEvent>, CurrencyExchangeEvent>() {
                     @Override
                     public CurrencyExchangeEvent apply(Stored<CurrencyExchangeEvent> stored) {
-                        return stored.obj;
+                        return constructValid(stored);
                     }
                 });
+    }
+
+    private CurrencyExchangeEvent constructValid(Stored<CurrencyExchangeEvent> stored) {
+        return CurrencyExchangeEvent.builder().setEvent(stored.obj)
+                .setBoughtAccount(Schema.TREASURY.getAccountForName(stored.obj.boughtAccount.name).get())
+                .setSoldAccount(Schema.TREASURY.getAccountForName(stored.obj.soldAccount.name).get())
+                .build();
     }
 
 }

@@ -10,6 +10,7 @@ import org.springframework.jdbc.support.SQLStateSQLExceptionTranslator;
 import ru.adios.budgeter.api.OptLimit;
 import ru.adios.budgeter.api.OrderBy;
 import ru.adios.budgeter.api.OrderedField;
+import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -109,10 +110,18 @@ final class Common {
             return builder.toString();
         });
 
+        return streamRequest(repo, sql, ImmutableList.copyOf(colToVal.values()), op);
+    }
+
+    static <ObjType> Stream<ObjType> streamRequest(JdbcRepository<ObjType> repo, String sql, ImmutableList params, @Nullable String op) {
         return LazyResultSetIterator.stream(
-                getRsSupplierWithParams(repo.getJdbcConnector(), repo.getSqlDialect(), sql, ImmutableList.copyOf(colToVal.values()), op),
-                getMappingSqlFunction(repo.getRowMapper(), sql, op)
+                Common.getRsSupplierWithParams(repo.getJdbcConnector(), repo.getSqlDialect(), sql, params, op),
+                Common.getMappingSqlFunction(repo.getRowMapper(), sql, op)
         );
+    }
+
+    static <ObjType> Stream<ObjType> streamForDay(JdbcRepository<ObjType> repo, String sql, UtcDay day, @Nullable String op) {
+        return streamRequest(repo, sql, ImmutableList.of(day.inner, day.add(1).inner), op);
     }
 
     private static <ObjType> StringBuilder getRepoSelectBuilder(JdbcRepository<ObjType> repo) {

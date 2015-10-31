@@ -66,7 +66,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
         this.treasury = treasury;
         this.btcLoader = btcLoader;
         this.cbrLoader = cbrLoader;
-        this.nonSpringTransactional = Optional.of(nonSpringTransactional);
+        this.nonSpringTransactional = Optional.ofNullable(nonSpringTransactional);
     }
 
     @Transactional

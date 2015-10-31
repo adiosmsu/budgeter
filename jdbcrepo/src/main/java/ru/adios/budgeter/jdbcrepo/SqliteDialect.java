@@ -2,15 +2,17 @@ package ru.adios.budgeter.jdbcrepo;
 
 import org.intellij.lang.annotations.Language;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import ru.adios.budgeter.DateTimeUtils;
 import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -37,6 +39,7 @@ public final class SqliteDialect implements SqlDialect {
     private static final String SEQUENCE_CURRENT_VALUE_SQL = "SELECT seq FROM sqlite_sequence WHERE name = ";
     private static final String SEQUENCE_SET_VALUE_SQL = "UPDATE sqlite_sequence SET seq = ? WHERE name = ";
     private static final String TABLE_EXISTENCE_QUERY = "SELECT name FROM sqlite_master WHERE type='table' AND name = '";
+    private static final int MAX_LONG_PRECISION = BigInteger.valueOf(Long.MAX_VALUE).toString().length();
 
     private SqliteDialect() {}
 
@@ -67,7 +70,7 @@ public final class SqliteDialect implements SqlDialect {
 
     @Override
     public String timestampType() {
-        return TEXT_TYPE;
+        return NUMBER_TYPE;
     }
 
     @Override
@@ -164,22 +167,17 @@ public final class SqliteDialect implements SqlDialect {
         }
 
         if (object instanceof BigDecimal) {
-            BigDecimal dec = ((BigDecimal) object).stripTrailingZeros();
-            int scale = dec.scale();
-
-            if (scale >= 0) {
-                if (scale > DECIMAL_SCALE) {
-                    dec = dec.scaleByPowerOfTen(DECIMAL_SCALE - scale);
-                    scale = dec.scale();
-                }
-                return dec.unscaledValue().longValue() * (long) Math.pow(10, DECIMAL_SCALE - scale);
-            } else {
-                return dec.toBigInteger().longValue() * (long) Math.pow(10, DECIMAL_SCALE);
+            final BigDecimal asDec = (BigDecimal) object;
+            final BigDecimal dec = asDec.stripTrailingZeros().scaleByPowerOfTen(DECIMAL_SCALE);
+            final long val = dec.longValue();
+            if (dec.precision() - dec.scale() > MAX_LONG_PRECISION || (asDec.signum() > 0 && val <= 0)) {
+                throw new IllegalArgumentException("Decimal is too large for Sqlite DB: " + asDec);
             }
+            return val;
         } else if (object instanceof UtcDay) {
             return ((UtcDay) object).inner.toInstant().toEpochMilli();
         } else if (object instanceof OffsetDateTime) {
-            return ((OffsetDateTime) object).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            return ((OffsetDateTime) object).toInstant().toEpochMilli();
         }
         return object;
     }
@@ -195,8 +193,8 @@ public final class SqliteDialect implements SqlDialect {
             return (T) BigDecimal.valueOf(((Number) object).longValue(), DECIMAL_SCALE).stripTrailingZeros();
         } else if (UtcDay.class.equals(type) && object instanceof Number) {
             return (T) new UtcDay(((Number) object).longValue());
-        } else if (OffsetDateTime.class.equals(type) && object instanceof CharSequence) {
-            return (T) OffsetDateTime.parse((CharSequence) object);
+        } else if (OffsetDateTime.class.equals(type) && object instanceof Number) {
+            return (T) DateTimeUtils.fromEpochMillis(((Number) object).longValue(), ZoneId.systemDefault());
         }
         return (T) object;
     }

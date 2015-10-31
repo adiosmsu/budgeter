@@ -76,6 +76,20 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID
     );
 
+    public static final String SQL_STREAM_START = SqlDialect.selectSqlBuilder(
+            TABLE_NAME, COLS_FOR_SELECT,
+            JOIN_RELEVANT_ACCOUNT,
+            JOIN_SUBJECT,
+            JOIN_AGENT
+    ).toString();
+    private static final String SQL_STREAM_FOR_DAY = getStreamForDaySql();
+    private static String getStreamForDaySql() {
+        final StringBuilder builder = new StringBuilder(SQL_STREAM_START.length() + 200).append(SQL_STREAM_START);
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.MORE_EQ, COL_TIMESTAMP);
+        SqlDialect.appendWhereClausePart(false, builder, true, SqlDialect.Op.LESS, COL_TIMESTAMP);
+        return builder.toString();
+    }
+
 
     private final SafeJdbcConnector jdbcConnector;
 
@@ -87,7 +101,6 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     private final MutationRowMapper rowMapper = new MutationRowMapper();
     private final LazySupplier supIdSql = new LazySupplier();
     private final String insertSql = JdbcRepository.super.getInsertSql(false);
-    private final String buildStreamMutationEvent;
 
     FundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
         this(jdbcConnector, new FundsMutationSubjectJdbcRepository(jdbcConnector));
@@ -96,12 +109,6 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     FundsMutationEventJdbcRepository(SafeJdbcConnector jdbcConnector, FundsMutationSubjectJdbcRepository subjRepo) {
         this.jdbcConnector = jdbcConnector;
         this.subjRepo = subjRepo;
-        buildStreamMutationEvent = SqlDialect.selectSqlBuilder(
-                TABLE_NAME, COLS_FOR_SELECT,
-                JOIN_RELEVANT_ACCOUNT,
-                JOIN_SUBJECT,
-                JOIN_AGENT
-        ).toString();
     }
 
 
@@ -216,7 +223,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
 
     @Override
     public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        final StringBuilder sb = new StringBuilder(buildStreamMutationEvent.length() + options.size() * 20 + 15).append(buildStreamMutationEvent);
+        final StringBuilder sb = new StringBuilder(SQL_STREAM_START.length() + options.size() * 20 + 15).append(SQL_STREAM_START);
         SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
         final String sql = sb.toString();
 
@@ -224,6 +231,11 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                 Common.getRsSupplier(jdbcConnector, sql, "streamMutationEvents"),
                 Common.getMappingSqlFunction(rowMapper, sql, "streamMutationEvents")
         );
+    }
+
+    @Override
+    public Stream<FundsMutationEvent> streamForDay(UtcDay day) {
+        return Common.streamForDay(this, SQL_STREAM_FOR_DAY, day, "streamForDay");
     }
 
     @Override

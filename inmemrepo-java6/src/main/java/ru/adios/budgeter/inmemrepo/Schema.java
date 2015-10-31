@@ -44,6 +44,11 @@ public final class Schema implements Bundle {
     }
 
     @Override
+    public void tryExecuteInTransaction(Runnable code) {
+        code.run();
+    }
+
+    @Override
     public FundsMutationSubjectRepository fundsMutationSubjects() {
         return FUNDS_MUTATION_SUBJECTS;
     }

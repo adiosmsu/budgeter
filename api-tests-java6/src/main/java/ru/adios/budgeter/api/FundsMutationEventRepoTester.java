@@ -1,6 +1,7 @@
 package ru.adios.budgeter.api;
 
 import java8.util.function.Supplier;
+import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 
 import java.math.BigDecimal;
@@ -140,6 +141,38 @@ public final class FundsMutationEventRepoTester {
                         .amount
                         .isPositive()
         );
+    }
+
+    public void testStreamForDay() throws Exception {
+        final FundsMutationEventRepository mutationEventRepository = bundle.fundsMutationEvents();
+
+        testRegisterLoss();
+        testRegisterBenefit();
+
+        Treasury.BalanceAccount accountRub = bundle.treasury().getAccountForName("accountRUB").get();
+        Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final FundsMutationAgent agent = bundle.fundsMutationAgents().findByName("Test").get();
+        final FundsMutationSubject food = bundle.fundsMutationSubjects().findByName("Food").get();
+        final FundsMutationEvent breadBuy1 = FundsMutationEvent.builder()
+                .setQuantity(1)
+                .setSubject(food)
+                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-100L)))
+                .setRelevantBalance(accountRub)
+                .setAgent(agent)
+                .build();
+        final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
+                .setQuantity(1)
+                .setSubject(food)
+                .setAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(-10L)))
+                .setRelevantBalance(accountRub)
+                .setTimestamp(new UtcDay().add(-10).inner)
+                .setAgent(agent)
+                .build();
+
+        bundle.fundsMutationEvents().registerLoss(breadBuy1);
+        bundle.fundsMutationEvents().registerLoss(breadBuy2);
+
+        assertEquals("Stream for day counted wrong", 3, bundle.fundsMutationEvents().streamForDay(new UtcDay()).count());
     }
 
 }

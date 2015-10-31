@@ -1,9 +1,8 @@
 package ru.adios.budgeter;
 
-import java.time.Clock;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.temporal.ChronoField;
+import java.util.TimeZone;
 
 /**
  * Date: 6/14/15
@@ -23,6 +22,14 @@ public final class DateTimeUtils {
 
     public static OffsetDateTime toUtcDay(OffsetDateTime dateTime) {
         return DateTimeUtils.cutTime(dateTime.withOffsetSameInstant(ZoneOffset.UTC));
+    }
+
+    public static OffsetDateTime fromEpochMillis(long millisFromEpoch, ZoneId offset) {
+        return OffsetDateTime.ofInstant(Instant.ofEpochMilli(millisFromEpoch), offset);
+    }
+
+    public static OffsetDateTime convertToCurrentZone(OffsetDateTime odt) {
+        return odt.withOffsetSameInstant(ZoneOffset.ofTotalSeconds(TimeZone.getDefault().getRawOffset() / 1000));
     }
 
     private DateTimeUtils() {}

@@ -34,4 +34,9 @@ public class FundsMutationEventPseudoTableTest {
         tester.testStream();
     }
 
+    @Test
+    public void testStreamForDay() throws Exception {
+        tester.testStreamForDay();
+    }
+
 }

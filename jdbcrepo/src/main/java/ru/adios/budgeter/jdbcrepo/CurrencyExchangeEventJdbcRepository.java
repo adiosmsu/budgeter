@@ -72,6 +72,19 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
             COL_SOLD_UNIT, COL_SOLD_AMOUNT, COL_BOUGHT_UNIT, COL_BOUGHT_AMOUNT, COL_SOLD_ACCOUNT_ID, COL_BOUGHT_ACCOUNT_ID, COL_RATE, COL_TIMESTAMP, COL_AGENT_ID
     );
 
+    private static final String SQL_STREAM_START = SqlDialect.selectSqlBuilder(
+            TABLE_NAME, COLS_FOR_SELECT,
+            JOIN_SOLD_ACCOUNT,
+            JOIN_BOUGHT_ACCOUNT,
+            JOIN_AGENT
+    ).toString();
+    private static final String SQL_STREAM_FOR_DAY = getStreamForDaySql();
+    private static String getStreamForDaySql() {
+        final StringBuilder builder = new StringBuilder(SQL_STREAM_START.length() + 200).append(SQL_STREAM_START);
+        SqlDialect.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.MORE_EQ, COL_TIMESTAMP);
+        SqlDialect.appendWhereClausePart(false, builder, true, SqlDialect.Op.LESS, COL_TIMESTAMP);
+        return builder.toString();
+    }
 
     private final SafeJdbcConnector jdbcConnector;
 
@@ -82,16 +95,9 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     private final ExchangeEventRowMapper rowMapper = new ExchangeEventRowMapper();
     private final LazySupplier supIdSql = new LazySupplier();
     private final String insertSql = JdbcRepository.super.getInsertSql(false);
-    private final String sqlStreamExEvBuilder;
 
     CurrencyExchangeEventJdbcRepository(SafeJdbcConnector jdbcConnector) {
         this.jdbcConnector = jdbcConnector;
-        sqlStreamExEvBuilder = SqlDialect.selectSqlBuilder(
-                TABLE_NAME, COLS_FOR_SELECT,
-                JOIN_SOLD_ACCOUNT,
-                JOIN_BOUGHT_ACCOUNT,
-                JOIN_AGENT
-        ).toString();
     }
 
 
@@ -189,7 +195,7 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
     @Override
     public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
-        final StringBuilder sb = new StringBuilder(sqlStreamExEvBuilder.length() + 20 * options.size() + 15).append(sqlStreamExEvBuilder);
+        final StringBuilder sb = new StringBuilder(SQL_STREAM_START.length() + 20 * options.size() + 15).append(SQL_STREAM_START);
         SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
         final String sql = sb.toString();
 
@@ -197,6 +203,11 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
                 Common.getRsSupplier(jdbcConnector, sql, "streamExchangeEvents"),
                 Common.getMappingSqlFunction(rowMapper, sql, "streamExchangeEvents")
         );
+    }
+
+    @Override
+    public Stream<CurrencyExchangeEvent> streamForDay(UtcDay day) {
+        return Common.streamForDay(this, SQL_STREAM_FOR_DAY, day, "streamForDay");
     }
 
 

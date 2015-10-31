@@ -20,6 +20,8 @@ public interface CurrencyExchangeEventRepository extends Provider<CurrencyExchan
 
     Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit);
 
+    Stream<CurrencyExchangeEvent> streamForDay(UtcDay day);
+
     default Stream<CurrencyExchangeEvent> streamExchangeEvents(RepoOption... options) {
         final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
         return streamExchangeEvents(pair.options, pair.limit);

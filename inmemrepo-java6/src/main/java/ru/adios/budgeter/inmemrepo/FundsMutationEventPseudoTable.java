@@ -85,7 +85,7 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
                 .map(new Function<StoredFundsMutationEvent, FundsMutationEvent>() {
                     @Override
                     public FundsMutationEvent apply(StoredFundsMutationEvent event) {
-                        return event.obj;
+                        return event.constructValid();
                     }
                 })
                 .sorted(new Comparator<FundsMutationEvent>() {
@@ -140,6 +140,7 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
         return table;
     }
 
+    @Override
     public Stream<FundsMutationEvent> streamForDay(final UtcDay day) {
         return StreamSupport.stream(table.values().getSpliterator(), false)
                 .filter(new Predicate<StoredFundsMutationEvent>() {
@@ -151,7 +152,7 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
                 .map(new Function<StoredFundsMutationEvent, FundsMutationEvent>() {
                     @Override
                     public FundsMutationEvent apply(StoredFundsMutationEvent event) {
-                        return event.obj;
+                        return event.constructValid();
                     }
                 });
     }

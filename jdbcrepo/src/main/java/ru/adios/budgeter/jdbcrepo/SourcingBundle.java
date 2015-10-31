@@ -71,7 +71,7 @@ public final class SourcingBundle implements Bundle {
                 if (jdbcConnector.transactionalSupport != null) {
                     jdbcConnector.transactionalSupport.runWithTransaction(() -> jdbcTemplate.execute(sql));
                     try {
-                        Thread.sleep(RANDOM.nextInt(11) + 1); // Sadly, Sqlite breaks down without this in multiple concurrent connections case (random is not required);
+                        Thread.sleep(RANDOM.nextInt(6) + 5); // Sadly, Sqlite breaks down without this in multiple concurrent connections case (random is not required);
                         // but no worries - this method is only for DDL
                     } catch (InterruptedException ignore) {
                         if (logger != null) {

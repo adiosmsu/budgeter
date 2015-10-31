@@ -78,4 +78,22 @@ public final class CurrencyExchangeTester {
         );
     }
 
+    public void testStreamForDay() throws Exception {
+        testStreamExchangeEvents();
+
+        final FundsMutationAgent agent = bundle.fundsMutationAgents().getAgentWithId(FundsMutationAgent.builder().setName("Test").build());
+        CurrencyExchangeEvent exchangeEvent = CurrencyExchangeEvent.builder()
+                .setBought(Money.of(Units.RUB, BigDecimal.valueOf(70000L)))
+                .setSold(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)))
+                .setBoughtAccount(bundle.treasury().getAccountForName("accountRUB").get())
+                .setSoldAccount(bundle.treasury().getAccountForName("accountEUR").get())
+                .setRate(BigDecimal.valueOf(70L))
+                .setTimestamp(new UtcDay().add(-10).inner)
+                .setAgent(agent)
+                .build();
+
+
+        assertEquals("Stream for day counted wrong", 2, bundle.currencyExchangeEvents().streamForDay(new UtcDay()).count());
+    }
+
 }

@@ -32,6 +32,8 @@ public interface FundsMutationEventRepository extends Provider<FundsMutationEven
 
     Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit);
 
+    Stream<FundsMutationEvent> streamForDay(UtcDay day);
+
     Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till, Optional<FundsMutationSubject> parentLevel);
 
     default Map<FundsMutationSubject, Money> getStatsInTimePeriod(OffsetDateTime from, OffsetDateTime till) {

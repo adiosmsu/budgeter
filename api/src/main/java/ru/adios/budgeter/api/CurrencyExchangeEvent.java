@@ -95,6 +95,17 @@ public final class CurrencyExchangeEvent {
 
         private Builder() {}
 
+        public Builder setEvent(CurrencyExchangeEvent event) {
+            sold = event.sold;
+            bought = event.bought;
+            soldAccount = event.soldAccount;
+            boughtAccount = event.boughtAccount;
+            rate = event.rate;
+            timestamp = event.timestamp;
+            agent = event.agent;
+            return this;
+        }
+
         public Builder setBought(Money bought) {
             this.bought = bought;
             return this;

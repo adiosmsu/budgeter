@@ -38,4 +38,6 @@ public interface CurrencyExchangeEventRepository extends Provider<CurrencyExchan
 
     Stream<CurrencyExchangeEvent> streamExchangeEvents(RepoOption... options); // default in java8
 
+    Stream<CurrencyExchangeEvent> streamForDay(UtcDay day);
+
 }

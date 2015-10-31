@@ -7,6 +7,7 @@ import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.Optional;
 
@@ -22,26 +23,33 @@ public class ExchangeCurrenciesElementCoreTest {
 
     @Test
     public void testSubmit() throws Exception {
-        final AccounterMock accounter = new AccounterMock();
-        final TreasuryMock treasury = new TreasuryMock();
-        final TransactionalSupportMock txNal = new TransactionalSupportMock();
-        final CurrencyRatesRepositoryMock ratesRepo = new CurrencyRatesRepositoryMock();
+        testSubmitWith(Schema.INSTANCE, TestUtils.CASE_INNER);
+        final TestCheckedRunnable runnable = () -> testSubmitWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+        TestUtils.JDBC_BUNDLE.tryExecuteInTransaction(runnable);
+    }
+
+    private void testSubmitWith(Bundle bundle, String caseName) throws Exception {
+        caseName += ": ";
+        final MathContext mc = new MathContext(7, RoundingMode.HALF_DOWN);
+        final Accounter accounter = bundle.accounter();
+        final Treasury treasury = bundle.treasury();
+        final CurrencyRatesRepository ratesRepo = bundle.currencyRates();
         final CurrenciesExchangeService ratesService =
-                new CurrenciesExchangeService(txNal, ratesRepo, accounter, treasury, ExchangeRatesLoader.createBtcLoader(treasury), ExchangeRatesLoader.createCbrLoader(treasury));
+                new CurrenciesExchangeService(bundle.getTransactionalSupport(),
+                        ratesRepo, accounter, treasury, ExchangeRatesLoader.createBtcLoader(treasury), ExchangeRatesLoader.createCbrLoader(treasury));
 
-        Schema.clearSchemaStatic();
+        bundle.clearSchema();
 
-        final FundsMutationAgent agentExchanger = FundsMutationAgent.builder().setName("Обменник").build();
-        accounter.fundsMutationAgentRepo().addAgent(agentExchanger);
+        final FundsMutationAgent agentExchanger = accounter.fundsMutationAgentRepo().addAgent(FundsMutationAgent.builder().setName("Обменник").build());
 
         treasury.addAmount(Money.of(CurrencyUnit.USD, 300000), "usd");
         treasury.addAmount(Money.of(CurrencyUnit.EUR, 1000), "eur");
         treasury.addAmount(Money.of(Units.RUB, 1000000), "rub");
         treasury.addAmount(Money.of(Units.BTC, 100), "btc");
-        final Treasury.BalanceAccount usdAccount = new Treasury.BalanceAccount("usd", CurrencyUnit.USD);
-        final Treasury.BalanceAccount eurAccount = new Treasury.BalanceAccount("eur", CurrencyUnit.EUR);
-        final Treasury.BalanceAccount rubAccount = new Treasury.BalanceAccount("rub", Units.RUB);
-        final Treasury.BalanceAccount btcAccount = new Treasury.BalanceAccount("btc", Units.BTC);
+        Treasury.BalanceAccount usdAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("usd", CurrencyUnit.USD));
+        Treasury.BalanceAccount eurAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("eur", CurrencyUnit.EUR));
+        Treasury.BalanceAccount rubAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("rub", Units.RUB));
+        Treasury.BalanceAccount btcAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("btc", Units.BTC));
 
         ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
 
@@ -53,40 +61,52 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setAgent(agentExchanger);
         core.setBuyAccount(usdAccount);
         core.setSellAccount(rubAccount);
-        ratesRepo.addRate(TestUtils.JULY_3RD_2015, Units.RUB, CurrencyUnit.USD, CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(55.5))); // to know exact value we set "natural" rate ourselves
+        ratesRepo.addRate(TestUtils.JULY_3RD_2015, Units.RUB,
+                CurrencyUnit.USD, CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(55.5))); // to know exact value we set "natural" rate ourselves
         core.setPersonalMoneyExchange(true);
 
         Submitter.Result submit = core.submit();
         submit.raiseExceptionIfFailed();
 
-        final Optional<CurrencyExchangeEvent> dollarsExc = accounter.streamExchangesForDay(TestUtils.JULY_3RD_2015).findFirst();
-        assertTrue("No dollars exchange found", dollarsExc.isPresent());
+        rubAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("rub", Units.RUB));
+        usdAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("usd", CurrencyUnit.USD));
+        final Optional<CurrencyExchangeEvent> dollarsExc = bundle.currencyExchangeEvents().streamForDay(TestUtils.JULY_3RD_2015).findFirst();
+        assertTrue(caseName + "No dollars exchange found", dollarsExc.isPresent());
         assertEquals(
-                "Bad dollars exchange values",
+                caseName + "Bad dollars exchange values",
                 CurrencyExchangeEvent.builder()
                         .setBought(Money.of(CurrencyUnit.USD, 1000.0, RoundingMode.HALF_DOWN))
                         .setSold(Money.of(Units.RUB, 56000.0, RoundingMode.HALF_DOWN))
-                        .setRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(56.)))
-                        .setTimestamp(TestUtils.JULY_3RD_2015.inner)
+                        .setRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(56.)).round(mc))
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.JULY_3RD_2015.inner))
                         .setAgent(agentExchanger)
                         .setBoughtAccount(usdAccount)
                         .setSoldAccount(rubAccount)
                         .build(),
-                dollarsExc.get()
+                CurrencyExchangeEvent.builder()
+                        .setEvent(dollarsExc.get())
+                        .setRate(dollarsExc.get().rate.round(mc))
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(dollarsExc.get().timestamp))
+                        .build()
         );
-        final Optional<FundsMutationEvent> dollarsExcMutation = accounter.streamMutationsForDay(TestUtils.JULY_3RD_2015).findFirst();
-        assertTrue("No dollars exchange LOSS mutation found", dollarsExcMutation.isPresent());
+
+        final Optional<FundsMutationEvent> dollarsExcMutation = bundle.fundsMutationEvents().streamForDay(TestUtils.JULY_3RD_2015).findFirst();
+        assertTrue(caseName + "No dollars exchange LOSS mutation found", dollarsExcMutation.isPresent());
+
         assertEquals(
-                "Bad dollars exchange LOSS mutation values",
+                caseName + "Bad dollars exchange LOSS mutation values",
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(-9.01)))
                         .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
-                        .setTimestamp(TestUtils.JULY_3RD_2015.inner)
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.JULY_3RD_2015.inner))
                         .setAgent(agentExchanger)
                         .setRelevantBalance(usdAccount)
                         .build(),
-                dollarsExcMutation.get()
+                FundsMutationEvent.builder()
+                        .setFundsMutationEvent(dollarsExcMutation.get())
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(dollarsExcMutation.get().timestamp))
+                        .build()
         );
 
         core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
@@ -105,34 +125,42 @@ public class ExchangeCurrenciesElementCoreTest {
         submit = core.submit();
         submit.raiseExceptionIfFailed();
 
-        final Optional<CurrencyExchangeEvent> euroExc = accounter.streamExchangesForDay(TestUtils.DAY_BF_YESTER).findFirst();
-        assertTrue("No euros exchange found", euroExc.isPresent());
+        rubAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("rub", Units.RUB));
+        eurAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("eur", CurrencyUnit.EUR));
+        final Optional<CurrencyExchangeEvent> euroExc = bundle.currencyExchangeEvents().streamForDay(TestUtils.DAY_BF_YESTER).findFirst();
+        assertTrue(caseName + "No euros exchange found", euroExc.isPresent());
         assertEquals(
-                "Bad euros exchange values",
+                caseName + "Bad euros exchange values",
                 CurrencyExchangeEvent.builder()
                         .setBought(Money.of(Units.RUB, 64000.0, RoundingMode.HALF_DOWN))
                         .setSold(Money.of(CurrencyUnit.EUR, 1000.0, RoundingMode.HALF_DOWN))
                         .setRate(BigDecimal.valueOf(64.))
-                        .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.DAY_BF_YESTER.inner))
                         .setAgent(agentExchanger)
                         .setBoughtAccount(rubAccount)
                         .setSoldAccount(eurAccount)
                         .build(),
-                euroExc.get()
+                CurrencyExchangeEvent.builder()
+                        .setEvent(euroExc.get())
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(euroExc.get().timestamp))
+                        .build()
         );
-        final Optional<FundsMutationEvent> eurosExcMutation = accounter.streamMutationsForDay(TestUtils.DAY_BF_YESTER).findFirst();
-        assertTrue("No euros exchange BENEFIT mutation found", eurosExcMutation.isPresent());
+        final Optional<FundsMutationEvent> eurosExcMutation = bundle.fundsMutationEvents().streamForDay(TestUtils.DAY_BF_YESTER).findFirst();
+        assertTrue(caseName + "No euros exchange BENEFIT mutation found", eurosExcMutation.isPresent());
         assertEquals(
-                "Bad euros exchange BENEFIT mutation values",
+                caseName + "Bad euros exchange BENEFIT mutation values",
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.RUB, 2000))
                         .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
-                        .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.DAY_BF_YESTER.inner))
                         .setAgent(agentExchanger)
                         .setRelevantBalance(rubAccount)
                         .build(),
-                eurosExcMutation.get()
+                FundsMutationEvent.builder()
+                        .setFundsMutationEvent(eurosExcMutation.get())
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(eurosExcMutation.get().timestamp))
+                        .build()
         );
 
         core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
@@ -145,42 +173,52 @@ public class ExchangeCurrenciesElementCoreTest {
         core.setCustomRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(260.)));
         core.setBuyAccount(btcAccount);
         core.setSellAccount(usdAccount);
-        ratesRepo.addRate(TestUtils.DAY_BF_YESTER, CurrencyUnit.USD, Units.BTC, CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(250.))); // to know exact value we set "natural" rate ourselves
+        ratesRepo.addRate(TestUtils.DAY_BF_YESTER, CurrencyUnit.USD,
+                Units.BTC, CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(250.))); // to know exact value we set "natural" rate ourselves
         core.setPersonalMoneyExchange(true);
 
         submit = core.submit();
         submit.raiseExceptionIfFailed();
 
-        final Optional<CurrencyExchangeEvent> btcExc = accounter.streamExchangesForDay(TestUtils.DAY_BF_YESTER)
+        btcAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("btc", Units.BTC));
+        usdAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("usd", CurrencyUnit.USD));
+        final Optional<CurrencyExchangeEvent> btcExc = bundle.currencyExchangeEvents().streamForDay(TestUtils.DAY_BF_YESTER)
                 .reduce((event, event2) -> event.bought.getCurrencyUnit().equals(Units.BTC) && event.sold.getCurrencyUnit().equals(CurrencyUnit.USD) ? event : event2);
-        assertTrue("No btc exchange found", btcExc.isPresent());
+        assertTrue(caseName + "No btc exchange found", btcExc.isPresent());
         assertEquals(
-                "Bad btc exchange values",
+                caseName + "Bad btc exchange values",
                 CurrencyExchangeEvent.builder()
                         .setBought(Money.of(Units.BTC, 1000.0, RoundingMode.HALF_DOWN))
                         .setSold(Money.of(CurrencyUnit.USD, 260000.0, RoundingMode.HALF_DOWN))
-                        .setRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(260.)))
-                        .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setRate(CurrencyRatesProvider.reverseRate(BigDecimal.valueOf(260.)).round(mc))
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.DAY_BF_YESTER.inner))
                         .setSoldAccount(usdAccount)
                         .setBoughtAccount(btcAccount)
                         .setAgent(agentExchanger)
                         .build(),
-                btcExc.get()
+                CurrencyExchangeEvent.builder()
+                        .setEvent(btcExc.get())
+                        .setRate(btcExc.get().rate.round(mc))
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(btcExc.get().timestamp))
+                        .build()
         );
-        final Optional<FundsMutationEvent> btcExcMutation = accounter.streamMutationsForDay(TestUtils.DAY_BF_YESTER)
+        final Optional<FundsMutationEvent> btcExcMutation = bundle.fundsMutationEvents().streamForDay(TestUtils.DAY_BF_YESTER)
                 .reduce((event, event2) -> event.amount.getCurrencyUnit().equals(Units.BTC) ? event : event2);
-        assertTrue("No btc exchange LOSS mutation found", btcExcMutation.isPresent());
+        assertTrue(caseName + "No btc exchange LOSS mutation found", btcExcMutation.isPresent());
         assertEquals(
-                "Bad btc exchange LOSS mutation values",
+                caseName + "Bad btc exchange LOSS mutation values",
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.BTC, -40))
                         .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
-                        .setTimestamp(TestUtils.DAY_BF_YESTER.inner)
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.DAY_BF_YESTER.inner))
                         .setAgent(agentExchanger)
                         .setRelevantBalance(btcAccount)
                         .build(),
-                btcExcMutation.get()
+                FundsMutationEvent.builder()
+                        .setFundsMutationEvent(btcExcMutation.get())
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(btcExcMutation.get().timestamp))
+                        .build()
         );
 
         core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
@@ -198,28 +236,31 @@ public class ExchangeCurrenciesElementCoreTest {
         submit = core.submit();
         submit.raiseExceptionIfFailed();
 
-        final Optional<CurrencyExchangeEvent> btcExc2 = accounter.streamExchangesForDay(TestUtils.YESTERDAY).findFirst();
-        assertTrue("No btc2 exchange found", btcExc2.isPresent());
+        final Optional<CurrencyExchangeEvent> btcExc2 = bundle.currencyExchangeEvents().streamForDay(TestUtils.YESTERDAY).findFirst();
+        assertTrue(caseName + "No btc2 exchange found", btcExc2.isPresent());
         assertEquals(
-                "Bad btc2 exchange values",
+                caseName + "Bad btc2 exchange values",
                 CurrencyExchangeEvent.builder()
                         .setBought(Money.of(CurrencyUnit.USD, 265000.0, RoundingMode.HALF_DOWN))
                         .setSold(Money.of(Units.BTC, 1000.0, RoundingMode.HALF_DOWN))
                         .setRate(BigDecimal.valueOf(265.))
-                        .setTimestamp(TestUtils.YESTERDAY.inner)
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.YESTERDAY.inner))
                         .setAgent(agentExchanger)
                         .setBoughtAccount(usdAccount)
                         .setSoldAccount(btcAccount)
                         .build(),
-                btcExc2.get()
+                CurrencyExchangeEvent.builder()
+                        .setEvent(btcExc2.get())
+                        .setTimestamp(DateTimeUtils.convertToCurrentZone(btcExc2.get().timestamp))
+                        .build()
         );
-        final Optional<FundsMutationEvent> btcExcMutation2 = accounter.streamMutationsForDay(TestUtils.YESTERDAY).findFirst();
-        assertFalse("btc2 exchange LOSS mutation found", btcExcMutation2.isPresent());
+        final Optional<FundsMutationEvent> btcExcMutation2 = bundle.fundsMutationEvents().streamForDay(TestUtils.YESTERDAY).findFirst();
+        assertFalse(caseName + "btc2 exchange LOSS mutation found", btcExcMutation2.isPresent());
 
-        assertEquals("Treasury USD register failed", Money.of(CurrencyUnit.USD, 41000), treasury.amount(CurrencyUnit.USD).get());
-        assertEquals("Treasury RUB register failed", Money.of(Units.RUB, 1008000), treasury.amount(Units.RUB).get());
-        assertEquals("Treasury BTC register failed", Money.of(Units.BTC, 1100), treasury.amount(Units.BTC).get());
-        assertEquals("Treasury EUR register failed", Money.zero(CurrencyUnit.EUR), treasury.amount(CurrencyUnit.EUR).get());
+        assertEquals(caseName + "Treasury USD register failed", Money.of(CurrencyUnit.USD, 41000), treasury.amount(CurrencyUnit.USD).get());
+        assertEquals(caseName + "Treasury RUB register failed", Money.of(Units.RUB, 1008000), treasury.amount(Units.RUB).get());
+        assertEquals(caseName + "Treasury BTC register failed", Money.of(Units.BTC, 1100), treasury.amount(Units.BTC).get());
+        assertEquals(caseName + "Treasury EUR register failed", Money.zero(CurrencyUnit.EUR), treasury.amount(CurrencyUnit.EUR).get());
     }
 
 }

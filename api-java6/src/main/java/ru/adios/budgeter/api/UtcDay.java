@@ -1,10 +1,9 @@
 package ru.adios.budgeter.api;
 
-import org.threeten.bp.Instant;
-import org.threeten.bp.LocalDateTime;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneOffset;
 import org.threeten.bp.format.DateTimeFormatter;
+import org.threeten.bp.temporal.ChronoUnit;
 import ru.adios.budgeter.DateTimeUtils;
 
 import javax.annotation.Nonnull;
@@ -32,7 +31,21 @@ public final class UtcDay implements Comparable<UtcDay> {
     }
 
     public UtcDay(long millisFromEpoch) {
-        inner = OffsetDateTime.of(LocalDateTime.ofInstant(Instant.ofEpochMilli(millisFromEpoch), ZoneOffset.UTC), ZoneOffset.UTC);
+        inner = DateTimeUtils.fromEpochMillis(millisFromEpoch, ZoneOffset.UTC);
+    }
+
+    private UtcDay(OffsetDateTime calculated, boolean constructorMarker) {
+        inner = calculated;
+    }
+
+    public UtcDay add(int days) {
+        if (days == 0) {
+            return this;
+        } else if (days > 0) {
+            return new UtcDay(inner.plus(1, ChronoUnit.DAYS), true);
+        } else {
+            return new UtcDay(inner.minus(1, ChronoUnit.DAYS), true);
+        }
     }
 
     @Override

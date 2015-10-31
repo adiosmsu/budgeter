@@ -72,7 +72,7 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
 
         return table.values()
                 .stream()
-                .map(event -> event.obj)
+                .map(StoredFundsMutationEvent::constructValid)
                 .sorted((e1, e2) -> {
                     int res = 1;
                     for (final OrderBy<Field> opt : options) {
@@ -118,11 +118,12 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
         return table;
     }
 
+    @Override
     public Stream<FundsMutationEvent> streamForDay(final UtcDay day) {
         return table.values()
                 .stream()
                 .filter(event -> new UtcDay(event.obj.timestamp).equals(day))
-                .map(storedFundsMutationEvent -> storedFundsMutationEvent.obj);
+                .map(StoredFundsMutationEvent::constructValid);
     }
 
 }

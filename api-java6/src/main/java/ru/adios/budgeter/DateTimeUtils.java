@@ -1,9 +1,9 @@
 package ru.adios.budgeter;
 
-import org.threeten.bp.Clock;
-import org.threeten.bp.OffsetDateTime;
-import org.threeten.bp.ZoneOffset;
+import org.threeten.bp.*;
 import org.threeten.bp.temporal.ChronoField;
+
+import java.util.TimeZone;
 
 /**
  * Date: 6/14/15
@@ -23,6 +23,14 @@ public final class DateTimeUtils {
 
     public static OffsetDateTime toUtcDay(OffsetDateTime dateTime) {
         return DateTimeUtils.cutTime(dateTime.withOffsetSameInstant(ZoneOffset.UTC));
+    }
+
+    public static OffsetDateTime fromEpochMillis(long millisFromEpoch, ZoneId offset) {
+        return OffsetDateTime.ofInstant(Instant.ofEpochMilli(millisFromEpoch), offset);
+    }
+
+    public static OffsetDateTime convertToCurrentZone(OffsetDateTime odt) {
+        return odt.withOffsetSameInstant(ZoneOffset.ofTotalSeconds(TimeZone.getDefault().getRawOffset() / 1000));
     }
 
     private DateTimeUtils() {}

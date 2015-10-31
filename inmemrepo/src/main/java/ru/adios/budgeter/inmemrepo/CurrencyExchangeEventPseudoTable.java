@@ -55,7 +55,7 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
 
         return table.values()
                 .stream()
-                .map(event -> event.obj)
+                .map(this::constructValid)
                 .sorted((e1, e2) -> {
                     int res = 1;
                     for (final OrderBy<Field> opt : options) {
@@ -84,10 +84,18 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
         return table;
     }
 
+    @Override
     public Stream<CurrencyExchangeEvent> streamForDay(UtcDay day) {
         return table.values().stream()
                 .filter(stored -> new UtcDay(stored.obj.timestamp).equals(day))
-                .map(currencyExchangeEventStored -> currencyExchangeEventStored.obj);
+                .map(this::constructValid);
+    }
+
+    private CurrencyExchangeEvent constructValid(Stored<CurrencyExchangeEvent> stored) {
+        return CurrencyExchangeEvent.builder().setEvent(stored.obj)
+                .setBoughtAccount(Schema.TREASURY.getAccountForName(stored.obj.boughtAccount.name).get())
+                .setSoldAccount(Schema.TREASURY.getAccountForName(stored.obj.soldAccount.name).get())
+                .build();
     }
 
 }

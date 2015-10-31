@@ -17,4 +17,11 @@ final class StoredFundsMutationEvent extends Stored<FundsMutationEvent> {
         this.direction = direction;
     }
 
+    FundsMutationEvent constructValid() {
+        return FundsMutationEvent.builder()
+                .setFundsMutationEvent(obj)
+                .setRelevantBalance(Schema.TREASURY.getAccountForName(obj.relevantBalance.name).get())
+                .build();
+    }
+
 }

@@ -8,6 +8,8 @@ import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -23,124 +25,167 @@ import static org.junit.Assert.assertTrue;
  */
 public class CurrenciesExchangeServiceTest {
 
-    private final CurrencyRatesRepositoryMock ratesRepository = new CurrencyRatesRepositoryMock();
-    private final TreasuryMock treasury = new TreasuryMock();
-    private final AccounterMock accounter = new AccounterMock();
-    private CurrenciesExchangeService service = new CurrenciesExchangeService(
-            new TransactionalSupportMock(),
-            ratesRepository,
-            accounter,
-            treasury,
-            ExchangeRatesLoader.createBtcLoader(treasury),
-            ExchangeRatesLoader.createCbrLoader(treasury)
-    );
+    public static final class State {
 
-    private Treasury.BalanceAccount accountRub;
-    private Treasury.BalanceAccount accountEur;
+        private final Bundle bundle;
+
+        private final CurrencyRatesRepository ratesRepository;
+        private final Treasury treasury;
+        private final Accounter accounter;
+        private CurrenciesExchangeService service;
+
+        private Treasury.BalanceAccount accountRub;
+        private Treasury.BalanceAccount accountEur;
+
+        public State(Bundle bundle) {
+            this.bundle = bundle;
+            ratesRepository = bundle.currencyRates();
+            treasury = bundle.treasury();
+            accounter = bundle.accounter();
+            service = new CurrenciesExchangeService(
+                    bundle.getTransactionalSupport(),
+                    ratesRepository,
+                    accounter,
+                    treasury,
+                    ExchangeRatesLoader.createBtcLoader(treasury),
+                    ExchangeRatesLoader.createCbrLoader(treasury)
+            );
+        }
+
+        public void setUp() {
+            bundle.clearSchema();
+
+            accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
+            TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+            accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
+        }
+
+    }
+
+    private final State innerState = new State(Schema.INSTANCE);
+    private final State jdbcState = new State(TestUtils.JDBC_BUNDLE);
 
     @Before
     public void setUp() {
-        Schema.clearSchemaStatic();
-
-        accountRub = TestUtils.prepareBalance(Units.RUB);
-        TestUtils.prepareBalance(CurrencyUnit.USD);
-        accountEur = TestUtils.prepareBalance(CurrencyUnit.EUR);
+        innerState.setUp();
+        jdbcState.setUp();
     }
 
     @Test
     public void testGetConversionMultiplier() throws Exception {
-        Thread.sleep(100);
+        testGetConversionMultiplierWith(innerState, TestUtils.CASE_INNER);
+        testGetConversionMultiplierWith(jdbcState, TestUtils.CASE_JDBC);
+    }
 
-        final Optional<BigDecimal> rubToUsd = service.getConversionMultiplier(TestUtils.YESTERDAY, Units.RUB, CurrencyUnit.USD);
+    private void testGetConversionMultiplierWith(State state, String caseName) throws Exception {
+        caseName += ": ";
         Thread.sleep(100);
-        assertTrue("rubToUsd didn't download from net", rubToUsd.isPresent());
-        System.out.println("rubToUsd: " + rubToUsd.get());
-        assertTrue("rubToUsd shows ruble stronger than dollar LOL", rubToUsd.get().compareTo(BigDecimal.ONE) < 0);
-        final Optional<BigDecimal> rubToEur = service.getConversionMultiplier(TestUtils.YESTERDAY, Units.RUB, CurrencyUnit.EUR);
+        final MathContext mc = new MathContext(7, RoundingMode.HALF_DOWN);
+
+        final Optional<BigDecimal> rubToUsd = state.service.getConversionMultiplier(TestUtils.YESTERDAY, Units.RUB, CurrencyUnit.USD);
         Thread.sleep(100);
-        assertTrue("rubToEur didn't download from net", rubToEur.isPresent());
-        System.out.println("rubToEur: " + rubToEur.get());
-        assertTrue("rubToEur shows ruble stronger than euro LOL", rubToEur.get().compareTo(BigDecimal.ONE) < 0);
-        final Optional<BigDecimal> usdToEur = service.getConversionMultiplier(TestUtils.YESTERDAY, CurrencyUnit.USD, CurrencyUnit.EUR);
-        assertTrue("usdToEur didn't compute or download", usdToEur.isPresent());
-        assertEquals("usdToEur didn't compute right (perhaps downloaded)",
-                CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(rubToUsd.get(), rubToEur.get()), usdToEur.get());
+        assertTrue(caseName + "rubToUsd didn't download from net", rubToUsd.isPresent());
+        System.out.println(caseName + "rubToUsd: " + rubToUsd.get());
+        assertTrue(caseName + "rubToUsd shows ruble stronger than dollar LOL", rubToUsd.get().compareTo(BigDecimal.ONE) < 0);
+        final Optional<BigDecimal> rubToEur = state.service.getConversionMultiplier(TestUtils.YESTERDAY, Units.RUB, CurrencyUnit.EUR);
+        Thread.sleep(100);
+        assertTrue(caseName + "rubToEur didn't download from net", rubToEur.isPresent());
+        System.out.println(caseName + "rubToEur: " + rubToEur.get());
+        assertTrue(caseName + "rubToEur shows ruble stronger than euro LOL", rubToEur.get().compareTo(BigDecimal.ONE) < 0);
+        final Optional<BigDecimal> usdToEur = state.service.getConversionMultiplier(TestUtils.YESTERDAY, CurrencyUnit.USD, CurrencyUnit.EUR);
+        assertTrue(caseName + "usdToEur didn't compute or download", usdToEur.isPresent());
+        assertEquals(caseName + "usdToEur didn't compute right (perhaps downloaded)",
+                CurrencyRatesProvider.getConversionMultiplierFromIntermediateMultipliers(rubToUsd.get(), rubToEur.get()).round(mc), usdToEur.get().round(mc));
         System.out.println("usdToEur: " + usdToEur.get());
 
-        final Optional<BigDecimal> usdToRub = service.getConversionMultiplier(TestUtils.YESTERDAY, CurrencyUnit.USD, Units.RUB);
-        assertTrue("usdToRub didn't compute or download", usdToRub.isPresent());
-        assertEquals(CurrencyRatesProvider.reverseRate(rubToUsd.get()), usdToRub.get());
-        System.out.println("usdToRub: " + usdToRub.get());
+        final Optional<BigDecimal> usdToRub = state.service.getConversionMultiplier(TestUtils.YESTERDAY, CurrencyUnit.USD, Units.RUB);
+        assertTrue(caseName + "usdToRub didn't compute or download", usdToRub.isPresent());
+        assertEquals(CurrencyRatesProvider.reverseRate(rubToUsd.get()).round(mc), usdToRub.get().round(mc));
+        System.out.println(caseName + "usdToRub: " + usdToRub.get());
 
         final BigDecimal ourVal = BigDecimal.valueOf(55.5534);
-        ratesRepository.addRate(TestUtils.TODAY, Units.RUB, CurrencyUnit.USD, ourVal);
-        final Optional<BigDecimal> ourRate = service.getConversionMultiplier(TestUtils.TODAY, Units.RUB, CurrencyUnit.USD);
-        assertTrue("Today's rubToEur didn't compute or download", ourRate.isPresent());
+        state.ratesRepository.addRate(TestUtils.TODAY, Units.RUB, CurrencyUnit.USD, ourVal);
+        final Optional<BigDecimal> ourRate = state.service.getConversionMultiplier(TestUtils.TODAY, Units.RUB, CurrencyUnit.USD);
+        assertTrue(caseName + "Today's rubToEur didn't compute or download", ourRate.isPresent());
         assertEquals(ourVal, ourRate.get());
 
-        final Optional<BigDecimal> btcToRub = service.getConversionMultiplier(TestUtils.TODAY, Units.BTC, Units.RUB);
-        assertTrue("Today's btcToRub didn't compute or download", btcToRub.isPresent());
-        System.out.println("btcToRub: " + btcToRub.get());
-        assertTrue("btcToRub shows Bitcoin cheaper than ruble LOL", btcToRub.get().compareTo(BigDecimal.ONE) > 0);
+        final Optional<BigDecimal> btcToRub = state.service.getConversionMultiplier(TestUtils.TODAY, Units.BTC, Units.RUB);
+        assertTrue(caseName + "Today's btcToRub didn't compute or download", btcToRub.isPresent());
+        System.out.println(caseName + "btcToRub: " + btcToRub.get());
+        assertTrue(caseName + "btcToRub shows Bitcoin cheaper than ruble LOL", btcToRub.get().compareTo(BigDecimal.ONE) > 0);
 
-        final Optional<BigDecimal> btcToRubYesterday = service.getConversionMultiplier(TestUtils.YESTERDAY, Units.BTC, Units.RUB);
-        assertTrue("btcToRubYesterday didn't compute or download", btcToRubYesterday.isPresent());
-        System.out.println("btcToRubYesterday: " + btcToRubYesterday.get());
+        final Optional<BigDecimal> btcToRubYesterday = state.service.getConversionMultiplier(TestUtils.YESTERDAY, Units.BTC, Units.RUB);
+        assertTrue(caseName + "btcToRubYesterday didn't compute or download", btcToRubYesterday.isPresent());
+        System.out.println(caseName + "btcToRubYesterday: " + btcToRubYesterday.get());
 
-        final Optional<BigDecimal> pastRate = service.getConversionMultiplier(new UtcDay(OffsetDateTime.of(2015, 3, 15, 0, 0, 0, 0, ZoneOffset.UTC)), Units.BTC, Units.RUB);
-        assertTrue("btc pastRate didn't compute or download", pastRate.isPresent());
-        System.out.println("btc pastRate: " + pastRate.get());
+        final Optional<BigDecimal> pastRate = state.service.getConversionMultiplier(new UtcDay(OffsetDateTime.of(2015, 3, 15, 0, 0, 0, 0, ZoneOffset.UTC)), Units.BTC, Units.RUB);
+        assertTrue(caseName + "btc pastRate didn't compute or download", pastRate.isPresent());
+        System.out.println(caseName + "btc pastRate: " + pastRate.get());
     }
 
     @Test
     public void testAddRates() throws Exception {
-        prepareForPostponed();
+        testAddRatesWith(innerState, TestUtils.CASE_INNER);
+        TestCheckedRunnable checkedRunnable = () -> testAddRatesWith(jdbcState, TestUtils.CASE_JDBC);
+        jdbcState.bundle.tryExecuteInTransaction(checkedRunnable);
+    }
 
-        service.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
-        service.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+    private void testAddRatesWith(State state, String caseName) throws Exception {
+        prepareForPostponed(state);
+
+        state.service.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
+        state.service.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
 
         Thread.sleep(100);
 
-        testPostponed();
+        testPostponed(state, caseName);
     }
 
     @Test
     public void testProcessAllPostponedEventsWithManualRates() throws Exception {
-        prepareForPostponed();
+        testProcessAllPostponedEventsWithManualRatesWith(innerState, TestUtils.CASE_INNER);
+        testProcessAllPostponedEventsWithManualRatesWith(jdbcState, TestUtils.CASE_JDBC);
+    }
 
-        ratesRepository.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
-        ratesRepository.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+    private void testProcessAllPostponedEventsWithManualRatesWith(State state, String caseName) throws Exception {
+        prepareForPostponed(state);
 
-        service.processAllPostponedEvents();
+        state.ratesRepository.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
+        state.ratesRepository.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+
+        state.service.processAllPostponedEvents();
 
         Thread.sleep(100);
-        testPostponed();
+        testPostponed(state, caseName);
     }
 
     @Test
     public void testProcessAllPostponedEventsWithRequest() throws Exception {
-        prepareForPostponed();
-
-        service.processAllPostponedEvents();
-
-        Thread.sleep(100);
-        testPostponed();
+        testProcessAllPostponedEventsWithRequestWith(innerState, TestUtils.CASE_INNER);
+        testProcessAllPostponedEventsWithRequestWith(jdbcState, TestUtils.CASE_JDBC);
     }
 
-    private void prepareForPostponed() {
-        final FundsMutationSubjectRepository subjRepo = accounter.fundsMutationSubjectRepo();
-        final FundsMutationSubject jobSubj = FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.Type.SERVICE).setName("Job").build();
-        subjRepo.addSubject(jobSubj);
+    private void testProcessAllPostponedEventsWithRequestWith(State state, String caseName) throws Exception {
+        prepareForPostponed(state);
 
-        final FundsMutationAgent testAgent = FundsMutationAgent.builder().setName("Test").build();
-        accounter.fundsMutationAgentRepo().addAgent(testAgent);
+        state.service.processAllPostponedEvents();
 
-        accounter.postponedCurrencyExchangeEventRepository()
-                .rememberPostponedExchange(BigDecimal.valueOf(60000), accountRub, accountEur, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent);
-        accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableBenefit(
+        Thread.sleep(100);
+        testPostponed(state, caseName);
+    }
+
+    private void prepareForPostponed(State state) {
+        final FundsMutationSubjectRepository subjRepo = state.accounter.fundsMutationSubjectRepo();
+        final FundsMutationSubject jobSubj = subjRepo.addSubject(FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.Type.SERVICE).setName("Job").build());
+
+        final FundsMutationAgent testAgent = state.accounter.fundsMutationAgentRepo().addAgent(FundsMutationAgent.builder().setName("Test").build());
+
+        state.accounter.postponedCurrencyExchangeEventRepository()
+                .rememberPostponedExchange(BigDecimal.valueOf(60000), state.accountRub, state.accountEur, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent);
+        state.accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableBenefit(
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.RUB, 110000.0))
-                        .setRelevantBalance(accountRub)
+                        .setRelevantBalance(state.accountRub)
                         .setSubject(jobSubj)
                         .setTimestamp(TestUtils.TODAY.inner)
                         .setAgent(testAgent).build(),
@@ -148,12 +193,13 @@ public class CurrenciesExchangeServiceTest {
         );
     }
 
-    private void testPostponed() {
-        final Optional<FundsMutationEvent> todayFirst = accounter.streamMutationsForDay(TestUtils.TODAY).findFirst();
-        assertTrue("No remembered mutation event", todayFirst.isPresent());
+    private void testPostponed(State state, String caseName) {
+        caseName += ": ";
+        final Optional<FundsMutationEvent> todayFirst = state.bundle.fundsMutationEvents().streamForDay(TestUtils.TODAY).findFirst();
+        assertTrue(caseName + "No remembered mutation event", todayFirst.isPresent());
 
-        final Optional<CurrencyExchangeEvent> yesterdayFirst = accounter.streamExchangesForDay(TestUtils.YESTERDAY).findFirst();
-        assertTrue("No remembered exchange event", yesterdayFirst.isPresent());
+        final Optional<CurrencyExchangeEvent> yesterdayFirst = state.bundle.currencyExchangeEvents().streamForDay(TestUtils.YESTERDAY).findFirst();
+        assertTrue(caseName + "No remembered exchange event", yesterdayFirst.isPresent());
     }
 
 }

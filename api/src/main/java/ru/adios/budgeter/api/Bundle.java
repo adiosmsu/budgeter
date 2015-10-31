@@ -26,6 +26,15 @@ public interface Bundle {
 
     void setTransactionalSupport(@Nullable TransactionalSupport txSupport);
 
+    default void tryExecuteInTransaction(Runnable code) {
+        final TransactionalSupport txSupport = getTransactionalSupport();
+        if (txSupport != null) {
+            txSupport.runWithTransaction(code);
+        } else {
+            code.run();
+        }
+    }
+
     FundsMutationSubjectRepository fundsMutationSubjects();
 
     CurrencyExchangeEventRepository currencyExchangeEvents();

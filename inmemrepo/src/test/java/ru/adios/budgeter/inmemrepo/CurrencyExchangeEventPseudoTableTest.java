@@ -29,4 +29,9 @@ public class CurrencyExchangeEventPseudoTableTest {
         tester.testStreamExchangeEvents();
     }
 
+    @Test
+    public void testStreamForDay() throws Exception {
+        tester.testStreamForDay();
+    }
+
 }

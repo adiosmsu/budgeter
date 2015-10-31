@@ -21,35 +21,26 @@ public class FundsMutationEventJdbcRepositoryTest {
 
     @Test
     public void testRegisterBenefit() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRegisterBenefit();
-            }
-        });
+        final TestCheckedRunnable r = tester::testRegisterBenefit;
+        TestContext.BUNDLE.tryExecuteInTransaction(r);
     }
 
     @Test
     public void testRegisterLoss() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRegisterLoss();
-            }
-        });
+        final TestCheckedRunnable r = tester::testRegisterLoss;
+        TestContext.BUNDLE.tryExecuteInTransaction(r);
     }
 
     @Test
     public void testStream() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStream();
-            }
-        });
+        final TestCheckedRunnable r = tester::testStream;
+        TestContext.BUNDLE.tryExecuteInTransaction(r);
+    }
+
+    @Test
+    public void testStreamForDay() throws Exception {
+        final TestCheckedRunnable r = tester::testStreamForDay;
+        TestContext.BUNDLE.tryExecuteInTransaction(r);
     }
 
 }
