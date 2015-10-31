@@ -87,7 +87,7 @@ public interface CurrencyRatesProvider extends Provider<CurrencyRatesProvider.Co
 
     }
 
-    final class Default {
+    class Default {
 
         private final CurrencyRatesProvider currencyRatesProvider;
 

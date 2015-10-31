@@ -12,11 +12,12 @@ import java.math.BigDecimal;
  */
 public interface CurrencyRatesRepository extends CurrencyRatesProvider {
 
-    final class Default {
+    final class Default extends CurrencyRatesProvider.Default {
 
         private final CurrencyRatesRepository currencyRatesRepository;
 
         public Default(CurrencyRatesRepository currencyRatesRepository) {
+            super(currencyRatesRepository);
             this.currencyRatesRepository = currencyRatesRepository;
         }
 

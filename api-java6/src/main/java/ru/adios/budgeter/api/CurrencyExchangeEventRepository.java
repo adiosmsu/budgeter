@@ -25,7 +25,7 @@ public interface CurrencyExchangeEventRepository extends Provider<CurrencyExchan
             this.repo = repo;
         }
 
-        public Stream<CurrencyExchangeEvent> stream(RepoOption... options) {
+        public Stream<CurrencyExchangeEvent> streamExchangeEvents(RepoOption... options) {
             final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
             return repo.streamExchangeEvents(pair.options, pair.limit);
         }

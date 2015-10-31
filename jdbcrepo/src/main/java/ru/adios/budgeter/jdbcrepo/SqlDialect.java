@@ -222,7 +222,7 @@ public interface SqlDialect {
         appendSuccession(builder, paramsNumber, sb -> {
             if (numberOfColumns > 1) {
                 sb.append('(');
-                appendSuccession(sb, numberOfColumns, sb2 -> sb.append('?'));
+                appendSuccession(sb, numberOfColumns, sb2 -> sb2.append('?'));
                 sb.append(')');
             } else {
                 sb.append('?');

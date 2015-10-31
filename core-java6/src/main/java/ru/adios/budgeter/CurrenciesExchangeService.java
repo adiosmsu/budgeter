@@ -60,8 +60,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
 
     private final Optional<TransactionalSupport> nonSpringTransactional;
 
-    private final CurrencyRatesRepository.Default curRatesRepoDef = new CurrencyRatesRepository.Default(this);
-    private final CurrencyRatesProvider.Default curRatesProviderDef = new CurrencyRatesProvider.Default(this);
+    private final CurrencyRatesRepository.Default repoDef = new CurrencyRatesRepository.Default(this);
 
     public CurrenciesExchangeService() {
         nonSpringTransactional = Optional.empty();
@@ -113,27 +112,27 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
 
     @Override
     public boolean addTodayRate(CurrencyUnit from, CurrencyUnit to, BigDecimal rate) {
-        return curRatesRepoDef.addTodayRate(from, to, rate);
+        return repoDef.addTodayRate(from, to, rate);
     }
 
     @Override
     public Optional<BigDecimal> getConversionMultiplierBidirectional(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
-        return curRatesProviderDef.getConversionMultiplierBidirectional(day, from, to);
+        return repoDef.getConversionMultiplierBidirectional(day, from, to);
     }
 
     @Override
     public Optional<BigDecimal> getConversionMultiplierWithIntermediate(UtcDay day, CurrencyUnit from, CurrencyUnit to, CurrencyUnit intermediate) {
-        return curRatesProviderDef.getConversionMultiplierWithIntermediate(day, from, to, intermediate);
+        return repoDef.getConversionMultiplierWithIntermediate(day, from, to, intermediate);
     }
 
     @Override
     public Optional<BigDecimal> getLatestOptionalConversionMultiplierBidirectional(CurrencyUnit from, CurrencyUnit to) {
-        return curRatesProviderDef.getLatestOptionalConversionMultiplierBidirectional(from, to);
+        return repoDef.getLatestOptionalConversionMultiplierBidirectional(from, to);
     }
 
     @Override
     public BigDecimal getLatestConversionMultiplierWithIntermediate(CurrencyUnit from, CurrencyUnit to, CurrencyUnit intermediate) {
-        return curRatesProviderDef.getLatestConversionMultiplierWithIntermediate(from, to, intermediate);
+        return repoDef.getLatestConversionMultiplierWithIntermediate(from, to, intermediate);
     }
 
     public final void processAllPostponedEvents() {

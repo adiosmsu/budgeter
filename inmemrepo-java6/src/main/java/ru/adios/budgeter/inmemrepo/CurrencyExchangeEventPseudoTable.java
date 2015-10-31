@@ -94,7 +94,7 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
 
     @Override
     public Stream<CurrencyExchangeEvent> streamExchangeEvents(RepoOption... options) {
-        return def.stream(options);
+        return def.streamExchangeEvents(options);
     }
 
     @Nonnull

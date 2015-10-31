@@ -9,7 +9,6 @@ import java8.util.function.Function;
 import java8.util.function.Predicate;
 import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
-import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.CurrencyRatesRepository;
 import ru.adios.budgeter.api.UtcDay;
 
@@ -34,8 +33,7 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
     private final ConcurrentHashMap<Integer, StoredCurrencyRate> table = new ConcurrentHashMap<Integer, StoredCurrencyRate>(100, 0.75f, 4);
     private final ConcurrentHashMap<UtcDay, ImmutableSet<Integer>> dayIndex = new ConcurrentHashMap<UtcDay, ImmutableSet<Integer>>(100, 0.75f, 4);
 
-    private final CurrencyRatesProvider.Default crpDef = new CurrencyRatesProvider.Default(this);
-    private final CurrencyRatesRepository.Default crrDef = new CurrencyRatesRepository.Default(this);
+    private final CurrencyRatesRepository.Default repoDef = new CurrencyRatesRepository.Default(this);
 
     private CurrencyRatesPseudoTable() {}
 
@@ -150,37 +148,37 @@ public final class CurrencyRatesPseudoTable extends AbstractPseudoTable<StoredCu
 
     @Override
     public Optional<BigDecimal> getConversionMultiplier(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
-        return crpDef.getConversionMultiplier(day, from, to);
+        return repoDef.getConversionMultiplier(day, from, to);
     }
 
     @Override
     public Optional<BigDecimal> getConversionMultiplierBidirectional(UtcDay day, CurrencyUnit from, CurrencyUnit to) {
-        return crpDef.getConversionMultiplierBidirectional(day, from, to);
+        return repoDef.getConversionMultiplierBidirectional(day, from, to);
     }
 
     @Override
     public Optional<BigDecimal> getConversionMultiplierWithIntermediate(UtcDay day, CurrencyUnit from, CurrencyUnit to, CurrencyUnit intermediate) {
-        return crpDef.getConversionMultiplierWithIntermediate(day, from, to, intermediate);
+        return repoDef.getConversionMultiplierWithIntermediate(day, from, to, intermediate);
     }
 
     @Override
     public BigDecimal getLatestConversionMultiplier(CurrencyUnit from, CurrencyUnit to) {
-        return crpDef.getLatestConversionMultiplier(from, to);
+        return repoDef.getLatestConversionMultiplier(from, to);
     }
 
     @Override
     public BigDecimal getLatestConversionMultiplierWithIntermediate(CurrencyUnit from, CurrencyUnit to, CurrencyUnit intermediate) {
-        return crpDef.getLatestConversionMultiplierWithIntermediate(from, to, intermediate);
+        return repoDef.getLatestConversionMultiplierWithIntermediate(from, to, intermediate);
     }
 
     @Override
     public Optional<BigDecimal> getLatestOptionalConversionMultiplierBidirectional(CurrencyUnit from, CurrencyUnit to) {
-        return crpDef.getLatestOptionalConversionMultiplierBidirectional(from, to);
+        return repoDef.getLatestOptionalConversionMultiplierBidirectional(from, to);
     }
 
     @Override
     public boolean addTodayRate(CurrencyUnit from, CurrencyUnit to, BigDecimal rate) {
-        return crrDef.addTodayRate(from, to, rate);
+        return repoDef.addTodayRate(from, to, rate);
     }
 
     @Override
