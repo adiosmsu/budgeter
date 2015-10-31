@@ -15,7 +15,7 @@ import java.util.stream.*;
  * @author Mikhail Kulikov
  */
 @Immutable
-public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
+public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
 
     static <T> ClosingOnTerminalOpsStream<T> stream(Stream<T> stream) {
         return new ClosingOnTerminalOpsStream<>(stream);
@@ -24,14 +24,56 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ClosingOnTerminalOpsStream.class);
 
-    private static <T> void closeSilently(AutoCloseable delegate) {
+    static <T> void closeSilently(AutoCloseable delegate) {
         try {
             delegate.close();
         } catch (Exception ignore) {
-            logger.warn("Delegate stream close exception", ignore);
+            logger.debug("Delegate stream close exception", ignore);
         }
     }
 
+    private static <ReturnType, Param> ReturnType wrapForCloseRethrow(AutoCloseable s, Function<Param, ReturnType> f, Param p) {
+        try {
+            return f.apply(p);
+        } catch (RuntimeException rt) {
+            closeSilently(s);
+            throw rt;
+        }
+    }
+    private static <ReturnType> ReturnType wrapForCloseRethrow(AutoCloseable s, Supplier<ReturnType> f) {
+        try {
+            return f.get();
+        } finally {
+            closeSilently(s);
+        }
+    }
+    private static <Param> boolean wrapBooleanFunct(final WrappingAutoCloseable s, final Function<Param, Boolean> f, Param p) {
+        return wrapForCloseRethrow(s, param -> {
+            final boolean b = f.apply(param);
+            if (!b) {
+                s.close();
+            }
+            return b;
+        }, p);
+    }
+    private static boolean wrapBooleanSup(final WrappingAutoCloseable s, final Supplier<Boolean> f) {
+        return wrapForCloseRethrow(s, () -> {
+            final boolean b = f.get();
+            if (!b) {
+                s.close();
+            }
+            return b;
+        });
+    }
+    private static <ReturnType> ReturnType wrapNullableSup(final WrappingAutoCloseable s, final Supplier<ReturnType> f) {
+        return wrapForCloseRethrow(s, () -> {
+            final ReturnType r = f.get();
+            if (r == null) {
+                s.close();
+            }
+            return r;
+        });
+    }
 
     private final Stream<T> delegate;
 
@@ -43,29 +85,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public boolean allMatch(Predicate<? super T> predicate) {
-        try {
-            return delegate.allMatch(predicate);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::allMatch, predicate);
     }
 
     @Override
     public boolean anyMatch(Predicate<? super T> predicate) {
-        try {
-            return delegate.anyMatch(predicate);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::anyMatch, predicate);
     }
 
     @Override
     public <R, A> R collect(Collector<? super T, A, R> collector) {
-        try {
-            return delegate.collect(collector);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::collect, collector);
     }
 
     @Override
@@ -79,11 +109,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public long count() {
-        try {
-            return delegate.count();
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::count);
     }
 
     @Override
@@ -98,20 +124,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public Optional<T> findAny() {
-        try {
-            return delegate.findAny();
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::findAny);
     }
 
     @Override
     public Optional<T> findFirst() {
-        try {
-            return delegate.findFirst();
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::findFirst);
     }
 
     @Override
@@ -136,20 +154,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public void forEach(Consumer<? super T> action) {
-        try {
-            delegate.forEach(action);
-        } finally {
-            closeSilently(delegate);
-        }
+        wrap(action, delegate::forEach);
     }
 
     @Override
     public void forEachOrdered(Consumer<? super T> action) {
-        try {
-            delegate.forEachOrdered(action);
-        } finally {
-            closeSilently(delegate);
-        }
+        wrap(action, delegate::forEachOrdered);
     }
 
     @Override
@@ -179,29 +189,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public Optional<T> max(Comparator<? super T> comparator) {
-        try {
-            return delegate.max(comparator);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::max, comparator);
     }
 
     @Override
     public Optional<T> min(Comparator<? super T> comparator) {
-        try {
-            return delegate.min(comparator);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::min, comparator);
     }
 
     @Override
     public boolean noneMatch(Predicate<? super T> predicate) {
-        try {
-            return delegate.noneMatch(predicate);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::noneMatch, predicate);
     }
 
     @Override
@@ -211,11 +209,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public Optional<T> reduce(BinaryOperator<T> accumulator) {
-        try {
-            return delegate.reduce(accumulator);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::reduce, accumulator);
     }
 
     @Override
@@ -253,20 +247,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public Object[] toArray() {
-        try {
-            return delegate.toArray();
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::toArray);
     }
 
     @Override
     public <A> A[] toArray(IntFunction<A[]> generator) {
-        try {
-            return delegate.toArray(generator);
-        } finally {
-            closeSilently(delegate);
-        }
+        return wrap(delegate::toArray, generator);
     }
 
     @Override
@@ -276,7 +262,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public AutoClosingIterator<T> iterator() {
-        return new AutoClosingIterator<>(delegate.iterator(), this);
+        return new AutoClosingIterator<>(delegate.iterator(), delegate);
     }
 
     @Override
@@ -296,7 +282,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     @Override
     public AutoClosingSpliterator<T> spliterator() {
-        return new AutoClosingSpliterator<>(delegate.spliterator(), this);
+        return new AutoClosingSpliterator<>(delegate.spliterator(), delegate);
     }
 
     @Override
@@ -309,137 +295,60 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         delegate.close();
     }
 
-    public static final class AutoClosingSpliterator<T> implements Spliterator<T>, AutoCloseable {
+
+    public static final class AutoClosingSpliterator<T> extends CloseableFinalisingDelegate<Stream<T>> implements Spliterator<T>, WrappingAutoCloseable {
 
         private final Spliterator<T> d;
-        private final ClosingOnTerminalOpsStream<T> streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingSpliterator(Spliterator<T> d, ClosingOnTerminalOpsStream<T> streamDelegate) {
+        private AutoClosingSpliterator(Spliterator<T> d, Stream<T> streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public int characteristics() {
-            try {
-                return d.characteristics();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::characteristics);
         }
 
         @Override
         public long estimateSize() {
-            try {
-                return d.estimateSize();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::estimateSize);
         }
 
         @Override
         public boolean tryAdvance(Consumer<? super T> action) {
-            try {
-                final boolean advance = d.tryAdvance(action);
-                if (!advance) {
-                    close();
-                }
-                return advance;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrapBool(d::tryAdvance, action);
         }
 
         @Override
         public AutoClosingSpliterator<T> trySplit() {
-            Spliterator<T> d;
-            try {
-                d = this.d.trySplit();
-                if (d == null) {
-                    close();
-                    return null;
-                }
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
-            return new AutoClosingSpliterator<>(d, streamDelegate);
-        }
-
-        @Override
-        public void close() {
-            open = false;
-            closeSilently(streamDelegate.delegate);
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            if (open) {
-                close();
-            }
-            super.finalize();
+            return new AutoClosingSpliterator<>(wrapNullable(d::trySplit), delegate);
         }
 
     }
 
-    public static final class AutoClosingIterator<T> implements Iterator<T>, AutoCloseable {
+    public static final class AutoClosingIterator<T> extends CloseableFinalisingDelegate<Stream<T>> implements Iterator<T>, WrappingAutoCloseable {
 
         private final Iterator<T> d;
-        private final ClosingOnTerminalOpsStream<T> streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingIterator(Iterator<T> d, ClosingOnTerminalOpsStream<T> streamDelegate) {
+        private AutoClosingIterator(Iterator<T> d, Stream<T> streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public boolean hasNext() {
-            try {
-                final boolean next = d.hasNext();
-                if (!next) {
-                    close();
-                }
-                return next;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrapBool(d::hasNext);
         }
 
         @Override
         public T next() {
-            try {
-                return d.next();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
-        }
-
-        @Override
-        public void close() {
-            open = false;
-            closeSilently(streamDelegate.delegate);
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            if (open) {
-                close();
-            }
-            super.finalize();
+            return wrap(d::next);
         }
 
     }
 
-    public static final class AutoClosingIntStream implements IntStream {
+    public static final class AutoClosingIntStream implements IntStream, Wrappable {
 
         private final IntStream d;
 
@@ -449,20 +358,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public boolean allMatch(IntPredicate predicate) {
-            try {
-                return d.allMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::allMatch, predicate);
         }
 
         @Override
         public boolean anyMatch(IntPredicate predicate) {
-            try {
-                return d.anyMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::anyMatch, predicate);
         }
 
         @Override
@@ -477,11 +378,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalDouble average() {
-            try {
-                return d.average();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::average);
         }
 
         @Override
@@ -500,11 +397,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public long count() {
-            try {
-                return d.count();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::count);
         }
 
         @Override
@@ -519,20 +412,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalInt findAny() {
-            try {
-                return d.findAny();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::findAny);
         }
 
         @Override
         public OptionalInt findFirst() {
-            try {
-                return d.findFirst();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::findFirst);
         }
 
         @Override
@@ -542,25 +427,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public void forEach(IntConsumer action) {
-            try {
-                d.forEach(action);
-            } finally {
-                closeSilently(d);
-            }
+            wrap(action, d::forEach);
         }
 
         @Override
         public void forEachOrdered(IntConsumer action) {
-            try {
-                d.forEachOrdered(action);
-            } finally {
-                closeSilently(d);
-            }
+            wrap(action, d::forEachOrdered);
         }
 
         @Override
         public AutoClosingIntIterator iterator() {
-            return new AutoClosingIntIterator(d.iterator(), this);
+            return new AutoClosingIntIterator(d.iterator(), d);
         }
 
         @Override
@@ -590,29 +467,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalInt max() {
-            try {
-                return d.max();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::max);
         }
 
         @Override
         public OptionalInt min() {
-            try {
-                return d.min();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::min);
         }
 
         @Override
         public boolean noneMatch(IntPredicate predicate) {
-            try {
-                return d.noneMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::noneMatch, predicate);
         }
 
         @Override
@@ -636,11 +501,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalInt reduce(IntBinaryOperator op) {
-            try {
-                return d.reduce(op);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::reduce, op);
         }
 
         @Override
@@ -660,34 +521,22 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public AutoClosingIntSpliterator spliterator() {
-            return new AutoClosingIntSpliterator(d.spliterator(), this);
+            return new AutoClosingIntSpliterator(d.spliterator(), d);
         }
 
         @Override
         public int sum() {
-            try {
-                return d.sum();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::sum);
         }
 
         @Override
         public IntSummaryStatistics summaryStatistics() {
-            try {
-                return d.summaryStatistics();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::summaryStatistics);
         }
 
         @Override
         public int[] toArray() {
-            try {
-                return d.toArray();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::toArray);
         }
 
         @Override
@@ -712,7 +561,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     }
 
-    public static final class AutoClosingLongStream implements LongStream {
+    public static final class AutoClosingLongStream implements LongStream, Wrappable {
 
         private final LongStream d;
 
@@ -722,20 +571,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public boolean allMatch(LongPredicate predicate) {
-            try {
-                return d.allMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::allMatch, predicate);
         }
 
         @Override
         public boolean anyMatch(LongPredicate predicate) {
-            try {
-                return d.anyMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::anyMatch, predicate);
         }
 
         @Override
@@ -745,11 +586,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalDouble average() {
-            try {
-                return d.average();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::average);
         }
 
         @Override
@@ -768,11 +605,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public long count() {
-            try {
-                return d.count();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::count);
         }
 
         @Override
@@ -784,23 +617,14 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
         public AutoClosingLongStream filter(LongPredicate predicate) {
             return new AutoClosingLongStream(d.filter(predicate));
         }
-
         @Override
         public OptionalLong findAny() {
-            try {
-                return d.findAny();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::findAny);
         }
 
         @Override
         public OptionalLong findFirst() {
-            try {
-                return d.findFirst();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::findFirst);
         }
 
         @Override
@@ -810,25 +634,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public void forEach(LongConsumer action) {
-            try {
-                d.forEach(action);
-            } finally {
-                closeSilently(d);
-            }
+            wrap(action, d::forEach);
         }
 
         @Override
         public void forEachOrdered(LongConsumer action) {
-            try {
-                d.forEachOrdered(action);
-            } finally {
-                closeSilently(d);
-            }
+            wrap(action, d::forEachOrdered);
         }
 
         @Override
         public AutoClosingLongIterator iterator() {
-            return new AutoClosingLongIterator(d.iterator(), this);
+            return new AutoClosingLongIterator(d.iterator(), d);
         }
 
         @Override
@@ -858,29 +674,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalLong max() {
-            try {
-                return d.max();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::max);
         }
 
         @Override
         public OptionalLong min() {
-            try {
-                return d.min();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::min);
         }
 
         @Override
         public boolean noneMatch(LongPredicate predicate) {
-            try {
-                return d.noneMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::noneMatch, predicate);
         }
 
         @Override
@@ -904,11 +708,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalLong reduce(LongBinaryOperator op) {
-            try {
-                return d.reduce(op);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::reduce, op);
         }
 
         @Override
@@ -928,34 +728,22 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public AutoClosingLongSpliterator spliterator() {
-            return new AutoClosingLongSpliterator(d.spliterator(), this);
+            return new AutoClosingLongSpliterator(d.spliterator(), d);
         }
 
         @Override
         public long sum() {
-            try {
-                return d.sum();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::sum);
         }
 
         @Override
         public LongSummaryStatistics summaryStatistics() {
-            try {
-                return d.summaryStatistics();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::summaryStatistics);
         }
 
         @Override
         public long[] toArray() {
-            try {
-                return d.toArray();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::toArray);
         }
 
         @Override
@@ -980,7 +768,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     }
 
-    public static final class AutoClosingDoubleStream implements DoubleStream {
+    public static final class AutoClosingDoubleStream implements DoubleStream, Wrappable {
 
         private final DoubleStream d;
 
@@ -990,29 +778,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public boolean allMatch(DoublePredicate predicate) {
-            try {
-                return d.allMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::allMatch, predicate);
         }
 
         @Override
         public boolean anyMatch(DoublePredicate predicate) {
-            try {
-                return d.anyMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::anyMatch, predicate);
         }
 
         @Override
         public OptionalDouble average() {
-            try {
-                return d.average();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::average);
         }
 
         @Override
@@ -1031,11 +807,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public long count() {
-            try {
-                return d.count();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::count);
         }
 
         @Override
@@ -1050,20 +822,12 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalDouble findAny() {
-            try {
-                return d.findAny();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::findAny);
         }
 
         @Override
         public OptionalDouble findFirst() {
-            try {
-                return d.findFirst();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::findFirst);
         }
 
         @Override
@@ -1073,25 +837,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public void forEach(DoubleConsumer action) {
-            try {
-                d.forEach(action);
-            } finally {
-                closeSilently(d);
-            }
+            wrap(action, d::forEach);
         }
 
         @Override
         public void forEachOrdered(DoubleConsumer action) {
-            try {
-                d.forEachOrdered(action);
-            } finally {
-                closeSilently(d);
-            }
+            wrap(action, d::forEachOrdered);
         }
 
         @Override
         public AutoClosingDoubleIterator iterator() {
-            return new AutoClosingDoubleIterator(d.iterator(), this);
+            return new AutoClosingDoubleIterator(d.iterator(), d);
         }
 
         @Override
@@ -1121,29 +877,17 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalDouble max() {
-            try {
-                return d.max();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::max);
         }
 
         @Override
         public OptionalDouble min() {
-            try {
-                return d.min();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::min);
         }
 
         @Override
         public boolean noneMatch(DoublePredicate predicate) {
-            try {
-                return d.noneMatch(predicate);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::noneMatch, predicate);
         }
 
         @Override
@@ -1167,11 +911,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public OptionalDouble reduce(DoubleBinaryOperator op) {
-            try {
-                return d.reduce(op);
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::reduce, op);
         }
 
         @Override
@@ -1191,34 +931,22 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
         @Override
         public AutoClosingDoubleSpliterator spliterator() {
-            return new AutoClosingDoubleSpliterator(d.spliterator(), this);
+            return new AutoClosingDoubleSpliterator(d.spliterator(), d);
         }
 
         @Override
         public double sum() {
-            try {
-                return d.sum();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::sum);
         }
 
         @Override
         public DoubleSummaryStatistics summaryStatistics() {
-            try {
-                return d.summaryStatistics();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::summaryStatistics);
         }
 
         @Override
         public double[] toArray() {
-            try {
-                return d.toArray();
-            } finally {
-                closeSilently(d);
-            }
+            return wrap(d::toArray);
         }
 
         @Override
@@ -1243,384 +971,203 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T> {
 
     }
 
-    public static final class AutoClosingIntSpliterator implements Spliterator.OfInt, AutoCloseable {
+    public static final class AutoClosingIntSpliterator extends CloseableFinalisingDelegate<IntStream> implements Spliterator.OfInt, WrappingAutoCloseable {
 
         private final Spliterator.OfInt d;
-        private final AutoClosingIntStream streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingIntSpliterator(OfInt d, AutoClosingIntStream streamDelegate) {
+        private AutoClosingIntSpliterator(OfInt d, IntStream streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public int characteristics() {
-            try {
-                return d.characteristics();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::characteristics);
         }
 
         @Override
         public long estimateSize() {
-            try {
-                return d.estimateSize();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::estimateSize);
         }
 
         @Override
         public boolean tryAdvance(IntConsumer action) {
-            try {
-                final boolean ret = d.tryAdvance(action);
-                if (!ret) {
-                    close();
-                }
-                return ret;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrapBool(d::tryAdvance, action);
         }
 
         @Override
         public AutoClosingIntSpliterator trySplit() {
-            OfInt d2;
-            try {
-                d2 = this.d.trySplit();
-                if (d2 == null) {
-                    close();
-                    return null;
-                }
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
-            return new AutoClosingIntSpliterator(d2, streamDelegate);
-        }
-
-        @Override
-        public void close() {
-            open = false;
-            closeSilently(streamDelegate.d);
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            if (open) {
-                close();
-            }
-            super.finalize();
+            return new AutoClosingIntSpliterator(wrapNullable(d::trySplit), delegate);
         }
 
     }
 
-    public static final class AutoClosingLongSpliterator implements Spliterator.OfLong, AutoCloseable {
+    public static final class AutoClosingLongSpliterator extends CloseableFinalisingDelegate<LongStream> implements Spliterator.OfLong, WrappingAutoCloseable {
 
         private final Spliterator.OfLong d;
-        private final AutoClosingLongStream streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingLongSpliterator(OfLong d, AutoClosingLongStream streamDelegate) {
+        private AutoClosingLongSpliterator(OfLong d, LongStream streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public int characteristics() {
-            try {
-                return d.characteristics();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::characteristics);
         }
 
         @Override
         public long estimateSize() {
-            try {
-                return d.estimateSize();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::estimateSize);
         }
 
         @Override
         public boolean tryAdvance(LongConsumer action) {
-            try {
-                final boolean ret = d.tryAdvance(action);
-                if (!ret) {
-                    close();
-                }
-                return ret;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrapBool(d::tryAdvance, action);
         }
 
         @Override
         public AutoClosingLongSpliterator trySplit() {
-            OfLong d2;
-            try {
-                d2 = this.d.trySplit();
-                if (d2 == null) {
-                    close();
-                    return null;
-                }
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
-            return new AutoClosingLongSpliterator(d2, streamDelegate);
-        }
-
-        @Override
-        public void close() {
-            open = false;
-            closeSilently(streamDelegate.d);
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            if (open) {
-                close();
-            }
-            super.finalize();
+            return new AutoClosingLongSpliterator(wrapNullable(d::trySplit), delegate);
         }
 
     }
 
-    public static final class AutoClosingDoubleSpliterator implements Spliterator.OfDouble, AutoCloseable {
+    public static final class AutoClosingDoubleSpliterator extends CloseableFinalisingDelegate<DoubleStream> implements Spliterator.OfDouble, WrappingAutoCloseable {
 
         private final Spliterator.OfDouble d;
-        private final AutoClosingDoubleStream streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingDoubleSpliterator(OfDouble d, AutoClosingDoubleStream streamDelegate) {
+        private AutoClosingDoubleSpliterator(OfDouble d, DoubleStream streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public int characteristics() {
-            try {
-                return d.characteristics();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::characteristics);
         }
 
         @Override
         public long estimateSize() {
-            try {
-                return d.estimateSize();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::estimateSize);
         }
 
         @Override
         public boolean tryAdvance(DoubleConsumer action) {
-            try {
-                final boolean ret = d.tryAdvance(action);
-                if (!ret) {
-                    close();
-                }
-                return ret;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrapBool(d::tryAdvance, action);
         }
 
         @Override
         public AutoClosingDoubleSpliterator trySplit() {
-            OfDouble d2;
-            try {
-                d2 = this.d.trySplit();
-                if (d2 == null) {
-                    close();
-                    return null;
-                }
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
-            return new AutoClosingDoubleSpliterator(d2, streamDelegate);
-        }
-
-        @Override
-        public void close() {
-            open = false;
-            closeSilently(streamDelegate.d);
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            if (open) {
-                close();
-            }
-            super.finalize();
+            return new AutoClosingDoubleSpliterator(wrapNullable(d::trySplit), delegate);
         }
 
     }
 
-    public static final class AutoClosingIntIterator implements PrimitiveIterator.OfInt, AutoCloseable {
+    public static final class AutoClosingIntIterator extends CloseableFinalisingDelegate<IntStream> implements PrimitiveIterator.OfInt, WrappingAutoCloseable {
 
         private final PrimitiveIterator.OfInt d;
-        private final AutoClosingIntStream streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingIntIterator(OfInt d, AutoClosingIntStream streamDelegate) {
+        private AutoClosingIntIterator(OfInt d, IntStream streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public int nextInt() {
-            try {
-                return d.nextInt();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::nextInt);
         }
 
         @Override
         public boolean hasNext() {
-            try {
-                final boolean n = d.hasNext();
-                if (!n) {
-                    close();
-                }
-                return n;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
-        }
-
-        @Override
-        public void close()  {
-            open = false;
-            closeSilently(streamDelegate.d);
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            if (open) {
-                close();
-            }
-            super.finalize();
+            return wrapBool(d::hasNext);
         }
 
     }
 
-    public static final class AutoClosingLongIterator implements PrimitiveIterator.OfLong, AutoCloseable {
+    public static final class AutoClosingLongIterator extends CloseableFinalisingDelegate<LongStream> implements PrimitiveIterator.OfLong, WrappingAutoCloseable {
 
         private final PrimitiveIterator.OfLong d;
-        private final AutoClosingLongStream streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingLongIterator(OfLong d, AutoClosingLongStream streamDelegate) {
+        private AutoClosingLongIterator(OfLong d, LongStream streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public long nextLong() {
-            try {
-                return d.nextLong();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::nextLong);
         }
 
         @Override
         public boolean hasNext() {
-            try {
-                final boolean n = d.hasNext();
-                if (!n) {
-                    close();
-                }
-                return n;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
-        }
-
-        @Override
-        public void close() {
-            open = false;
-            closeSilently(streamDelegate.d);
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            if (open) {
-                close();
-            }
-            super.finalize();
+            return wrapBool(d::hasNext);
         }
 
     }
 
-    public static final class AutoClosingDoubleIterator implements PrimitiveIterator.OfDouble, AutoCloseable {
+    public static final class AutoClosingDoubleIterator extends CloseableFinalisingDelegate<DoubleStream> implements PrimitiveIterator.OfDouble, WrappingAutoCloseable {
 
         private final PrimitiveIterator.OfDouble d;
-        private final AutoClosingDoubleStream streamDelegate;
 
-        private volatile boolean open = true;
-
-        private AutoClosingDoubleIterator(OfDouble d, AutoClosingDoubleStream streamDelegate) {
+        private AutoClosingDoubleIterator(OfDouble d, DoubleStream streamDelegate) {
+            super(streamDelegate);
             this.d = d;
-            this.streamDelegate = streamDelegate;
         }
 
         @Override
         public double nextDouble() {
-            try {
-                return d.nextDouble();
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrap(d::nextDouble);
         }
 
         @Override
         public boolean hasNext() {
-            try {
-                final boolean n = d.hasNext();
-                if (!n) {
-                    close();
-                }
-                return n;
-            } catch (RuntimeException rt) {
-                close();
-                throw rt;
-            }
+            return wrapBool(d::hasNext);
+        }
+
+    }
+
+    public interface WrappingAutoCloseable extends AutoCloseable {
+
+        default <ReturnType, Param> ReturnType wrap(Function<Param, ReturnType> f, Param p) {
+            return wrapForCloseRethrow(this, f, p);
+        }
+
+        default <ReturnType> ReturnType wrap(Supplier<ReturnType> f) {
+            return wrapForCloseRethrow(this, f);
+        }
+
+        default <Param> boolean wrapBool(Function<Param, Boolean> f, Param p) {
+            return wrapBooleanFunct(this, f, p);
+        }
+
+        default boolean wrapBool(Supplier<Boolean> f) {
+            return wrapBooleanSup(this, f);
+        }
+
+        default <ReturnType> ReturnType wrapNullable(Supplier<ReturnType> f) {
+            return wrapNullableSup(this, f);
+        }
+
+        @Override
+        void close();
+
+    }
+
+    private static abstract class CloseableFinalisingDelegate<DelegateType extends AutoCloseable> implements AutoCloseable {
+
+        protected final DelegateType delegate;
+
+        private volatile boolean open = true;
+
+        private CloseableFinalisingDelegate(DelegateType delegate) {
+            this.delegate = delegate;
         }
 
         @Override
         public void close() {
             open = false;
-            closeSilently(streamDelegate.d);
+            closeSilently(delegate);
         }
 
         @Override
