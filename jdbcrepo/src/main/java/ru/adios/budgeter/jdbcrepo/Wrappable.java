@@ -17,7 +17,7 @@ interface Wrappable extends AutoCloseable {
 
     Logger logger = LoggerFactory.getLogger(Wrappable.class);
 
-    static <T> void closeSilently(AutoCloseable delegate) {
+    static void closeSilently(AutoCloseable delegate) {
         try {
             delegate.close();
         } catch (Exception ignore) {
