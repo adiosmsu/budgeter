@@ -1,5 +1,8 @@
 package ru.adios.budgeter.jdbcrepo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -12,11 +15,21 @@ import java.util.function.Supplier;
  */
 interface Wrappable extends AutoCloseable {
 
+    Logger logger = LoggerFactory.getLogger(ClosingOnTerminalOpsStream.class);
+
+    static <T> void closeSilently(AutoCloseable delegate) {
+        try {
+            delegate.close();
+        } catch (Exception ignore) {
+            logger.debug("Delegate stream close exception", ignore);
+        }
+    }
+
     static <ReturnType, Param> ReturnType wrapWithClose(AutoCloseable s, Function<Param, ReturnType> f, Param p) {
         try {
             return f.apply(p);
         } finally {
-            ClosingOnTerminalOpsStream.closeSilently(s);
+            closeSilently(s);
         }
     }
 
@@ -24,7 +37,7 @@ interface Wrappable extends AutoCloseable {
         try {
             c.accept(p);
         } finally {
-            ClosingOnTerminalOpsStream.closeSilently(s);
+            closeSilently(s);
         }
     }
 
@@ -32,7 +45,7 @@ interface Wrappable extends AutoCloseable {
         try {
             return f.get();
         } finally {
-            ClosingOnTerminalOpsStream.closeSilently(s);
+            closeSilently(s);
         }
     }
 

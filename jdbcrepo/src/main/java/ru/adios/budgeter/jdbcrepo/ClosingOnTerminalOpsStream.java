@@ -1,8 +1,5 @@
 package ru.adios.budgeter.jdbcrepo;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.annotation.concurrent.Immutable;
 import java.util.*;
 import java.util.function.*;
@@ -22,62 +19,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
     }
 
 
-    private static final Logger logger = LoggerFactory.getLogger(ClosingOnTerminalOpsStream.class);
-
-    static <T> void closeSilently(AutoCloseable delegate) {
-        try {
-            delegate.close();
-        } catch (Exception ignore) {
-            logger.debug("Delegate stream close exception", ignore);
-        }
-    }
-
-    private static <ReturnType, Param> ReturnType wrapForCloseRethrow(AutoCloseable s, Function<Param, ReturnType> f, Param p) {
-        try {
-            return f.apply(p);
-        } catch (RuntimeException rt) {
-            closeSilently(s);
-            throw rt;
-        }
-    }
-    private static <ReturnType> ReturnType wrapForCloseRethrow(AutoCloseable s, Supplier<ReturnType> f) {
-        try {
-            return f.get();
-        } catch (RuntimeException rt) {
-            closeSilently(s);
-            throw rt;
-        }
-    }
-    private static <Param> boolean wrapBooleanFunct(final WrappingAutoCloseable s, final Function<Param, Boolean> f, Param p) {
-        return wrapForCloseRethrow(s, param -> {
-            final boolean b = f.apply(param);
-            if (!b) {
-                s.close();
-            }
-            return b;
-        }, p);
-    }
-    private static boolean wrapBooleanSup(final WrappingAutoCloseable s, final Supplier<Boolean> f) {
-        return wrapForCloseRethrow(s, () -> {
-            final boolean b = f.get();
-            if (!b) {
-                s.close();
-            }
-            return b;
-        });
-    }
-    private static <ReturnType> ReturnType wrapNullableSup(final WrappingAutoCloseable s, final Supplier<ReturnType> f) {
-        return wrapForCloseRethrow(s, () -> {
-            final ReturnType r = f.get();
-            if (r == null) {
-                s.close();
-            }
-            return r;
-        });
-    }
-
     private final Stream<T> delegate;
-
 
     ClosingOnTerminalOpsStream(Stream<T> delegate) {
         this.delegate = delegate;
@@ -104,7 +46,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
         try {
             return delegate.collect(supplier, accumulator, combiner);
         } finally {
-            closeSilently(delegate);
+            Wrappable.closeSilently(delegate);
         }
     }
 
@@ -218,7 +160,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
         try {
             return delegate.reduce(identity, accumulator);
         } finally {
-            closeSilently(delegate);
+            Wrappable.closeSilently(delegate);
         }
     }
 
@@ -227,7 +169,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
         try {
             return delegate.reduce(identity, accumulator, combiner);
         } finally {
-            closeSilently(delegate);
+            Wrappable.closeSilently(delegate);
         }
     }
 
@@ -392,7 +334,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
             try {
                 return d.collect(supplier, accumulator, combiner);
             } finally {
-                closeSilently(d);
+                Wrappable.closeSilently(d);
             }
         }
 
@@ -496,7 +438,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
             try {
                 return d.reduce(identity, op);
             } finally {
-                closeSilently(d);
+                Wrappable.closeSilently(d);
             }
         }
 
@@ -600,7 +542,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
             try {
                 return d.collect(supplier, accumulator, combiner);
             } finally {
-                closeSilently(d);
+                Wrappable.closeSilently(d);
             }
         }
 
@@ -703,7 +645,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
             try {
                 return d.reduce(identity, op);
             } finally {
-                closeSilently(d);
+                Wrappable.closeSilently(d);
             }
         }
 
@@ -802,7 +744,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
             try {
                 return d.collect(supplier, accumulator, combiner);
             } finally {
-                closeSilently(d);
+                Wrappable.closeSilently(d);
             }
         }
 
@@ -906,7 +848,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
             try {
                 return d.reduce(identity, op);
             } finally {
-                closeSilently(d);
+                Wrappable.closeSilently(d);
             }
         }
 
@@ -1168,7 +1110,7 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
         @Override
         public void close() {
             open = false;
-            closeSilently(delegate);
+            Wrappable.closeSilently(delegate);
         }
 
         @Override
@@ -1179,6 +1121,50 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
             super.finalize();
         }
 
+    }
+
+    private static <ReturnType, Param> ReturnType wrapForCloseRethrow(AutoCloseable s, Function<Param, ReturnType> f, Param p) {
+        try {
+            return f.apply(p);
+        } catch (RuntimeException rt) {
+            Wrappable.closeSilently(s);
+            throw rt;
+        }
+    }
+    private static <ReturnType> ReturnType wrapForCloseRethrow(AutoCloseable s, Supplier<ReturnType> f) {
+        try {
+            return f.get();
+        } catch (RuntimeException rt) {
+            Wrappable.closeSilently(s);
+            throw rt;
+        }
+    }
+    private static <Param> boolean wrapBooleanFunct(final WrappingAutoCloseable s, final Function<Param, Boolean> f, Param p) {
+        return wrapForCloseRethrow(s, param -> {
+            final boolean b = f.apply(param);
+            if (!b) {
+                s.close();
+            }
+            return b;
+        }, p);
+    }
+    private static boolean wrapBooleanSup(final WrappingAutoCloseable s, final Supplier<Boolean> f) {
+        return wrapForCloseRethrow(s, () -> {
+            final boolean b = f.get();
+            if (!b) {
+                s.close();
+            }
+            return b;
+        });
+    }
+    private static <ReturnType> ReturnType wrapNullableSup(final WrappingAutoCloseable s, final Supplier<ReturnType> f) {
+        return wrapForCloseRethrow(s, () -> {
+            final ReturnType r = f.get();
+            if (r == null) {
+                s.close();
+            }
+            return r;
+        });
     }
 
 }
