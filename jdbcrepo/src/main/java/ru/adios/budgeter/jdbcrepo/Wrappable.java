@@ -15,7 +15,7 @@ import java.util.function.Supplier;
  */
 interface Wrappable extends AutoCloseable {
 
-    Logger logger = LoggerFactory.getLogger(ClosingOnTerminalOpsStream.class);
+    Logger logger = LoggerFactory.getLogger(Wrappable.class);
 
     static <T> void closeSilently(AutoCloseable delegate) {
         try {
