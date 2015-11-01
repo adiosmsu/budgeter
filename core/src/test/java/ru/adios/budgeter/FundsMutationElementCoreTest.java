@@ -308,4 +308,5 @@ public class FundsMutationElementCoreTest {
         );
         assertEquals(caseName + "Rubles account fault after guitar deal", Money.of(Units.RUB, 236500.0), treasury.amountForHumans(Units.RUB));
     }
+
 }

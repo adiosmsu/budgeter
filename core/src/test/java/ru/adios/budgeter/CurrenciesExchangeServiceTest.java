@@ -126,19 +126,22 @@ public class CurrenciesExchangeServiceTest {
     @Test
     public void testAddRates() throws Exception {
         testAddRatesWith(innerState, TestUtils.CASE_INNER);
-        TestCheckedRunnable checkedRunnable = () -> testAddRatesWith(jdbcState, TestUtils.CASE_JDBC);
-        jdbcState.bundle.tryExecuteInTransaction(checkedRunnable);
+        testAddRatesWith(jdbcState, TestUtils.CASE_JDBC);
     }
 
     private void testAddRatesWith(State state, String caseName) throws Exception {
-        prepareForPostponed(state);
+        TestCheckedRunnable checkedRunnable = () -> {
+            prepareForPostponed(state);
 
-        state.service.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
-        state.service.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+            state.service.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
+            state.service.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
+        };
+        jdbcState.bundle.tryExecuteInTransaction(checkedRunnable);
 
         Thread.sleep(100);
 
-        testPostponed(state, caseName);
+        checkedRunnable = () -> testPostponed(state, caseName);
+        jdbcState.bundle.tryExecuteInTransaction(checkedRunnable);
     }
 
     @Test

@@ -9,8 +9,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 import ru.adios.budgeter.api.Bundle;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.jdbcrepo.JdbcConnectionHolder;
+import ru.adios.budgeter.jdbcrepo.JdbcTransactionalSupport;
 import ru.adios.budgeter.jdbcrepo.SourcingBundle;
 
+import javax.sql.DataSource;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -31,12 +34,27 @@ public final class TestUtils {
         final TransactionTemplate txTemplate = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         dataSource.setAutoCommit(false);
 
-        JDBC_BUNDLE = new SourcingBundle(dataSource, runnable -> txTemplate.execute(new TransactionCallbackWithoutResult() {
+        JDBC_BUNDLE = new SourcingBundle(dataSource, new JdbcTransactionalSupport() {
             @Override
-            protected void doInTransactionWithoutResult(TransactionStatus status) {
-                runnable.run();
+            public synchronized void runWithTransaction(Runnable runnable) {
+                txTemplate.execute(new TransactionCallbackWithoutResult() {
+                    @Override
+                    protected void doInTransactionWithoutResult(TransactionStatus status) {
+                        runnable.run();
+                    }
+                });
             }
-        }));
+
+            @Override
+            public synchronized JdbcConnectionHolder getConnection(DataSource dataSource) {
+                return JdbcTransactionalSupport.super.getConnection(dataSource);
+            }
+
+            @Override
+            public synchronized void releaseConnection(JdbcConnectionHolder con, DataSource dataSource) {
+                JdbcTransactionalSupport.super.releaseConnection(con, dataSource);
+            }
+        });
     }
 
     public static final String CASE_JDBC = "Jdbc sqlite case";

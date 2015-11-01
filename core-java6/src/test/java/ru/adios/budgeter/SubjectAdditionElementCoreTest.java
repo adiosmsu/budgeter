@@ -2,7 +2,9 @@ package ru.adios.budgeter;
 
 import java8.util.Optional;
 import org.junit.Test;
+import ru.adios.budgeter.api.Bundle;
 import ru.adios.budgeter.api.FundsMutationSubject;
+import ru.adios.budgeter.api.FundsMutationSubjectRepository;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import static org.junit.Assert.*;
@@ -17,9 +19,15 @@ public class SubjectAdditionElementCoreTest {
 
     @Test
     public void testSubmit() throws Exception {
-        Schema.clearSchemaStatic();
+        testSubmitWith(Schema.INSTANCE, TestUtils.CASE_INNER);
+        testSubmitWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+    }
 
-        final FundsMutationSubjectRepositoryMock subjRepo = new FundsMutationSubjectRepositoryMock();
+    private void testSubmitWith(Bundle bundle, String caseName) throws Exception {
+        caseName += ": ";
+        bundle.clearSchema();
+
+        final FundsMutationSubjectRepository subjRepo = bundle.fundsMutationSubjects();
         SubjectAdditionElementCore core = new SubjectAdditionElementCore(subjRepo);
         core.setName("");
         Submitter.Result<FundsMutationSubject> submit = core.submit();
@@ -59,7 +67,7 @@ public class SubjectAdditionElementCoreTest {
 
         Optional<FundsMutationSubject> subjOpt = subjRepo.findByName("Еда");
         assertTrue(subjOpt.isPresent());
-        assertEquals("Food fault", FundsMutationSubject.builder(subjRepo).setName("Еда").setType(FundsMutationSubject.Type.PRODUCT).build(), subjOpt.get());
+        assertEquals(caseName + "Food fault", FundsMutationSubject.builder(subjRepo).setName("Еда").setType(FundsMutationSubject.Type.PRODUCT).build(), subjOpt.get());
 
         core = new SubjectAdditionElementCore(subjRepo);
         core.setName("Хлеб");
@@ -79,7 +87,7 @@ public class SubjectAdditionElementCoreTest {
         subjOpt = subjRepo.findByName("Хлеб");
         assertTrue(subjOpt.isPresent());
         assertEquals(
-                "Bread fault",
+                caseName + "Bread fault",
                 FundsMutationSubject.builder(subjRepo)
                         .setName("Хлеб")
                         .setParentId(id)

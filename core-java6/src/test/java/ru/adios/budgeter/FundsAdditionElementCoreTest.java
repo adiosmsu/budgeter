@@ -4,6 +4,7 @@ import java8.util.Optional;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
+import ru.adios.budgeter.api.Bundle;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.inmemrepo.Schema;
 
@@ -21,10 +22,16 @@ public class FundsAdditionElementCoreTest {
 
     @Test
     public void testSubmit() throws Exception {
-        Schema.clearSchemaStatic();
-        final TreasuryMock treasury = new TreasuryMock();
-        final Treasury.BalanceAccount usdAccount = TestUtils.prepareBalance(CurrencyUnit.USD);
-        final Treasury.BalanceAccount eurAccount = TestUtils.prepareBalance(CurrencyUnit.EUR);
+        testSubmitWith(Schema.INSTANCE, TestUtils.CASE_INNER);
+        testSubmitWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+    }
+
+    private void testSubmitWith(Bundle bundle, String caseName) throws Exception {
+        caseName += ": ";
+        bundle.clearSchema();
+        final Treasury treasury = bundle.treasury();
+        final Treasury.BalanceAccount usdAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final Treasury.BalanceAccount eurAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
 
         FundsAdditionElementCore core = new FundsAdditionElementCore(treasury);
         core.setAmount(100, 0);
@@ -34,21 +41,21 @@ public class FundsAdditionElementCoreTest {
 
         final Optional<Money> amount = Schema.TREASURY.amount(CurrencyUnit.USD);
         assertTrue(amount.isPresent());
-        assertEquals("Treasury amount fault", Money.of(CurrencyUnit.USD, 100.0), amount.get());
+        assertEquals(caseName + "Treasury amount fault", Money.of(CurrencyUnit.USD, 100.0), amount.get());
 
         core = new FundsAdditionElementCore(treasury);
         core.setAmountUnit(CurrencyUnit.EUR);
         try {
             submit = core.submit();
             submit.raiseExceptionIfFailed();
-            fail("No exception though amount not set");
+            fail(caseName + "No exception though amount not set");
         } catch (Exception ignore) {}
         core = new FundsAdditionElementCore(treasury);
         core.setAmountDecimal(BigDecimal.valueOf(100.));
         try {
             submit = core.submit();
             submit.raiseExceptionIfFailed();
-            fail("No exception though unit not set");
+            fail(caseName + "No exception though unit not set");
         } catch (Exception ignore) {}
 
         core = new FundsAdditionElementCore(treasury);
@@ -59,7 +66,7 @@ public class FundsAdditionElementCoreTest {
 
         final Optional<Money> amountEur = Schema.TREASURY.amount(CurrencyUnit.EUR);
         assertTrue(amountEur.isPresent());
-        assertEquals("Treasury amount fault", Money.of(CurrencyUnit.EUR, 10.), amountEur.get());
+        assertEquals(caseName + "Treasury amount fault", Money.of(CurrencyUnit.EUR, 10.), amountEur.get());
 
         core = new FundsAdditionElementCore(treasury);
         core.setAmount(Money.of(CurrencyUnit.USD, -10.));
@@ -67,12 +74,12 @@ public class FundsAdditionElementCoreTest {
         submit = core.submit();
         try {
             submit.raiseExceptionIfFailed();
-            fail("Negative amount passed");
+            fail(caseName + "Negative amount passed");
         } catch (Submitter.SubmitFailure ignore) {}
 
         final Optional<Money> amountUsd = Schema.TREASURY.amount(CurrencyUnit.USD);
         assertTrue(amountUsd.isPresent());
-        assertEquals("Treasury amount fault", Money.of(CurrencyUnit.USD, 100.0), amountUsd.get());
+        assertEquals(caseName + "Treasury amount fault", Money.of(CurrencyUnit.USD, 100.0), amountUsd.get());
     }
 
 }

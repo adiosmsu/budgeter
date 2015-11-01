@@ -194,6 +194,10 @@ public final class FundsMutationSubject {
     public static final int CUR_CONV_DIFF_TYPE_ORDINAL = 2;
 
     public static FundsMutationSubject getCurrencyConversionDifferenceSubject(FundsMutationSubjectRepository repository) {
+        final Optional<FundsMutationSubject> byId = repository.getById(repository.getIdForRateSubject());
+        if (byId.isPresent()) {
+            return byId.get();
+        }
         return repository.addSubject(
                 FundsMutationSubject.builder(repository)
                         .setId(repository.getIdForRateSubject())
