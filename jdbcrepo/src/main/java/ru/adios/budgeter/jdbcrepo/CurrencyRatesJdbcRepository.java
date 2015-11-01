@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.CurrencyRatesProvider.ConversionRate;
 import ru.adios.budgeter.api.*;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -121,12 +120,6 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
     @Override
     public ImmutableList<?> decomposeObject(ConversionRate object) {
         return ImmutableList.of(object.day, object.pair.from.getNumericCode(), object.pair.to.getNumericCode(), object.rate);
-    }
-
-    @Nullable
-    @Override
-    public Object extractId(ConversionRate object) {
-        return null;
     }
 
     @Override

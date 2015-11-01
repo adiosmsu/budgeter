@@ -171,12 +171,6 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
         };
     }
 
-    @Nullable
-    @Override
-    public Object extractId(CurrencyExchangeEvent object) {
-        return null;
-    }
-
     @Override
     public String getInsertSql(boolean withId) {
         return insertSql;

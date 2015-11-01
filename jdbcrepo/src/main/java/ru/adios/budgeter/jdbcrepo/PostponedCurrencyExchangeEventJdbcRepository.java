@@ -8,7 +8,6 @@ import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository.PostponedE
 import ru.adios.budgeter.api.Treasury.BalanceAccount;
 import ru.adios.budgeter.api.UtcDay;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -174,12 +173,6 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
                 object.timestamp,
                 object.agent.id.getAsLong()
         );
-    }
-
-    @Nullable
-    @Override
-    public Object extractId(PostponedExchange object) {
-        return null;
     }
 
     @Override

@@ -5,7 +5,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -93,12 +92,6 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     @Override
     public ImmutableList<?> decomposeObject(FundsMutationAgent object) {
         return ImmutableList.of(object.name);
-    }
-
-    @Nullable
-    @Override
-    public Object extractId(FundsMutationAgent object) {
-        return null;
     }
 
     @Override

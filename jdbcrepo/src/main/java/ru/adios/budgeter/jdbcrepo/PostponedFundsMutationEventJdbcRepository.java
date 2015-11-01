@@ -7,7 +7,6 @@ import ru.adios.budgeter.api.PostponedFundsMutationEventRepository;
 import ru.adios.budgeter.api.PostponedFundsMutationEventRepository.PostponedMutationEvent;
 import ru.adios.budgeter.api.UtcDay;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -187,12 +186,6 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                 object.conversionUnit.getNumericCode(),
                 JdbcRepository.wrapNull(object.customRate.orElse(null))
         );
-    }
-
-    @Nullable
-    @Override
-    public Object extractId(PostponedMutationEvent object) {
-        return null;
     }
 
     @Override

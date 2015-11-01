@@ -183,12 +183,6 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
         );
     }
 
-    @Nullable
-    @Override
-    public Object extractId(FundsMutationEvent object) {
-        return null;
-    }
-
     @Override
     public String getInsertSql(boolean withId) {
         return insertSql;

@@ -74,7 +74,9 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
     ImmutableList<?> decomposeObject(ObjType object);
 
     @Nullable
-    Object extractId(ObjType object);
+    default Object extractId(ObjType object) {
+        return null;
+    }
 
     @Override
     default Long currentSeqValue() {
