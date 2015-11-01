@@ -43,8 +43,9 @@ public class ClosingOnTerminalOpsStream<T> implements Stream<T>, Wrappable {
     private static <ReturnType> ReturnType wrapForCloseRethrow(AutoCloseable s, Supplier<ReturnType> f) {
         try {
             return f.get();
-        } finally {
+        } catch (RuntimeException rt) {
             closeSilently(s);
+            throw rt;
         }
     }
     private static <Param> boolean wrapBooleanFunct(final WrappingAutoCloseable s, final Function<Param, Boolean> f, Param p) {
