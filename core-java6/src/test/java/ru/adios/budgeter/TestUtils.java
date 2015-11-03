@@ -1,9 +1,11 @@
 package ru.adios.budgeter;
 
+import java8.util.function.Supplier;
 import org.joda.money.CurrencyUnit;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.threeten.bp.OffsetDateTime;
@@ -51,6 +53,16 @@ public final class TestUtils {
                     @Override
                     protected void doInTransactionWithoutResult(TransactionStatus status) {
                         runnable.run();
+                    }
+                });
+            }
+
+            @Override
+            public <T> T getWithTransaction(final Supplier<T> supplier) {
+                return txTemplate.execute(new TransactionCallback<T>() {
+                    @Override
+                    public T doInTransaction(TransactionStatus status) {
+                        return supplier.get();
                     }
                 });
             }

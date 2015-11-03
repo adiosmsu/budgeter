@@ -3,8 +3,10 @@ package ru.adios.budgeter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
+import ru.adios.budgeter.api.TransactionalSupport;
 import ru.adios.budgeter.api.data.FundsMutationAgent;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -22,6 +24,7 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
 
     private final FundsMutationAgentRepository repository;
     private final FundsMutationAgent.Builder agentBuilder = FundsMutationAgent.builder();
+    private final SubmitHelper<FundsMutationAgent> helper = new SubmitHelper<>(logger, "Error while adding new agent");
 
     private boolean lockOn = false;
     private Result<FundsMutationAgent> storedResult;
@@ -52,14 +55,22 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
         if (resultBuilder.toBuildError())
             return resultBuilder.build();
 
-        try {
-            return Result.success(repository.addAgent(agentBuilder.build()));
-        } catch (RuntimeException ex) {
-            logger.error("Error while adding new agent", ex);
-            return resultBuilder
-                    .setGeneralError("Error while adding new agent: " + ex.getMessage())
-                    .build();
-        }
+        return helper.doSubmit(this::doSubmit, resultBuilder);
+    }
+
+    @Nonnull
+    private Result<FundsMutationAgent> doSubmit() {
+        return Result.success(repository.addAgent(agentBuilder.build()));
+    }
+
+    @Override
+    public void setTransactional(TransactionalSupport transactional) {
+        helper.setTransactionalSupport(transactional);
+    }
+
+    @Override
+    public TransactionalSupport getTransactional() {
+        return helper.getTransactionalSupport();
     }
 
     @Override

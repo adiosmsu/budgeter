@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.function.Supplier;
 
 /**
  * Date: 03.07.15
@@ -43,6 +44,11 @@ public final class TestUtils {
                         runnable.run();
                     }
                 });
+            }
+
+            @Override
+            public <T> T getWithTransaction(Supplier<T> supplier) {
+                return txTemplate.execute(status -> supplier.get());
             }
 
             @Override

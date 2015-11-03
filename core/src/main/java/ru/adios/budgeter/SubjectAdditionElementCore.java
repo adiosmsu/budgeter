@@ -3,8 +3,10 @@ package ru.adios.budgeter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.TransactionalSupport;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -26,6 +28,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
 
     private final FundsMutationSubject.Builder subjectBuilder;
     private final FundsMutationSubjectRepository repository;
+    private final SubmitHelper<FundsMutationSubject> helper = new SubmitHelper<>(logger, "Error while adding new subject");
 
     private String parentName;
 
@@ -113,14 +116,22 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
             return resultBuilder.build();
         }
 
-        try {
-            return Result.success(repository.addSubject(subjectBuilder.build()));
-        } catch (RuntimeException ex) {
-            logger.error("Error while adding new subject", ex);
-            return resultBuilder
-                    .setGeneralError("Error while adding new subject: " + ex.getMessage())
-                    .build();
-        }
+        return helper.doSubmit(this::doSubmit, resultBuilder);
+    }
+
+    @Nonnull
+    private Result<FundsMutationSubject> doSubmit() {
+        return Result.success(repository.addSubject(subjectBuilder.build()));
+    }
+
+    @Override
+    public void setTransactional(TransactionalSupport transactional) {
+        helper.setTransactionalSupport(transactional);
+    }
+
+    @Override
+    public TransactionalSupport getTransactional() {
+        return helper.getTransactionalSupport();
     }
 
     @Override

@@ -3,9 +3,11 @@ package ru.adios.budgeter;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.adios.budgeter.api.TransactionalSupport;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.data.BalanceAccount;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Optional;
@@ -27,6 +29,7 @@ public class AccountsElementCore implements Submitter<BalanceAccount> {
 
 
     private final Treasury treasury;
+    private final SubmitHelper<BalanceAccount> helper = new SubmitHelper<>(logger, "Error while registering balance account");
 
     private Optional<String> nameOpt = Optional.empty();
     private Optional<CurrencyUnit> unitOpt = Optional.empty();
@@ -74,17 +77,25 @@ public class AccountsElementCore implements Submitter<BalanceAccount> {
             return resultBuilder.build();
         }
 
-        try {
-            final String name = nameOpt.get();
-            treasury.registerBalanceAccount(new BalanceAccount(name, unitOpt.get()));
+        return helper.doSubmit(this::doSubmit, resultBuilder);
+    }
 
-            return Result.success(treasury.getAccountForName(name).get());
-        } catch (RuntimeException ex) {
-            logger.error("Error while registering balance account", ex);
-            return resultBuilder
-                    .setGeneralError("Error while registering balance account: " + ex.getMessage())
-                    .build();
-        }
+    @Nonnull
+    private Result<BalanceAccount> doSubmit() {
+        final String name = nameOpt.get();
+        treasury.registerBalanceAccount(new BalanceAccount(name, unitOpt.get()));
+
+        return Result.success(treasury.getAccountForName(name).get());
+    }
+
+    @Override
+    public void setTransactional(TransactionalSupport transactional) {
+        helper.setTransactionalSupport(transactional);
+    }
+
+    @Override
+    public TransactionalSupport getTransactional() {
+        return helper.getTransactionalSupport();
     }
 
     @Override

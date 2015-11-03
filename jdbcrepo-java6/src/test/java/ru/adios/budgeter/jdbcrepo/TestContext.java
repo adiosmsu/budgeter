@@ -1,8 +1,10 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import com.jolbox.bonecp.BoneCPDataSource;
+import java8.util.function.Supplier;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -43,6 +45,16 @@ public final class TestContext {
                     @Override
                     protected void doInTransactionWithoutResult(TransactionStatus status) {
                         runnable.run();
+                    }
+                });
+            }
+
+            @Override
+            public <T> T getWithTransaction(final Supplier<T> supplier) {
+                return txTemplate.execute(new TransactionCallback<T>() {
+                    @Override
+                    public T doInTransaction(TransactionStatus status) {
+                        return supplier.get();
                     }
                 });
             }

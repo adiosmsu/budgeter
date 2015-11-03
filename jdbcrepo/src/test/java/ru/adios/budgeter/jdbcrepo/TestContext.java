@@ -8,6 +8,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * Date: 10/29/15
@@ -29,12 +30,23 @@ public final class TestContext {
 
         final TransactionTemplate txTemplate = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
 
-        TRANSACTIONAL_SUPPORT = runnable -> txTemplate.execute(new TransactionCallbackWithoutResult() {
+        TRANSACTIONAL_SUPPORT = new JdbcTransactionalSupport() {
             @Override
-            protected void doInTransactionWithoutResult(TransactionStatus status) {
-                runnable.run();
+            public void runWithTransaction(Runnable runnable) {
+                txTemplate.execute(new TransactionCallbackWithoutResult() {
+                    @Override
+                    protected void doInTransactionWithoutResult(TransactionStatus status) {
+                        runnable.run();
+                    }
+                });
+
             }
-        });
+
+            @Override
+            public <T> T getWithTransaction(Supplier<T> supplier) {
+                return txTemplate.execute(status -> supplier.get());
+            }
+        };
         BUNDLE = new SourcingBundle(dataSource, TRANSACTIONAL_SUPPORT);
         BUNDLE.clearSchema();
     }

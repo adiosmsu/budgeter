@@ -2,6 +2,7 @@ package ru.adios.budgeter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import ru.adios.budgeter.api.TransactionalSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -18,6 +19,10 @@ import java.util.Optional;
 public interface Submitter<T> {
 
     Result<T> submit();
+
+    void setTransactional(TransactionalSupport transactional);
+
+    TransactionalSupport getTransactional();
 
     void lock();
 

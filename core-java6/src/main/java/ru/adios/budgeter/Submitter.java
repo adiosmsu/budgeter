@@ -3,6 +3,7 @@ package ru.adios.budgeter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java8.util.Optional;
+import ru.adios.budgeter.api.TransactionalSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -18,6 +19,10 @@ import java.math.BigDecimal;
 public interface Submitter<T> {
 
     Result<T> submit();
+
+    void setTransactional(TransactionalSupport transactional);
+
+    TransactionalSupport getTransactional();
 
     void lock();
 

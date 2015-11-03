@@ -4,9 +4,11 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.adios.budgeter.api.TransactionalSupport;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.data.BalanceAccount;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -29,6 +31,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
 
 
     private final Treasury treasury;
+    private final SubmitHelper<BalanceAccount> helper = new SubmitHelper<>(logger, "Error while adding amount to account");
 
     private final MoneyPositiveWrapper amountWrapper = new MoneyPositiveWrapper("funds addition amount");
     private Optional<BalanceAccount> accountRef = Optional.empty();
@@ -138,18 +141,25 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
             return resultBuilder.build();
         }
 
-        final BalanceAccount account = accountRef.get();
-        try {
-            treasury.addAmount(getAmount(), account.name);
+        return helper.doSubmit(this::doSubmit, resultBuilder);
+    }
 
-            return Result.success(treasury.getAccountForName(account.name).get());
-        } catch (RuntimeException ex) {
-            final String mes = "Error while adding amount to " + account;
-            logger.error(mes, ex);
-            return resultBuilder
-                    .setGeneralError(mes + ": " + ex.getMessage())
-                    .build();
-        }
+    @Nonnull
+    private Result<BalanceAccount> doSubmit() {
+        final BalanceAccount account = accountRef.get();
+        treasury.addAmount(getAmount(), account.name);
+
+        return Result.success(treasury.getAccountForName(account.name).get());
+    }
+
+    @Override
+    public void setTransactional(TransactionalSupport transactional) {
+        helper.setTransactionalSupport(transactional);
+    }
+
+    @Override
+    public TransactionalSupport getTransactional() {
+        return helper.getTransactionalSupport();
     }
 
     @Override
