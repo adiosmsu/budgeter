@@ -181,8 +181,12 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
 
     public void setBuyAccount(BalanceAccount buyAccount) {
         if (lockOn) return;
-        this.buyAccountRef = Optional.of(buyAccount);
-        buyAmountWrapper.setAmountUnit(buyAccount.getUnit());
+        this.buyAccountRef = Optional.ofNullable(buyAccount);
+        if (buyAccount != null) {
+            buyAmountWrapper.setAmountUnit(buyAccount.getUnit());
+        } else {
+            buyAmountWrapper.setAmountUnit((CurrencyUnit) null);
+        }
     }
 
     @Nullable
@@ -197,8 +201,12 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
 
     public void setSellAccount(BalanceAccount sellAccount) {
         if (lockOn) return;
-        this.sellAccountRef = Optional.of(sellAccount);
-        sellAmountWrapper.setAmountUnit(sellAccount.getUnit());
+        this.sellAccountRef = Optional.ofNullable(sellAccount);
+        if (sellAccount != null) {
+            sellAmountWrapper.setAmountUnit(sellAccount.getUnit());
+        } else {
+            sellAmountWrapper.setAmountUnit((CurrencyUnit) null);
+        }
     }
 
     public void setCustomRate(BigDecimal customRate) {

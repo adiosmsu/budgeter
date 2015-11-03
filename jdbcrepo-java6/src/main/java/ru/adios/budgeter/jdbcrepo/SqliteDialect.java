@@ -190,7 +190,14 @@ public final class SqliteDialect extends AbstractSqlDialect {
         }
 
         if (BigDecimal.class.equals(type) && object instanceof Number) {
-            return (T) BigDecimal.valueOf(((Number) object).longValue(), DECIMAL_SCALE).stripTrailingZeros();
+            final Number num = (Number) object;
+            if ((num instanceof BigDecimal && BigDecimal.ZERO.equals(num))
+                    || ((num instanceof Double || num instanceof Float) && num.floatValue() == 0.f)
+                    || ((num instanceof Integer || num instanceof Long) && num.longValue() == 0L))
+            {
+                return (T) BigDecimal.ZERO;
+            }
+            return (T) BigDecimal.valueOf(num.longValue(), DECIMAL_SCALE).stripTrailingZeros();
         } else if (UtcDay.class.equals(type) && object instanceof Number) {
             return (T) new UtcDay(((Number) object).longValue());
         } else if (OffsetDateTime.class.equals(type) && object instanceof Number) {

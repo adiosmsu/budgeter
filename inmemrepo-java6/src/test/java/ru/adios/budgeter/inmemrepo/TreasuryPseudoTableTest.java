@@ -58,4 +58,9 @@ public class TreasuryPseudoTableTest {
         tester.testStreamRegisteredCurrencies();
     }
 
+    @Test
+    public void testZeroValue() throws Exception {
+        tester.testZeroValue();
+    }
+
 }

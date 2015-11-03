@@ -58,4 +58,9 @@ public class JdbcTreasuryTest {
         TestContext.ex(tester::testStreamRegisteredCurrencies);
     }
 
+    @Test
+    public void testZeroValue() throws Exception {
+        TestContext.ex(tester::testZeroValue);
+    }
+
 }

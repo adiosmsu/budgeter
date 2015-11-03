@@ -219,4 +219,14 @@ public final class TreasuryTester {
         assertFalse(gibberish.isPresent());
     }
 
+    public void testZeroValue() throws Exception {
+        bundle.clearSchema();
+        bundle.treasury().setSequenceValue(0L);
+        TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final List<BalanceAccount> collect = bundle.treasury().streamRegisteredAccounts().collect(Collectors.toList());
+        assertEquals("No registered treasury", 1, collect.size());
+        assertEquals("No zero value", Money.zero(CurrencyUnit.USD), collect.get(0).getBalance().get());
+        assertEquals("Total amount must be zero", Money.zero(CurrencyUnit.USD), bundle.treasury().amount(CurrencyUnit.USD).get());
+    }
+
 }
