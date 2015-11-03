@@ -122,7 +122,7 @@ public final class TreasuryTester {
         } catch (Exception ignore) {}
         bundle.treasury().addAmount(Money.of(CurrencyUnit.USD, BigDecimal.ONE), "accountUSD");
         final BalanceAccount account = bundle.treasury().streamAccountsByCurrency(CurrencyUnit.USD).findFirst().get();
-        assertEquals("Wrong searched", account.getBalance(), Money.of(CurrencyUnit.USD, BigDecimal.ONE));
+        assertEquals("Wrong searched", account.getBalance().get(), Money.of(CurrencyUnit.USD, BigDecimal.ONE));
     }
 
     public void testAmount() throws Exception {

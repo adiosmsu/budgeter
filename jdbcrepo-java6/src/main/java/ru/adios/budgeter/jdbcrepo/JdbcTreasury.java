@@ -3,10 +3,12 @@ package ru.adios.budgeter.jdbcrepo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java8.util.Optional;
+import java8.util.function.Supplier;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.CurrencyRatesProvider;
@@ -149,14 +151,18 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public ImmutableList<?> decomposeObject(BalanceAccount object) {
-        final Money balance = object.getBalance();
-        return ImmutableList.of(object.name, object.getUnit().getNumericCode(), balance != null ? balance.getAmount() : BigDecimal.ZERO);
+        return ImmutableList.of(object.name, object.getUnit().getNumericCode(), object.getAmount());
     }
 
     @Nullable
     @Override
-    public Object extractId(BalanceAccount object) {
-        return object.id;
+    public Object extractId(final BalanceAccount object) {
+        return object.id.orElseThrow(new Supplier<InvalidDataAccessApiUsageException>() {
+            @Override
+            public InvalidDataAccessApiUsageException get() {
+                return new InvalidDataAccessApiUsageException("Extracting id for DB insertion from " + object + " which lacks one");
+            }
+        });
     }
 
     @Override
@@ -216,9 +222,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     @Override
     public BalanceAccount registerBalanceAccount(BalanceAccount account) {
         final GeneratedKeyHolder keyHolder = Common.insert(this, account);
-        final Money balance = account.getBalance();
-        final BigDecimal amount = balance != null ? balance.getAmount() : BigDecimal.ZERO;
-        return new BalanceAccount(keyHolder.getKey().longValue(), account.name, Money.of(account.getUnit(), amount));
+        return new BalanceAccount(keyHolder.getKey().longValue(), account.name, Money.of(account.getUnit(), account.getAmount()));
     }
 
     @Override

@@ -114,14 +114,14 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
     @Override
     public ImmutableList<?> decomposeObject(CurrencyExchangeEvent object) {
-        checkArgument(object.soldAccount.id != null, "Sold account %s without ID", object.soldAccount);
-        checkArgument(object.boughtAccount.id != null, "Bought account %s without ID", object.boughtAccount);
+        checkArgument(object.soldAccount.id.isPresent(), "Sold account %s without ID", object.soldAccount);
+        checkArgument(object.boughtAccount.id.isPresent(), "Bought account %s without ID", object.boughtAccount);
         checkArgument(object.agent.id.isPresent(), "Agent with name %s without ID", object.agent.name);
 
         return ImmutableList.of(
                 object.sold.getCurrencyUnit().getNumericCode(), object.sold.getAmount(),
                 object.bought.getCurrencyUnit().getNumericCode(), object.bought.getAmount(),
-                object.soldAccount.id, object.boughtAccount.id,
+                object.soldAccount.id.get(), object.boughtAccount.id.get(),
                 object.rate,
                 object.timestamp,
                 object.agent.id.getAsLong()

@@ -175,14 +175,14 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
 
     @Override
     public ImmutableList<?> decomposeObject(FundsMutationEvent object) {
-        checkArgument(object.relevantBalance.id != null, "Relevant account %s without ID", object.relevantBalance);
+        checkArgument(object.relevantBalance.id.isPresent(), "Relevant account %s without ID", object.relevantBalance);
         checkArgument(object.subject.id.isPresent(), "Subject %s without ID", object.subject);
         checkArgument(object.agent.id.isPresent(), "Agent with name %s without ID", object.agent.name);
 
         return ImmutableList.of(
                 object.amount.isPositive(),
                 object.amount.getCurrencyUnit().getNumericCode(), object.amount.getAmount(),
-                object.relevantBalance.id,
+                object.relevantBalance.id.get(),
                 object.quantity,
                 object.subject.id.getAsLong(),
                 object.timestamp,

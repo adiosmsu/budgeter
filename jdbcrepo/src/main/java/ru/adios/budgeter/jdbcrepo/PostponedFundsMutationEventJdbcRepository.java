@@ -171,14 +171,14 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     @Override
     public ImmutableList<?> decomposeObject(PostponedMutationEvent object) {
-        checkArgument(object.mutationEvent.relevantBalance.id != null, "Relevant account %s without ID", object.mutationEvent.relevantBalance);
+        checkArgument(object.mutationEvent.relevantBalance.id.isPresent(), "Relevant account %s without ID", object.mutationEvent.relevantBalance);
         checkArgument(object.mutationEvent.subject.id.isPresent(), "Subject %s without ID", object.mutationEvent.subject);
         checkArgument(object.mutationEvent.agent.id.isPresent(), "Agent with name %s without ID", object.mutationEvent.agent.name);
 
         return ImmutableList.of(
                 new UtcDay(object.mutationEvent.timestamp),
                 object.mutationEvent.amount.getCurrencyUnit().getNumericCode(), object.mutationEvent.amount.getAmount(),
-                object.mutationEvent.relevantBalance.id,
+                object.mutationEvent.relevantBalance.id.get(),
                 object.mutationEvent.quantity,
                 object.mutationEvent.subject.id.getAsLong(),
                 object.mutationEvent.timestamp,

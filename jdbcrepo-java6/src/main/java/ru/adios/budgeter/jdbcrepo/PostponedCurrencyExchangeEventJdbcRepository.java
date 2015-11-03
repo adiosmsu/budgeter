@@ -173,15 +173,15 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
 
     @Override
     public ImmutableList<?> decomposeObject(PostponedExchange object) {
-        checkArgument(object.toBuyAccount.id != null, "To-buy account %s without ID", object.toBuyAccount);
-        checkArgument(object.sellAccount.id != null, "Sell account %s without ID", object.sellAccount);
+        checkArgument(object.toBuyAccount.id.isPresent(), "To-buy account %s without ID", object.toBuyAccount);
+        checkArgument(object.sellAccount.id.isPresent(), "Sell account %s without ID", object.sellAccount);
         checkArgument(object.agent.id.isPresent(), "Agent with name %s without ID", object.agent.name);
 
         return ImmutableList.of(
                 new UtcDay(object.timestamp),
                 object.toBuy,
-                object.toBuyAccount.id,
-                object.sellAccount.id,
+                object.toBuyAccount.id.get(),
+                object.sellAccount.id.get(),
                 JdbcRepository.Static.wrapNull(object.customRate.orElse(null)),
                 object.timestamp,
                 object.agent.id.getAsLong()

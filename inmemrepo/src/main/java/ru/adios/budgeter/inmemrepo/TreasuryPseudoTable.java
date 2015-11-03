@@ -200,7 +200,7 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
 
     @Override
     public BalanceAccount getAccountWithId(BalanceAccount account) {
-        if (account.id != null) {
+        if (account.id.isPresent()) {
             return account;
         }
         final Integer key = nameUniqueIndex.get(account.name);

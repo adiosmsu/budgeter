@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.data.BalanceAccount;
@@ -120,14 +121,13 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
 
     @Override
     public ImmutableList<?> decomposeObject(BalanceAccount object) {
-        final Money balance = object.getBalance();
-        return ImmutableList.of(object.name, object.getUnit().getNumericCode(), balance != null ? balance.getAmount() : BigDecimal.ZERO);
+        return ImmutableList.of(object.name, object.getUnit().getNumericCode(), object.getAmount());
     }
 
     @Nullable
     @Override
     public Object extractId(BalanceAccount object) {
-        return object.id;
+        return object.id.orElseThrow(() -> new InvalidDataAccessApiUsageException("Extracting id for DB insertion from " + object + " which lacks one"));
     }
 
     @Override
@@ -184,9 +184,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     @Override
     public BalanceAccount registerBalanceAccount(BalanceAccount account) {
         final GeneratedKeyHolder keyHolder = Common.insert(this, account);
-        final Money balance = account.getBalance();
-        final BigDecimal amount = balance != null ? balance.getAmount() : BigDecimal.ZERO;
-        return new BalanceAccount(keyHolder.getKey().longValue(), account.name, Money.of(account.getUnit(), amount));
+        return new BalanceAccount(keyHolder.getKey().longValue(), account.name, Money.of(account.getUnit(), account.getAmount()));
     }
 
     @Override
