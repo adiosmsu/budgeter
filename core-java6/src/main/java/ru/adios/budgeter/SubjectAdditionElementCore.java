@@ -4,8 +4,8 @@ import java8.util.Optional;
 import java8.util.OptionalLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import javax.annotation.Nullable;
 

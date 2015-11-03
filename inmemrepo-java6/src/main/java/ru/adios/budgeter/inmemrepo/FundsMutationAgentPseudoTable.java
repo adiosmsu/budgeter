@@ -5,8 +5,8 @@ import java8.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
-import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.atomic.AtomicInteger;

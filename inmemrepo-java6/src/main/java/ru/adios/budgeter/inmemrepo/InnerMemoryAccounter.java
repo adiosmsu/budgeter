@@ -7,6 +7,8 @@ import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.PostponedExchange;
+import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,17 +55,17 @@ public final class InnerMemoryAccounter implements Accounter {
     @Override
     public Stream<PostponingReasons> streamAllPostponingReasons() {
         final HashMap<UtcDay, HashSet<CurrencyUnit>> accumulator = new HashMap<UtcDay, HashSet<CurrencyUnit>>(100);
-        Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.streamAll().forEach(new Consumer<PostponedCurrencyExchangeEventRepository.PostponedExchange>() {
+        Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.streamAll().forEach(new Consumer<PostponedExchange>() {
             @Override
-            public void accept(PostponedCurrencyExchangeEventRepository.PostponedExchange postponedExchange) {
+            public void accept(PostponedExchange postponedExchange) {
                 final HashSet<CurrencyUnit> units = getUnitsAcc(accumulator, new UtcDay(postponedExchange.timestamp));
                 units.add(postponedExchange.toBuyAccount.getUnit());
                 units.add(postponedExchange.sellAccount.getUnit());
             }
         });
-        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.streamAll().forEach(new Consumer<PostponedFundsMutationEventRepository.PostponedMutationEvent>() {
+        Schema.POSTPONED_FUNDS_MUTATION_EVENTS.streamAll().forEach(new Consumer<PostponedMutationEvent>() {
             @Override
-            public void accept(PostponedFundsMutationEventRepository.PostponedMutationEvent postponedMutationEvent) {
+            public void accept(PostponedMutationEvent postponedMutationEvent) {
                 final HashSet<CurrencyUnit> units = getUnitsAcc(accumulator, new UtcDay(postponedMutationEvent.mutationEvent.timestamp));
                 units.add(postponedMutationEvent.mutationEvent.amount.getCurrencyUnit());
                 units.add(postponedMutationEvent.conversionUnit);

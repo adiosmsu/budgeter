@@ -3,8 +3,8 @@ package ru.adios.budgeter.jdbcrepo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;

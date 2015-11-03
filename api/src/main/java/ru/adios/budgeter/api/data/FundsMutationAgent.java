@@ -1,9 +1,8 @@
-package ru.adios.budgeter.api;
-
-import java8.util.OptionalLong;
+package ru.adios.budgeter.api.data;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+import java.util.OptionalLong;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -36,6 +35,7 @@ public final class FundsMutationAgent {
     @Override
     public String toString() {
         return "FundsMutationAgent{" +
+                "id='" + id + '\'' +
                 "name='" + name + '\'' +
                 '}';
     }

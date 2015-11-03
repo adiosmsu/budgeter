@@ -7,8 +7,8 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.adios.budgeter.api.Bundle;
-import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.data.BalanceAccount;
 import ru.adios.budgeter.jdbcrepo.JdbcConnectionHolder;
 import ru.adios.budgeter.jdbcrepo.JdbcTransactionalSupport;
 import ru.adios.budgeter.jdbcrepo.SourcingBundle;
@@ -66,8 +66,8 @@ public final class TestUtils {
 
     public static final UtcDay JULY_3RD_2015 = new UtcDay(OffsetDateTime.of(2015, 7, 3, 0, 0, 0, 0, ZoneOffset.UTC));
 
-    static Treasury.BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit) {
-        final Treasury.BalanceAccount account = new Treasury.BalanceAccount("account" + unit.getCode(), unit);
+    static BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit) {
+        final BalanceAccount account = new BalanceAccount("account" + unit.getCode(), unit);
         return bundle.treasury().registerBalanceAccount(account);
     }
 

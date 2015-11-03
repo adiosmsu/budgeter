@@ -6,6 +6,7 @@ import org.joda.money.Money;
 import org.junit.Test;
 import ru.adios.budgeter.api.Bundle;
 import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.data.BalanceAccount;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
@@ -30,13 +31,13 @@ public class FundsAdditionElementCoreTest {
         caseName += ": ";
         bundle.clearSchema();
         final Treasury treasury = bundle.treasury();
-        final Treasury.BalanceAccount usdAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        final Treasury.BalanceAccount eurAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
+        final BalanceAccount usdAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount eurAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
 
         FundsAdditionElementCore core = new FundsAdditionElementCore(treasury);
         core.setAmount(100, 0);
         core.setAccount(usdAccount);
-        Submitter.Result<Treasury.BalanceAccount> submit = core.submit();
+        Submitter.Result<BalanceAccount> submit = core.submit();
         submit.raiseExceptionIfFailed();
 
         final Optional<Money> amount = Schema.TREASURY.amount(CurrencyUnit.USD);

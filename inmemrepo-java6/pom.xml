@@ -4,7 +4,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>ru.adios.budgeter</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -42,12 +42,12 @@
         <dependency>
             <groupId>ru.adios.budgeter</groupId>
             <artifactId>api-java6</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>ru.adios.budgeter</groupId>
             <artifactId>chm-java6-port</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${parent.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>net.sourceforge.streamsupport</groupId>
@@ -64,7 +64,7 @@
         <dependency>
             <groupId>ru.adios.budgeter</groupId>
             <artifactId>api-tests-java6</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${parent.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

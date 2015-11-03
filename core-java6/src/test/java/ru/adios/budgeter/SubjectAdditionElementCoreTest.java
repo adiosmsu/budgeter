@@ -3,8 +3,8 @@ package ru.adios.budgeter;
 import java8.util.Optional;
 import org.junit.Test;
 import ru.adios.budgeter.api.Bundle;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import static org.junit.Assert.*;

@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.ConversionRate;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;

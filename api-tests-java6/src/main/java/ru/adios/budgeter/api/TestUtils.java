@@ -1,6 +1,8 @@
 package ru.adios.budgeter.api;
 
 import org.joda.money.CurrencyUnit;
+import ru.adios.budgeter.api.data.BalanceAccount;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
 
 /**
  * Date: 7/1/15
@@ -16,8 +18,8 @@ public class TestUtils {
         return bundle.fundsMutationAgents().addAgent(test);
     }
 
-    static Treasury.BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit) {
-        final Treasury.BalanceAccount account = new Treasury.BalanceAccount("account" + unit.getCode(), unit);
+    static BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit) {
+        final BalanceAccount account = new BalanceAccount("account" + unit.getCode(), unit);
         return bundle.treasury().registerBalanceAccount(account);
     }
 

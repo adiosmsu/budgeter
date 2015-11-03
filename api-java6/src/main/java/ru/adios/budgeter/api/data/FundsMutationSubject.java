@@ -1,8 +1,9 @@
-package ru.adios.budgeter.api;
+package ru.adios.budgeter.api.data;
 
 import java8.util.Optional;
 import java8.util.OptionalLong;
 import java8.util.function.Supplier;
+import ru.adios.budgeter.api.FundsMutationSubjectRepository;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;

@@ -1,7 +1,7 @@
 package ru.adios.budgeter.inmemrepo;
 
-import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
 
 import javax.annotation.Nonnull;
 import java.util.Optional;

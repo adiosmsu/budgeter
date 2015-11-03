@@ -2,7 +2,12 @@ package ru.adios.budgeter;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
-import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.Accounter;
+import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.data.BalanceAccount;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;
@@ -27,7 +32,7 @@ public interface FundsMutator {
             FundsMutator mutator,
             Money naturalAmount,
             Money customAmount,
-            Treasury.BalanceAccount account,
+            BalanceAccount account,
             MutationDirection direction,
             FundsMutationAgent agent,
             OffsetDateTime timestamp,
@@ -53,7 +58,7 @@ public interface FundsMutator {
 
         BENEFIT {
             @Override
-            Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
+            BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
                 accounter.fundsMutationEventRepository().registerBenefit(event);
                 if (mutateFunds) {
@@ -86,7 +91,7 @@ public interface FundsMutator {
         },
         LOSS {
             @Override
-            Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
+            BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
                 final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
                 accounter.fundsMutationEventRepository().registerLoss(event);
                 if (mutateFunds) {
@@ -125,7 +130,7 @@ public interface FundsMutator {
         @Nonnull
         abstract Money amountToSet(Money amount);
 
-        abstract Treasury.BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
+        abstract BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
 
         abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate);
 

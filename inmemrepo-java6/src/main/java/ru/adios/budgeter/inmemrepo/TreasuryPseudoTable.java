@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.data.BalanceAccount;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.atomic.AtomicInteger;

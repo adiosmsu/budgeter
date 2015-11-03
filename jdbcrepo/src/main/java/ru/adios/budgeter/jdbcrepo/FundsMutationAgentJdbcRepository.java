@@ -2,8 +2,8 @@ package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
-import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.sql.ResultSet;

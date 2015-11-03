@@ -6,6 +6,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.*;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
@@ -52,10 +53,10 @@ public class ExchangeCurrenciesElementCoreTest {
         treasury.addAmount(Money.of(CurrencyUnit.EUR, 1000), "eur");
         treasury.addAmount(Money.of(Units.RUB, 1000000), "rub");
         treasury.addAmount(Money.of(Units.BTC, 100), "btc");
-        Treasury.BalanceAccount usdAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("usd", CurrencyUnit.USD));
-        Treasury.BalanceAccount eurAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("eur", CurrencyUnit.EUR));
-        Treasury.BalanceAccount rubAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("rub", Units.RUB));
-        Treasury.BalanceAccount btcAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("btc", Units.BTC));
+        BalanceAccount usdAccount = treasury.getAccountWithId(new BalanceAccount("usd", CurrencyUnit.USD));
+        BalanceAccount eurAccount = treasury.getAccountWithId(new BalanceAccount("eur", CurrencyUnit.EUR));
+        BalanceAccount rubAccount = treasury.getAccountWithId(new BalanceAccount("rub", Units.RUB));
+        BalanceAccount btcAccount = treasury.getAccountWithId(new BalanceAccount("btc", Units.BTC));
 
         ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, ratesService);
 
@@ -74,8 +75,8 @@ public class ExchangeCurrenciesElementCoreTest {
         Submitter.Result submit = core.submit();
         submit.raiseExceptionIfFailed();
 
-        rubAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("rub", Units.RUB));
-        usdAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("usd", CurrencyUnit.USD));
+        rubAccount = treasury.getAccountWithId(new BalanceAccount("rub", Units.RUB));
+        usdAccount = treasury.getAccountWithId(new BalanceAccount("usd", CurrencyUnit.USD));
         final Optional<CurrencyExchangeEvent> dollarsExc = bundle.currencyExchangeEvents().streamForDay(TestUtils.JULY_3RD_2015).findFirst();
         assertTrue(caseName + "No dollars exchange found", dollarsExc.isPresent());
         assertEquals(
@@ -131,8 +132,8 @@ public class ExchangeCurrenciesElementCoreTest {
         submit = core.submit();
         submit.raiseExceptionIfFailed();
 
-        rubAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("rub", Units.RUB));
-        eurAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("eur", CurrencyUnit.EUR));
+        rubAccount = treasury.getAccountWithId(new BalanceAccount("rub", Units.RUB));
+        eurAccount = treasury.getAccountWithId(new BalanceAccount("eur", CurrencyUnit.EUR));
         final Optional<CurrencyExchangeEvent> euroExc = bundle.currencyExchangeEvents().streamForDay(TestUtils.DAY_BF_YESTER).findFirst();
         assertTrue(caseName + "No euros exchange found", euroExc.isPresent());
         assertEquals(
@@ -186,8 +187,8 @@ public class ExchangeCurrenciesElementCoreTest {
         submit = core.submit();
         submit.raiseExceptionIfFailed();
 
-        btcAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("btc", Units.BTC));
-        usdAccount = treasury.getAccountWithId(new Treasury.BalanceAccount("usd", CurrencyUnit.USD));
+        btcAccount = treasury.getAccountWithId(new BalanceAccount("btc", Units.BTC));
+        usdAccount = treasury.getAccountWithId(new BalanceAccount("usd", CurrencyUnit.USD));
         final Optional<CurrencyExchangeEvent> btcExc = bundle.currencyExchangeEvents().streamForDay(TestUtils.DAY_BF_YESTER)
                 .reduce(new BinaryOperator<CurrencyExchangeEvent>() {
                     @Override

@@ -6,6 +6,7 @@ import org.joda.money.Money;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.data.BalanceAccount;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
@@ -16,7 +17,7 @@ import java.math.BigDecimal;
  *
  * @author Mikhail Kulikov
  */
-public final class FundsAdditionElementCore implements MoneySettable, Submitter<Treasury.BalanceAccount> {
+public final class FundsAdditionElementCore implements MoneySettable, Submitter<BalanceAccount> {
 
     public static final String FIELD_ACCOUNT = "account";
     public static final String FIELD_AMOUNT = "amount";
@@ -30,10 +31,10 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
     private final Treasury treasury;
 
     private final MoneyPositiveWrapper amountWrapper = new MoneyPositiveWrapper("funds addition amount");
-    private Optional<Treasury.BalanceAccount> accountRef = Optional.empty();
+    private Optional<BalanceAccount> accountRef = Optional.empty();
 
     private boolean lockOn = false;
-    private Result<Treasury.BalanceAccount> storedResult;
+    private Result<BalanceAccount> storedResult;
 
     public FundsAdditionElementCore(Treasury treasury) {
         this.treasury = treasury;
@@ -68,7 +69,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
         amountWrapper.setAmountUnit(unit);
     }
 
-    public void setAccount(Treasury.BalanceAccount account) {
+    public void setAccount(BalanceAccount account) {
         if (lockOn) return;
         if (account == null) {
             accountRef = Optional.empty();
@@ -84,11 +85,11 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
         if (lockOn) return false;
 
         if (accountName == null) {
-            setAccount((Treasury.BalanceAccount) null);
+            setAccount((BalanceAccount) null);
             return true;
         }
 
-        final Optional<Treasury.BalanceAccount> accountForName = treasury.getAccountForName(accountName);
+        final Optional<BalanceAccount> accountForName = treasury.getAccountForName(accountName);
         if (accountForName.isPresent()) {
             setAccount(accountForName.get());
             return true;
@@ -98,7 +99,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
     }
 
     @Nullable
-    public Treasury.BalanceAccount getAccount() {
+    public BalanceAccount getAccount() {
         return accountRef.orElse(null);
     }
 
@@ -121,8 +122,8 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
 
     @PotentiallyBlocking
     @Override
-    public Result<Treasury.BalanceAccount> submit() {
-        final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<Treasury.BalanceAccount>();
+    public Result<BalanceAccount> submit() {
+        final ResultBuilder<BalanceAccount> resultBuilder = new ResultBuilder<BalanceAccount>();
         resultBuilder.addFieldErrorIfAbsent(accountRef, FIELD_ACCOUNT);
 
         if (!amountWrapper.isUnitSet()) {
@@ -143,7 +144,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
             return resultBuilder.build();
         }
 
-        final Treasury.BalanceAccount account = accountRef.get();
+        final BalanceAccount account = accountRef.get();
         try {
             treasury.addAmount(getAmount(), account.name);
 
@@ -168,7 +169,7 @@ public final class FundsAdditionElementCore implements MoneySettable, Submitter<
     }
 
     @Override
-    public Result<Treasury.BalanceAccount> getStoredResult() {
+    public Result<BalanceAccount> getStoredResult() {
         return storedResult;
     }
 

@@ -2,6 +2,8 @@ package ru.adios.budgeter.api;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

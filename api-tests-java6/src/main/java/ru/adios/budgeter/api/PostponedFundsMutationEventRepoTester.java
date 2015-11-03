@@ -7,6 +7,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneOffset;
+import ru.adios.budgeter.api.data.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -79,7 +80,7 @@ public final class PostponedFundsMutationEventRepoTester {
             });
         }
 
-        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
@@ -110,8 +111,8 @@ public final class PostponedFundsMutationEventRepoTester {
                 }
             });
         }
-        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
-        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
+        final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
 
         final OffsetDateTime ts = OffsetDateTime.of(1998, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
@@ -134,8 +135,8 @@ public final class PostponedFundsMutationEventRepoTester {
         postMutRepo.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         postMutRepo.rememberPostponedExchangeableLoss(breadBuy2, CurrencyUnit.USD, Optional.<BigDecimal>empty());
 
-        final List<PostponedFundsMutationEventRepository.PostponedMutationEvent> collected =
-                postMutRepo.streamRememberedBenefits(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.<PostponedFundsMutationEventRepository.PostponedMutationEvent>toList());
+        final List<PostponedMutationEvent> collected =
+                postMutRepo.streamRememberedBenefits(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.<PostponedMutationEvent>toList());
         assertEquals(collected.size(), 1);
         assertEquals("Wrong event streamed", collected.get(0).mutationEvent.amount, Money.of(Units.RUB, BigDecimal.valueOf(888L)));
 
@@ -160,8 +161,8 @@ public final class PostponedFundsMutationEventRepoTester {
                 }
             });
         }
-        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
-        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
+        final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
 
         final OffsetDateTime ts = OffsetDateTime.of(1997, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
@@ -184,8 +185,8 @@ public final class PostponedFundsMutationEventRepoTester {
         postMutRepo.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         postMutRepo.rememberPostponedExchangeableLoss(breadBuy2, CurrencyUnit.USD, Optional.<BigDecimal>empty());
 
-        final List<PostponedFundsMutationEventRepository.PostponedMutationEvent> collected =
-                postMutRepo.streamRememberedLosses(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.<PostponedFundsMutationEventRepository.PostponedMutationEvent>toList());
+        final List<PostponedMutationEvent> collected =
+                postMutRepo.streamRememberedLosses(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.<PostponedMutationEvent>toList());
         assertEquals(1, collected.size());
         assertEquals("Wrong event streamed", Money.of(Units.RUB, BigDecimal.valueOf(-1001L)), collected.get(0).mutationEvent.amount);
 

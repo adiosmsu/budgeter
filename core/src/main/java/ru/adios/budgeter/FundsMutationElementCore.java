@@ -6,6 +6,7 @@ import org.joda.money.Money;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.*;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -23,7 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @author Mikhail Kulikov
  */
 @NotThreadSafe
-public final class FundsMutationElementCore implements MoneySettable, TimestampSettable, FundsMutator, Submitter<Treasury.BalanceAccount> {
+public final class FundsMutationElementCore implements MoneySettable, TimestampSettable, FundsMutator, Submitter<BalanceAccount> {
 
     public static final String FIELD_DIRECTION = "direction";
     public static final String FIELD_RELEVANT_BALANCE = "relevantBalance";
@@ -56,7 +57,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
 
     private PayeeMoneySettable payeeMoneySettable;
     private boolean lockOn = false;
-    private Result<Treasury.BalanceAccount> storedResult;
+    private Result<BalanceAccount> storedResult;
 
     public FundsMutationElementCore(Accounter accounter, Treasury treasury, CurrenciesExchangeService ratesService) {
         this.accounter = accounter;
@@ -71,7 +72,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
         return payeeMoneySettable;
     }
 
-    public boolean setPostponedEvent(PostponedFundsMutationEventRepository.PostponedMutationEvent event, BigDecimal naturalRate) {
+    public boolean setPostponedEvent(PostponedMutationEvent event, BigDecimal naturalRate) {
         if (lockOn) return false;
         setEvent(event.mutationEvent);
         setAmount(event.mutationEvent.amount);
@@ -97,7 +98,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
     public void setDirection(MutationDirection direction) {
         if (lockOn) return;
         this.directionRef = Optional.ofNullable(direction);
-        final Treasury.BalanceAccount relevantBalance = eventBuilder.getRelevantBalance();
+        final BalanceAccount relevantBalance = eventBuilder.getRelevantBalance();
         if (relevantBalance != null) {
             adjustUnitsUsingBalance(direction, relevantBalance);
         }
@@ -189,7 +190,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
         return amountWrapper.getAmountUnit();
     }
 
-    public void setRelevantBalance(Treasury.BalanceAccount relevantBalance) {
+    public void setRelevantBalance(BalanceAccount relevantBalance) {
         if (lockOn) return;
         eventBuilder.setRelevantBalance(relevantBalance);
         if (directionRef.isPresent()) {
@@ -198,7 +199,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
     }
 
     @Nullable
-    public Treasury.BalanceAccount getRelevantBalance() {
+    public BalanceAccount getRelevantBalance() {
         return eventBuilder.getRelevantBalance();
     }
 
@@ -358,8 +359,8 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
      */
     @PotentiallyBlocking
     @Override
-    public Result<Treasury.BalanceAccount> submit() {
-        final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<>();
+    public Result<BalanceAccount> submit() {
+        final ResultBuilder<BalanceAccount> resultBuilder = new ResultBuilder<>();
         resultBuilder.addFieldErrorIfAbsent(directionRef, FIELD_DIRECTION)
                 .addFieldErrorIfNull(eventBuilder.getRelevantBalance(), FIELD_RELEVANT_BALANCE)
                 .addFieldErrorIfNull(eventBuilder.getAgent(), FIELD_AGENT)
@@ -476,7 +477,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
                         );
                     }
 
-                    final Treasury.BalanceAccount res = direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
+                    final BalanceAccount res = direction.register(accounter, treasury, eventBuilder, appropriateMutationAmount, mutateFunds);
                     accounter.currencyExchangeEventRepository().registerCurrencyExchange(
                             CurrencyExchangeEvent.builder()
                                     .setAgent(eventBuilder.getAgent())
@@ -541,7 +542,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
     }
 
     @Override
-    public Result<Treasury.BalanceAccount> getStoredResult() {
+    public Result<BalanceAccount> getStoredResult() {
         return storedResult;
     }
 
@@ -551,7 +552,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
         storedResult = submit();
     }
 
-    private void adjustUnitsUsingBalance(@Nullable MutationDirection dir, @Nullable Treasury.BalanceAccount relevantBalance) {
+    private void adjustUnitsUsingBalance(@Nullable MutationDirection dir, @Nullable BalanceAccount relevantBalance) {
         if (relevantBalance != null && dir != null) {
             final CurrencyUnit relevantBalanceUnit = relevantBalance.getUnit();
             switch (dir) {
@@ -565,7 +566,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
     }
 
     private void adjustRelevantBalance(@Nullable CurrencyUnit unit, MutationDirection dir) {
-        final Treasury.BalanceAccount relevantBalance = getRelevantBalance();
+        final BalanceAccount relevantBalance = getRelevantBalance();
         if (directionRef.isPresent() && relevantBalance != null && directionRef.get() == dir && !relevantBalance.getUnit().equals(unit)) {
             eventBuilder.setRelevantBalance(null);
         }

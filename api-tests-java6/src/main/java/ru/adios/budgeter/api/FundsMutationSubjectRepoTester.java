@@ -3,6 +3,7 @@ package ru.adios.budgeter.api;
 import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
 import java8.util.function.Consumer;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import static org.junit.Assert.*;
 

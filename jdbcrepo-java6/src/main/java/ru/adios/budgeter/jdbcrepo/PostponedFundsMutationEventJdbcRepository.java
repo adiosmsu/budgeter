@@ -5,10 +5,10 @@ import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.springframework.jdbc.core.PreparedStatementCreator;
-import ru.adios.budgeter.api.FundsMutationEvent;
 import ru.adios.budgeter.api.PostponedFundsMutationEventRepository;
-import ru.adios.budgeter.api.PostponedFundsMutationEventRepository.PostponedMutationEvent;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
+import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;

@@ -8,6 +8,9 @@ import org.joda.money.Money;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.BalanceAccount;
+import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -281,8 +284,8 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
             final BigDecimal soldAmount = sqlDialect.translateFromDb(rs.getObject(2), BigDecimal.class);
             final int boughtUnit = rs.getInt(3);
             final BigDecimal boughtAmount = sqlDialect.translateFromDb(rs.getObject(4), BigDecimal.class);
-            final Treasury.BalanceAccount soldAccount = accountRowMapper.mapRowStartingFrom(5, rs);
-            final Treasury.BalanceAccount boughtAccount = accountRowMapper.mapRowStartingFrom(9, rs);
+            final BalanceAccount soldAccount = accountRowMapper.mapRowStartingFrom(5, rs);
+            final BalanceAccount boughtAccount = accountRowMapper.mapRowStartingFrom(9, rs);
             final BigDecimal rate = sqlDialect.translateFromDb(rs.getObject(13), BigDecimal.class);
             final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(14), OffsetDateTime.class);
             final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(15, rs);

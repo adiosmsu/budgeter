@@ -2,8 +2,8 @@ package ru.adios.budgeter.inmemrepo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

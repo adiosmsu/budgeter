@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneOffset;
+import ru.adios.budgeter.api.data.ConversionPair;
+import ru.adios.budgeter.api.data.ConversionRate;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -90,20 +92,20 @@ public final class CurrencyRatesTester {
         StreamSupport.stream(indexed).forEach(new Consumer<Long>() {
             @Override
             public void accept(Long id) {
-                final CurrencyRatesProvider.ConversionRate conversionRate = ratesRepository.getById(id).get();
+                final ConversionRate conversionRate = ratesRepository.getById(id).get();
                 assertTrue(conversionRate.pair.to + " indexed by mistake", checker.contains(conversionRate.pair.to));
             }
         });
         for (final CurrencyUnit unit : checker) {
             assertTrue("Added to index element " + unit + " not found in index",
-                    StreamSupport.stream(indexed).map(new Function<Long, CurrencyRatesRepository.ConversionRate>() {
+                    StreamSupport.stream(indexed).map(new Function<Long, ConversionRate>() {
                         @Override
-                        public CurrencyRatesRepository.ConversionRate apply(Long id) {
+                        public ConversionRate apply(Long id) {
                             return ratesRepository.getById(id).get();
                         }
-                    }).filter(new Predicate<CurrencyRatesRepository.ConversionRate>() {
+                    }).filter(new Predicate<ConversionRate>() {
                         @Override
-                        public boolean test(CurrencyRatesRepository.ConversionRate rate) {
+                        public boolean test(ConversionRate rate) {
                             return rate.pair.to.equals(unit);
                         }
                     }).findFirst().isPresent());
@@ -186,9 +188,9 @@ public final class CurrencyRatesTester {
     }
 
     public void testStreamConversionPairs() throws Exception {
-        CurrencyRatesProvider.Static.streamConversionPairs(ImmutableSet.of(CurrencyUnit.USD, CurrencyUnit.EUR, CurrencyUnit.CAD)).forEach(new Consumer<CurrencyRatesProvider.ConversionPair>() {
+        CurrencyRatesProvider.Static.streamConversionPairs(ImmutableSet.of(CurrencyUnit.USD, CurrencyUnit.EUR, CurrencyUnit.CAD)).forEach(new Consumer<ConversionPair>() {
             @Override
-            public void accept(CurrencyRatesProvider.ConversionPair conversionPair) {
+            public void accept(ConversionPair conversionPair) {
                 System.out.println(String.valueOf(conversionPair.from) + ", " + conversionPair.to);
                 if (conversionPair.from.equals(CurrencyUnit.USD)) {
                     assertTrue(conversionPair.to.equals(CurrencyUnit.CAD) || conversionPair.to.equals(CurrencyUnit.EUR));

@@ -8,10 +8,11 @@ import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
 import org.threeten.bp.OffsetDateTime;
-import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository;
-import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.data.BalanceAccount;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
+import ru.adios.budgeter.api.data.PostponedExchange;
 
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;
@@ -26,7 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
  * @author Mikhail Kulikov
  */
 public final class PostponedCurrencyExchangeEventPseudoTable
-        extends AbstractPseudoTable<Stored<PostponedCurrencyExchangeEventRepository.PostponedExchange>, PostponedCurrencyExchangeEventRepository.PostponedExchange>
+        extends AbstractPseudoTable<Stored<PostponedExchange>, PostponedExchange>
         implements PostponedCurrencyExchangeEventRepository
 {
 
@@ -34,7 +35,7 @@ public final class PostponedCurrencyExchangeEventPseudoTable
 
     final AtomicInteger idSequence = new AtomicInteger(0);
 
-    private final ConcurrentHashMap<Integer, Stored<PostponedCurrencyExchangeEventRepository.PostponedExchange>> table = new ConcurrentHashMap<Integer, Stored<PostponedExchange>>(100, 0.75f, 4);
+    private final ConcurrentHashMap<Integer, Stored<PostponedExchange>> table = new ConcurrentHashMap<Integer, Stored<PostponedExchange>>(100, 0.75f, 4);
 
     private PostponedCurrencyExchangeEventPseudoTable() {}
 
@@ -54,8 +55,8 @@ public final class PostponedCurrencyExchangeEventPseudoTable
 
     @Override
     public void rememberPostponedExchange(final BigDecimal toBuy,
-                                          final Treasury.BalanceAccount toBuyAccount,
-                                          final Treasury.BalanceAccount sellAccount,
+                                          final BalanceAccount toBuyAccount,
+                                          final BalanceAccount sellAccount,
                                           final Optional<BigDecimal> customRate,
                                           final OffsetDateTime timestamp,
                                           final FundsMutationAgent agent)
@@ -103,7 +104,7 @@ public final class PostponedCurrencyExchangeEventPseudoTable
 
     @Nonnull
     @Override
-    ConcurrentHashMap<Integer, Stored<PostponedCurrencyExchangeEventRepository.PostponedExchange>> innerTable() {
+    ConcurrentHashMap<Integer, Stored<PostponedExchange>> innerTable() {
         return table;
     }
 

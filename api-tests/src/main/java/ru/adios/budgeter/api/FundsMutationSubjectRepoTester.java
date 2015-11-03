@@ -1,6 +1,7 @@
 package ru.adios.budgeter.api;
 
 import com.google.common.collect.ImmutableList;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import java.util.Optional;
 

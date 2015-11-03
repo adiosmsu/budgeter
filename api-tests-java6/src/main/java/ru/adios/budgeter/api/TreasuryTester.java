@@ -7,6 +7,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.adios.budgeter.api.data.BalanceAccount;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -39,7 +40,7 @@ public final class TreasuryTester {
         final Treasury treasury = bundle.treasury();
 
         final TransactionalSupport txs = bundle.getTransactionalSupport();
-        final Treasury.BalanceAccount account = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount account = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         final CountDownLatch latch = new CountDownLatch(1);
         for (int i = 0; i < 10; i++) {
             new Thread(new Runnable() {
@@ -83,7 +84,7 @@ public final class TreasuryTester {
     }
 
     private void testAddAmountInner(Treasury treasury) {
-        final Treasury.BalanceAccount accountBtc = TestUtils.prepareBalance(bundle, Units.BTC);
+        final BalanceAccount accountBtc = TestUtils.prepareBalance(bundle, Units.BTC);
         try {
             treasury.addAmount(Money.of(CurrencyUnit.USD, BigDecimal.ONE), accountBtc);
             fail("Illegal addition of USD to BTC account");
@@ -120,7 +121,7 @@ public final class TreasuryTester {
             TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         } catch (Exception ignore) {}
         bundle.treasury().addAmount(Money.of(CurrencyUnit.USD, BigDecimal.ONE), "accountUSD");
-        final Treasury.BalanceAccount account = bundle.treasury().streamAccountsByCurrency(CurrencyUnit.USD).findFirst().get();
+        final BalanceAccount account = bundle.treasury().streamAccountsByCurrency(CurrencyUnit.USD).findFirst().get();
         assertEquals("Wrong searched", account.getBalance(), Money.of(CurrencyUnit.USD, BigDecimal.ONE));
     }
 
@@ -129,9 +130,9 @@ public final class TreasuryTester {
 
         final Treasury treasury = bundle.treasury();
 
-        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
-        final Treasury.BalanceAccount accountUsd2 = new Treasury.BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
+        final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
+        final BalanceAccount accountUsd2 = new BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
         treasury.registerBalanceAccount(accountUsd2);
 
         treasury.addAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(10)), accountUsd);
@@ -155,9 +156,9 @@ public final class TreasuryTester {
 
         final Treasury treasury = bundle.treasury();
 
-        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
-        final Treasury.BalanceAccount accountUsd2 = new Treasury.BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
+        final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
+        final BalanceAccount accountUsd2 = new BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
         treasury.registerBalanceAccount(accountUsd2);
 
         treasury.addAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(10)), accountUsd);
@@ -183,22 +184,22 @@ public final class TreasuryTester {
         bundle.clearSchema();
         TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         try {
-            bundle.treasury().registerBalanceAccount(new Treasury.BalanceAccount("accountUSD", CurrencyUnit.USD));
+            bundle.treasury().registerBalanceAccount(new BalanceAccount("accountUSD", CurrencyUnit.USD));
             fail("Two accounts with the same name somehow registered");
         } catch (Exception ignore) {}
     }
 
     public void testStreamRegisteredAccounts() throws Exception {
         bundle.clearSchema();
-        final Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
-        final Treasury.BalanceAccount accountUsd2 = new Treasury.BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
+        final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        final BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
+        final BalanceAccount accountUsd2 = new BalanceAccount("account" + CurrencyUnit.USD.getCode() + '2', CurrencyUnit.USD);
         bundle.treasury().registerBalanceAccount(accountUsd2);
 
         final Boolean[] checker = new Boolean[3];
-        assertTrue("Name match failed [usd,usd2,eur]: " + Arrays.toString(checker), bundle.treasury().streamRegisteredAccounts().allMatch(new Predicate<Treasury.BalanceAccount>() {
+        assertTrue("Name match failed [usd,usd2,eur]: " + Arrays.toString(checker), bundle.treasury().streamRegisteredAccounts().allMatch(new Predicate<BalanceAccount>() {
             @Override
-            public boolean test(Treasury.BalanceAccount account) {
+            public boolean test(BalanceAccount account) {
                 if (account.getUnit().equals(CurrencyUnit.USD)) {
                     if (account.name.equals("accountUSD")) {
                         checker[0] = true;
@@ -223,18 +224,18 @@ public final class TreasuryTester {
         bundle.clearSchema();
         bundle.treasury().setSequenceValue(0L);
         TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        final Treasury.BalanceAccount accountUsd = new Treasury.BalanceAccount("accountUSD", CurrencyUnit.USD);
-        final Treasury.BalanceAccount accountWithId = bundle.treasury().getAccountWithId(accountUsd);
-        assertEquals(new Treasury.BalanceAccount(1L, "accountUSD", Money.of(CurrencyUnit.USD, BigDecimal.ZERO)), accountWithId);
+        final BalanceAccount accountUsd = new BalanceAccount("accountUSD", CurrencyUnit.USD);
+        final BalanceAccount accountWithId = bundle.treasury().getAccountWithId(accountUsd);
+        assertEquals(new BalanceAccount(1L, "accountUSD", Money.of(CurrencyUnit.USD, BigDecimal.ZERO)), accountWithId);
     }
 
     public void testGetAccountForName() throws Exception {
         bundle.clearSchema();
         bundle.treasury().setSequenceValue(0L);
         TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        final Optional<Treasury.BalanceAccount> accountWithId = bundle.treasury().getAccountForName("accountUSD");
-        assertEquals(new Treasury.BalanceAccount(1L, "accountUSD", Money.of(CurrencyUnit.USD, BigDecimal.ZERO)), accountWithId.get());
-        final Optional<Treasury.BalanceAccount> gibberish = bundle.treasury().getAccountForName("gibberish");
+        final Optional<BalanceAccount> accountWithId = bundle.treasury().getAccountForName("accountUSD");
+        assertEquals(new BalanceAccount(1L, "accountUSD", Money.of(CurrencyUnit.USD, BigDecimal.ZERO)), accountWithId.get());
+        final Optional<BalanceAccount> gibberish = bundle.treasury().getAccountForName("gibberish");
         assertFalse(gibberish.isPresent());
     }
 

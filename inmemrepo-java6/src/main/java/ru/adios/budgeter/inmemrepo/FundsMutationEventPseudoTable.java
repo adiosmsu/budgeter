@@ -11,6 +11,8 @@ import java8.util.stream.StreamSupport;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

@@ -11,6 +11,7 @@ import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.CurrencyRatesRepository;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.data.ConversionRate;
 
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;

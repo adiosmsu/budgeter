@@ -6,6 +6,8 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneOffset;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
+import ru.adios.budgeter.api.data.PostponedExchange;
 
 import java.math.BigDecimal;
 
@@ -56,9 +58,9 @@ public final class PostponedCurrencyExchangeEventRepoTester {
         postExRepo.rememberPostponedExchange(BigDecimal.valueOf(1000L), TestUtils.prepareBalance(bundle, CurrencyUnit.EUR), TestUtils.prepareBalance(bundle, CurrencyUnit.USD),
                 Optional.of(BigDecimal.valueOf(0.89)), OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC), agent);
         postExRepo.streamRememberedExchanges(new UtcDay(OffsetDateTime.of(1999, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.EUR, CurrencyUnit.USD).forEach(
-                new Consumer<PostponedCurrencyExchangeEventRepository.PostponedExchange>() {
+                new Consumer<PostponedExchange>() {
                     @Override
-                    public void accept(PostponedCurrencyExchangeEventRepository.PostponedExchange postponedExchange) {
+                    public void accept(PostponedExchange postponedExchange) {
                         assertEquals("Wrong stream: " + postponedExchange.toBuy, Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)), Money.of(CurrencyUnit.EUR, postponedExchange.toBuy));
                     }
                 }

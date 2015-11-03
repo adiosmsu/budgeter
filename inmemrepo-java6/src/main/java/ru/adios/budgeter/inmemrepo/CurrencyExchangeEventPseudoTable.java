@@ -7,6 +7,7 @@ import java8.util.function.Predicate;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

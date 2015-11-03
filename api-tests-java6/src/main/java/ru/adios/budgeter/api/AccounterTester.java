@@ -8,6 +8,10 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.temporal.ChronoUnit;
+import ru.adios.budgeter.api.data.BalanceAccount;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -48,9 +52,9 @@ public final class AccounterTester {
         }
 
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
-        final Treasury.BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
-        final Treasury.BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
-        final Treasury.BalanceAccount accountAud = TestUtils.prepareBalance(bundle, CurrencyUnit.AUD);
+        final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
+        final BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
+        final BalanceAccount accountAud = TestUtils.prepareBalance(bundle, CurrencyUnit.AUD);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)

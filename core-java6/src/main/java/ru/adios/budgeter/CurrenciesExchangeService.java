@@ -12,6 +12,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.ConversionPair;
+import ru.adios.budgeter.api.data.ConversionRate;
+import ru.adios.budgeter.api.data.PostponedExchange;
+import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
@@ -409,9 +413,9 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                         final BigDecimal rateReversed = CurrencyRatesProvider.Static.reverseRate(rate);
                         final CurrencyUnit toUnit = entry.getKey();
                         accounter.postponedFundsMutationEventRepository().streamRememberedBenefits(day, forRates, toUnit).forEach(
-                                new Consumer<PostponedFundsMutationEventRepository.PostponedMutationEvent>() {
+                                new Consumer<PostponedMutationEvent>() {
                                     @Override
-                                    public void accept(PostponedFundsMutationEventRepository.PostponedMutationEvent event) {
+                                    public void accept(PostponedMutationEvent event) {
                                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, CurrenciesExchangeService.this);
                                         core.setPostponedEvent(event, event.conversionUnit.equals(forRates) ? rate : rateReversed);
                                         final Submitter.Result res = core.submit();
@@ -424,9 +428,9 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                         );
                         accounter.postponedFundsMutationEventRepository()
                                 .streamRememberedLosses(day, forRates, toUnit)
-                                .forEach(new Consumer<PostponedFundsMutationEventRepository.PostponedMutationEvent>() {
+                                .forEach(new Consumer<PostponedMutationEvent>() {
                                     @Override
-                                    public void accept(PostponedFundsMutationEventRepository.PostponedMutationEvent event) {
+                                    public void accept(PostponedMutationEvent event) {
                                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, CurrenciesExchangeService.this);
                                         core.setPostponedEvent(event, event.conversionUnit.equals(forRates) ? rate : rateReversed);
                                         final Submitter.Result res = core.submit();
@@ -437,9 +441,9 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                 });
                         accounter.postponedCurrencyExchangeEventRepository()
                                 .streamRememberedExchanges(day, forRates, toUnit)
-                                .forEach(new Consumer<PostponedCurrencyExchangeEventRepository.PostponedExchange>() {
+                                .forEach(new Consumer<PostponedExchange>() {
                                     @Override
-                                    public void accept(PostponedCurrencyExchangeEventRepository.PostponedExchange postponedExchange) {
+                                    public void accept(PostponedExchange postponedExchange) {
                                         final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, CurrenciesExchangeService.this);
                                         core.setPostponedEvent(postponedExchange, postponedExchange.sellAccount.getUnit().equals(forRates) ? rate : rateReversed);
                                         final Submitter.Result res = core.submit();

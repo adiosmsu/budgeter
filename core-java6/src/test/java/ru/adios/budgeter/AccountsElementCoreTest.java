@@ -5,8 +5,8 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
 import ru.adios.budgeter.api.Bundle;
-import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.Units;
+import ru.adios.budgeter.api.data.BalanceAccount;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import static org.junit.Assert.*;
@@ -33,7 +33,7 @@ public class AccountsElementCoreTest {
         accountsElementCore.setName(null);
         accountsElementCore.setName("Ha-ha");
         accountsElementCore.setUnit(Units.RUB);
-        Submitter.Result<Treasury.BalanceAccount> submit = accountsElementCore.submit();
+        Submitter.Result<BalanceAccount> submit = accountsElementCore.submit();
         assertTrue(caseName + "No submit success of ha-ha", submit.isSuccessful());
 
         final Optional<Money> haBalance = bundle.treasury().accountBalance("Ha-ha");

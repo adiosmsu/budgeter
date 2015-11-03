@@ -1,6 +1,6 @@
 package ru.adios.budgeter.inmemrepo;
 
-import ru.adios.budgeter.api.FundsMutationEvent;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
 
 /**
  * Date: 6/15/15

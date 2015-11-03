@@ -1,5 +1,7 @@
 package ru.adios.budgeter.api;
 
+import ru.adios.budgeter.api.data.FundsMutationAgent;
+
 import static org.junit.Assert.assertEquals;
 
 /**

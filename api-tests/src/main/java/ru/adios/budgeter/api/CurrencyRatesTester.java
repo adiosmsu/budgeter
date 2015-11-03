@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.adios.budgeter.api.data.ConversionRate;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -76,7 +77,7 @@ public final class CurrencyRatesTester {
 
         final ImmutableSet<Long> indexed = ratesRepository.getIndexedForDay(new UtcDay());
         indexed.stream().forEach(id -> {
-            final CurrencyRatesProvider.ConversionRate conversionRate = ratesRepository.getById(id).get();
+            final ConversionRate conversionRate = ratesRepository.getById(id).get();
             assertTrue(conversionRate.pair.to + " indexed by mistake", checker.contains(conversionRate.pair.to));
         });
         for (CurrencyUnit unit : checker) {

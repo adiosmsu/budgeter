@@ -2,11 +2,11 @@ package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
 import org.joda.money.CurrencyUnit;
-import ru.adios.budgeter.api.FundsMutationAgent;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository;
-import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository.PostponedExchange;
-import ru.adios.budgeter.api.Treasury.BalanceAccount;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.data.BalanceAccount;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
+import ru.adios.budgeter.api.data.PostponedExchange;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;

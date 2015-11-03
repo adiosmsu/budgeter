@@ -2,6 +2,10 @@ package ru.adios.budgeter.api;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import ru.adios.budgeter.api.data.BalanceAccount;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import java.math.BigDecimal;
 
@@ -36,7 +40,7 @@ public final class FundsMutationEventRepoTester {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
-        Treasury.BalanceAccount accountRub;
+        BalanceAccount accountRub;
         try {
             accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         } catch (Exception ignore) {
@@ -77,7 +81,7 @@ public final class FundsMutationEventRepoTester {
             food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
         }
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
-        Treasury.BalanceAccount accountRub;
+        BalanceAccount accountRub;
         try {
             accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         } catch (Exception ignore) {
@@ -138,8 +142,8 @@ public final class FundsMutationEventRepoTester {
         testRegisterLoss();
         testRegisterBenefit();
 
-        Treasury.BalanceAccount accountRub = bundle.treasury().getAccountForName("accountRUB").get();
-        Treasury.BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        BalanceAccount accountRub = bundle.treasury().getAccountForName("accountRUB").get();
+        BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         final FundsMutationAgent agent = bundle.fundsMutationAgents().findByName("Test").get();
         final FundsMutationSubject food = bundle.fundsMutationSubjects().findByName("Food").get();
         final FundsMutationEvent breadBuy1 = FundsMutationEvent.builder()

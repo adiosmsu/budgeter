@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.threeten.bp.OffsetDateTime;
 import org.threeten.bp.ZoneOffset;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.*;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
@@ -34,8 +35,8 @@ public class CurrenciesExchangeServiceTest {
         private final Accounter accounter;
         private CurrenciesExchangeService service;
 
-        private Treasury.BalanceAccount accountRub;
-        private Treasury.BalanceAccount accountEur;
+        private BalanceAccount accountRub;
+        private BalanceAccount accountEur;
 
         public State(Bundle bundle) {
             this.bundle = bundle;

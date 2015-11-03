@@ -2,8 +2,8 @@ package ru.adios.budgeter;
 
 import org.junit.Test;
 import ru.adios.budgeter.api.Bundle;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.util.Optional;

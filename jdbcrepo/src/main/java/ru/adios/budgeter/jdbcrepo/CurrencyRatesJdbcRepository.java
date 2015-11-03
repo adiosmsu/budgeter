@@ -5,8 +5,9 @@ import com.google.common.collect.ImmutableSet;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.adios.budgeter.api.CurrencyRatesProvider.ConversionRate;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.ConversionPair;
+import ru.adios.budgeter.api.data.ConversionRate;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;

@@ -1,9 +1,10 @@
 package ru.adios.budgeter.inmemrepo;
 
 import org.joda.money.CurrencyUnit;
-import ru.adios.budgeter.api.FundsMutationEvent;
 import ru.adios.budgeter.api.PostponedFundsMutationEventRepository;
 import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
+import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;
@@ -21,7 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
  * @author Mikhail Kulikov
  */
 public final class PostponedFundsMutationEventPseudoTable
-        extends AbstractPseudoTable<StoredPostponedFundsMutationEvent, PostponedFundsMutationEventRepository.PostponedMutationEvent>
+        extends AbstractPseudoTable<StoredPostponedFundsMutationEvent, PostponedMutationEvent>
         implements PostponedFundsMutationEventRepository
 {
 

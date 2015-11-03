@@ -4,6 +4,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.*;
 import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
@@ -45,9 +46,9 @@ public class FundsMutationElementCoreTest {
 
         bundle.clearSchema();
 
-        Treasury.BalanceAccount rubAccount = TestUtils.prepareBalance(bundle, Units.RUB);
-        Treasury.BalanceAccount usdAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        Treasury.BalanceAccount eurAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
+        BalanceAccount rubAccount = TestUtils.prepareBalance(bundle, Units.RUB);
+        BalanceAccount usdAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+        BalanceAccount eurAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
 
         final FundsMutationAgent groceryAgent = bundle.fundsMutationAgents().addAgent(FundsMutationAgent.builder().setName("Магазин").build());
         final FundsMutationAgent inetAgent = bundle.fundsMutationAgents().addAgent(FundsMutationAgent.builder().setName("Интернет").build());

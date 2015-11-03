@@ -2,8 +2,8 @@ package ru.adios.budgeter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import javax.annotation.Nullable;
 import java.util.Optional;

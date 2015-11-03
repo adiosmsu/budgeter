@@ -8,8 +8,8 @@ import java8.util.function.Consumer;
 import java8.util.function.Function;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

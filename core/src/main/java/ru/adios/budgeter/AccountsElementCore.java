@@ -4,6 +4,7 @@ import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.adios.budgeter.api.Treasury;
+import ru.adios.budgeter.api.data.BalanceAccount;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -17,7 +18,7 @@ import java.util.stream.Stream;
  * @author Mikhail Kulikov
  */
 @NotThreadSafe
-public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
+public class AccountsElementCore implements Submitter<BalanceAccount> {
 
     public static final String FIELD_NAME = "name";
     public static final String FIELD_UNIT = "unit";
@@ -31,7 +32,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     private Optional<CurrencyUnit> unitOpt = Optional.empty();
 
     private boolean lockOn = false;
-    private Result<Treasury.BalanceAccount> storedResult;
+    private Result<BalanceAccount> storedResult;
 
     public AccountsElementCore(Treasury treasury) {
         this.treasury = treasury;
@@ -58,14 +59,14 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     }
 
     @PotentiallyBlocking
-    public Stream<Treasury.BalanceAccount> streamAccountBalances() {
+    public Stream<BalanceAccount> streamAccountBalances() {
         return treasury.streamRegisteredAccounts();
     }
 
     @PotentiallyBlocking
     @Override
-    public Result<Treasury.BalanceAccount> submit() {
-        final ResultBuilder<Treasury.BalanceAccount> resultBuilder = new ResultBuilder<>();
+    public Result<BalanceAccount> submit() {
+        final ResultBuilder<BalanceAccount> resultBuilder = new ResultBuilder<>();
         resultBuilder.addFieldErrorIfAbsent(nameOpt, FIELD_NAME)
                 .addFieldErrorIfAbsent(unitOpt, FIELD_UNIT);
 
@@ -75,7 +76,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
 
         try {
             final String name = nameOpt.get();
-            treasury.registerBalanceAccount(new Treasury.BalanceAccount(name, unitOpt.get()));
+            treasury.registerBalanceAccount(new BalanceAccount(name, unitOpt.get()));
 
             return Result.success(treasury.getAccountForName(name).get());
         } catch (RuntimeException ex) {
@@ -97,7 +98,7 @@ public class AccountsElementCore implements Submitter<Treasury.BalanceAccount> {
     }
 
     @Override
-    public Result<Treasury.BalanceAccount> getStoredResult() {
+    public Result<BalanceAccount> getStoredResult() {
         return storedResult;
     }
 

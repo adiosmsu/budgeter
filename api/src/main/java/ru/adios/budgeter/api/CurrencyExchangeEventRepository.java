@@ -1,5 +1,7 @@
 package ru.adios.budgeter.api;
 
+import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
+
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Stream;

@@ -11,7 +11,7 @@ import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.CurrencyRatesProvider;
 import ru.adios.budgeter.api.Treasury;
-import ru.adios.budgeter.api.Treasury.BalanceAccount;
+import ru.adios.budgeter.api.data.BalanceAccount;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;

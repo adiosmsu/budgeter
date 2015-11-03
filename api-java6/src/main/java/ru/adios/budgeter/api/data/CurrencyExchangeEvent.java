@@ -1,4 +1,4 @@
-package ru.adios.budgeter.api;
+package ru.adios.budgeter.api.data;
 
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
@@ -36,8 +36,8 @@ public final class CurrencyExchangeEvent {
 
     public final Money sold;
     public final Money bought;
-    public final Treasury.BalanceAccount soldAccount;
-    public final Treasury.BalanceAccount boughtAccount;
+    public final BalanceAccount soldAccount;
+    public final BalanceAccount boughtAccount;
     public final BigDecimal rate;
     public final OffsetDateTime timestamp;
     public final FundsMutationAgent agent;
@@ -87,8 +87,8 @@ public final class CurrencyExchangeEvent {
 
         private Money sold;
         private Money bought;
-        private Treasury.BalanceAccount soldAccount;
-        private Treasury.BalanceAccount boughtAccount;
+        private BalanceAccount soldAccount;
+        private BalanceAccount boughtAccount;
         private BigDecimal rate;
         private OffsetDateTime timestamp = OffsetDateTime.now();
         private FundsMutationAgent agent;
@@ -121,12 +121,12 @@ public final class CurrencyExchangeEvent {
             return this;
         }
 
-        public Builder setBoughtAccount(Treasury.BalanceAccount boughtAccount) {
+        public Builder setBoughtAccount(BalanceAccount boughtAccount) {
             this.boughtAccount = boughtAccount;
             return this;
         }
 
-        public Builder setSoldAccount(Treasury.BalanceAccount soldAccount) {
+        public Builder setSoldAccount(BalanceAccount soldAccount) {
             this.soldAccount = soldAccount;
             return this;
         }

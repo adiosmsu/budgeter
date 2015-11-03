@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.math.IntMath;
 import org.joda.money.CurrencyUnit;
+import ru.adios.budgeter.api.data.ConversionPair;
+import ru.adios.budgeter.api.data.ConversionRate;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
@@ -15,7 +17,6 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -24,7 +25,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @author Mikhail Kulikov
  */
-public interface CurrencyRatesProvider extends Provider<CurrencyRatesProvider.ConversionRate, Long> {
+public interface CurrencyRatesProvider extends Provider<ConversionRate, Long> {
 
     int RATES_SCALE = 24;
 
@@ -145,76 +146,6 @@ public interface CurrencyRatesProvider extends Provider<CurrencyRatesProvider.Co
             }
         }
         return builder.stream();
-    }
-
-    final class ConversionPair {
-
-        public final CurrencyUnit from;
-        public final CurrencyUnit to;
-
-        public ConversionPair(CurrencyUnit from, CurrencyUnit to) {
-            checkNotNull(from, "from");
-            checkNotNull(to, "to");
-
-            this.from = from;
-            this.to = to;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            ConversionPair that = (ConversionPair) o;
-
-            return from.equals(that.from)
-                    && to.equals(that.to);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = from.hashCode();
-            result = 31 * result + to.hashCode();
-            return result;
-        }
-
-    }
-
-    final class ConversionRate {
-
-        public final UtcDay day;
-        public final ConversionPair pair;
-        public final BigDecimal rate;
-
-        public ConversionRate(UtcDay day, ConversionPair pair, BigDecimal rate) {
-            checkNotNull(day, "day");
-            checkNotNull(pair, "pair");
-            checkNotNull(rate, "rate");
-            this.day = day;
-            this.pair = pair;
-            this.rate = rate;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            ConversionRate that = (ConversionRate) o;
-
-            return day.equals(that.day)
-                    && pair.equals(that.pair)
-                    && rate.equals(that.rate);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = day.hashCode();
-            result = 31 * result + pair.hashCode();
-            result = 31 * result + rate.hashCode();
-            return result;
-        }
-
     }
 
 }

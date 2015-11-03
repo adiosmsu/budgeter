@@ -6,8 +6,8 @@ import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
-import ru.adios.budgeter.api.FundsMutationSubject;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;

@@ -2,6 +2,7 @@ package ru.adios.budgeter.api;
 
 import java8.util.Optional;
 import java8.util.stream.Stream;
+import ru.adios.budgeter.api.data.FundsMutationAgent;
 
 /**
  * Date: 7/1/15

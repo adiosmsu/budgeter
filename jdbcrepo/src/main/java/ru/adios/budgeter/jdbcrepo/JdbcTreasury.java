@@ -7,7 +7,7 @@ import org.joda.money.Money;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.Treasury;
-import ru.adios.budgeter.api.Treasury.BalanceAccount;
+import ru.adios.budgeter.api.data.BalanceAccount;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;

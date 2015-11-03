@@ -1,4 +1,4 @@
-package ru.adios.budgeter.api;
+package ru.adios.budgeter.api.data;
 
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
@@ -23,7 +23,7 @@ public final class FundsMutationEvent {
     }
 
     public final Money amount;
-    public final Treasury.BalanceAccount relevantBalance;
+    public final BalanceAccount relevantBalance;
     public final int quantity;
     public final FundsMutationSubject subject;
     public final OffsetDateTime timestamp;
@@ -79,7 +79,7 @@ public final class FundsMutationEvent {
     public static final class Builder {
 
         private Money amount;
-        private Treasury.BalanceAccount relevantBalance;
+        private BalanceAccount relevantBalance;
         private int quantity = 1;
         private FundsMutationSubject subject;
         private OffsetDateTime timestamp = OffsetDateTime.now();
@@ -114,7 +114,7 @@ public final class FundsMutationEvent {
             return this;
         }
 
-        public Builder setRelevantBalance(Treasury.BalanceAccount relevantBalance) {
+        public Builder setRelevantBalance(BalanceAccount relevantBalance) {
             this.relevantBalance = relevantBalance;
             return this;
         }
@@ -164,7 +164,7 @@ public final class FundsMutationEvent {
         }
 
         @Nullable
-        public Treasury.BalanceAccount getRelevantBalance() {
+        public BalanceAccount getRelevantBalance() {
             return relevantBalance;
         }
 

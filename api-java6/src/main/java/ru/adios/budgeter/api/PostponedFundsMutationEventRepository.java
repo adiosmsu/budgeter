@@ -3,8 +3,9 @@ package ru.adios.budgeter.api;
 import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
+import ru.adios.budgeter.api.data.FundsMutationEvent;
+import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
-import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
 
 /**
@@ -13,7 +14,7 @@ import java.math.BigDecimal;
  *
  * @author Mikhail Kulikov
  */
-public interface PostponedFundsMutationEventRepository extends Provider<PostponedFundsMutationEventRepository.PostponedMutationEvent, Long> {
+public interface PostponedFundsMutationEventRepository extends Provider<PostponedMutationEvent, Long> {
 
     void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate);
 
@@ -22,20 +23,5 @@ public interface PostponedFundsMutationEventRepository extends Provider<Postpone
     Stream<PostponedMutationEvent> streamRememberedBenefits(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf);
 
     Stream<PostponedMutationEvent> streamRememberedLosses(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf);
-
-    @Immutable
-    final class PostponedMutationEvent {
-
-        public final FundsMutationEvent mutationEvent;
-        public final CurrencyUnit conversionUnit;
-        public final Optional<BigDecimal> customRate;
-
-        public PostponedMutationEvent(FundsMutationEvent mutationEvent, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate) {
-            this.customRate = customRate.isPresent() ? Optional.of(customRate.get().stripTrailingZeros()) : Optional.<BigDecimal>empty();
-            this.mutationEvent = mutationEvent;
-            this.conversionUnit = conversionUnit;
-        }
-
-    }
 
 }
