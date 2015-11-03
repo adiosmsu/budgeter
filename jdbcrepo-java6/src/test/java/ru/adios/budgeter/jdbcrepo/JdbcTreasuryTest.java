@@ -98,4 +98,14 @@ public class JdbcTreasuryTest {
         });
     }
 
+    @Test
+    public void testZeroValue() throws Exception {
+        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testZeroValue();
+            }
+        });
+    }
+
 }
