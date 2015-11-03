@@ -86,7 +86,7 @@ public final class TreasuryTester {
             TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         } catch (Exception ignore) {}
         try {
-            TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
+            bundle.treasury().registerBalanceAccount(new BalanceAccount("accountUSD", CurrencyUnit.USD));
             fail("USD already there");
         } catch (Exception ignore) {}
         TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);

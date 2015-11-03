@@ -23,9 +23,7 @@ public interface FundsMutationEventRepository extends Provider<FundsMutationEven
         TIMESTAMP, AMOUNT
     }
 
-    void registerBenefit(FundsMutationEvent mutationEvent);
-
-    void registerLoss(FundsMutationEvent mutationEvent);
+    void register(FundsMutationEvent mutationEvent);
 
     default Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options) {
         final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);

@@ -15,13 +15,7 @@ public class FundsMutationAgentJdbcRepositoryTest {
 
     @Test
     public void testAddAgent() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testAddAgent();
-            }
-        });
+        TestContext.ex(tester::testAddAgent);
     }
 
 }

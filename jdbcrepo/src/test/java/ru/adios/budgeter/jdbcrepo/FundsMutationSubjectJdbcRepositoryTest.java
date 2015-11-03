@@ -15,79 +15,37 @@ public class FundsMutationSubjectJdbcRepositoryTest {
 
     @Test
     public void testRawAddition() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRawAddition();
-            }
-        });
+        TestContext.ex(tester::testRawAddition);
     }
 
     @Test
     public void testUpdateChildFlag() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testUpdateChildFlag();
-            }
-        });
+        TestContext.ex(tester::testUpdateChildFlag);
     }
 
     @Test
     public void testFindById() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testFindById();
-            }
-        });
+        TestContext.ex(tester::testFindById);
     }
 
     @Test
     public void testFindByName() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testFindByName();
-            }
-        });
+        TestContext.ex(tester::testFindByName);
     }
 
     @Test
     public void testFindByParent() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testFindByParent();
-            }
-        });
+        TestContext.ex(tester::testFindByParent);
     }
 
     @Test
     public void testSearchByString() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testSearchByString();
-            }
-        });
+        TestContext.ex(tester::testSearchByString);
     }
 
     @Test
     public void testAddSubject() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testAddSubject();
-            }
-        });
+        TestContext.ex(tester::testAddSubject);
     }
 
 }

@@ -21,26 +21,22 @@ public class FundsMutationEventJdbcRepositoryTest {
 
     @Test
     public void testRegisterBenefit() throws Exception {
-        final TestCheckedRunnable r = tester::testRegisterBenefit;
-        TestContext.BUNDLE.tryExecuteInTransaction(r);
+        TestContext.ex(tester::testRegisterBenefit);
     }
 
     @Test
     public void testRegisterLoss() throws Exception {
-        final TestCheckedRunnable r = tester::testRegisterLoss;
-        TestContext.BUNDLE.tryExecuteInTransaction(r);
+        TestContext.ex(tester::testRegisterLoss);
     }
 
     @Test
     public void testStream() throws Exception {
-        final TestCheckedRunnable r = tester::testStream;
-        TestContext.BUNDLE.tryExecuteInTransaction(r);
+        TestContext.ex(tester::testStream);
     }
 
     @Test
     public void testStreamForDay() throws Exception {
-        final TestCheckedRunnable r = tester::testStreamForDay;
-        TestContext.BUNDLE.tryExecuteInTransaction(r);
+        TestContext.ex(tester::testStreamForDay);
     }
 
 }

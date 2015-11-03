@@ -56,7 +56,7 @@ public final class FundsMutationEventRepoTester {
 
         final FundsMutationEventRepository mutationEventRepository = bundle.fundsMutationEvents();
 
-        mutationEventRepository.registerBenefit(breadBuy);
+        mutationEventRepository.register(breadBuy);
         assertEquals("No breadBuy event found", breadBuy, mutationEventRepository.getById(mutationEventRepository.currentSeqValue()).get());
         try {
             final FundsMutationEvent test = FundsMutationEvent.builder()
@@ -65,7 +65,7 @@ public final class FundsMutationEventRepoTester {
                     .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
                     .setRelevantBalance(accountRub)
                     .build();
-            mutationEventRepository.registerBenefit(test);
+            mutationEventRepository.register(test);
             fail("Subject existence test failed");
         } catch (Exception ignore) {}
     }
@@ -97,7 +97,7 @@ public final class FundsMutationEventRepoTester {
 
         final FundsMutationEventRepository mutationEventRepository = bundle.fundsMutationEvents();
 
-        mutationEventRepository.registerLoss(breadBuy);
+        mutationEventRepository.register(breadBuy);
         assertEquals("No breadBuy event found", breadBuy, mutationEventRepository.getById(mutationEventRepository.currentSeqValue()).get());
         try {
             final FundsMutationEvent test = FundsMutationEvent.builder()
@@ -106,7 +106,7 @@ public final class FundsMutationEventRepoTester {
                     .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
                     .setRelevantBalance(accountRub)
                     .build();
-            mutationEventRepository.registerLoss(test);
+            mutationEventRepository.register(test);
             fail("Subject existence test failed");
         } catch (Exception ignore) {}
     }
@@ -162,8 +162,8 @@ public final class FundsMutationEventRepoTester {
                 .setAgent(agent)
                 .build();
 
-        bundle.fundsMutationEvents().registerLoss(breadBuy1);
-        bundle.fundsMutationEvents().registerLoss(breadBuy2);
+        bundle.fundsMutationEvents().register(breadBuy1);
+        bundle.fundsMutationEvents().register(breadBuy2);
 
         assertEquals("Stream for day counted wrong", 3, bundle.fundsMutationEvents().streamForDay(new UtcDay()).count());
     }

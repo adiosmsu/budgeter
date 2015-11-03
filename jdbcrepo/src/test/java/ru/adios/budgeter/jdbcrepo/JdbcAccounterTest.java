@@ -15,13 +15,7 @@ public class JdbcAccounterTest {
 
     @Test
     public void testStreamAllPostponingReasons() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamAllPostponingReasons();
-            }
-        });
+        TestContext.ex(tester::testStreamAllPostponingReasons);
     }
 
 }

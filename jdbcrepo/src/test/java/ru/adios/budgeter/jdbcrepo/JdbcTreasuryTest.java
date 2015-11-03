@@ -15,24 +15,12 @@ public class JdbcTreasuryTest {
 
     @Test
     public void testAccountBalance() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testAccountBalance();
-            }
-        });
+        TestContext.ex(tester::testAccountBalance);
     }
 
     @Test
     public void testStreamRegisteredAccounts() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamRegisteredAccounts();
-            }
-        });
+        TestContext.ex(tester::testStreamRegisteredAccounts);
     }
 
     @Test
@@ -42,68 +30,32 @@ public class JdbcTreasuryTest {
 
     @Test
     public void testGetAccountForName() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testGetAccountForName();
-            }
-        });
+        TestContext.ex(tester::testGetAccountForName);
     }
 
     @Test
     public void testAmount() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testAmount();
-            }
-        });
+        TestContext.ex(tester::testAmount);
     }
 
     @Test
     public void testRegisterBalanceAccount() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRegisterBalanceAccount();
-            }
-        });
+        TestContext.ex(tester::testRegisterBalanceAccount);
     }
 
     @Test
     public void testGetAccountWithId() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testGetAccountWithId();
-            }
-        });
+        TestContext.ex(tester::testGetAccountWithId);
     }
 
     @Test
     public void testStreamAccountsByCurrency() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamAccountsByCurrency();
-            }
-        });
+        TestContext.ex(tester::testStreamAccountsByCurrency);
     }
 
     @Test
     public void testStreamRegisteredCurrencies() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamRegisteredCurrencies();
-            }
-        });
+        TestContext.ex(tester::testStreamRegisteredCurrencies);
     }
 
 }

@@ -21,20 +21,17 @@ public class CurrencyExchangeEventJdbcRepositoryTest {
 
     @Test
     public void testRegisterCurrencyExchange() throws Exception {
-        final TestCheckedRunnable r = tester::testRegisterCurrencyExchange;
-        TestContext.BUNDLE.tryExecuteInTransaction(r);
+        TestContext.ex(tester::testRegisterCurrencyExchange);
     }
 
     @Test
     public void testStreamExchangeEvents() throws Exception {
-        final TestCheckedRunnable r = tester::testStreamExchangeEvents;
-        TestContext.BUNDLE.tryExecuteInTransaction(r);
+        TestContext.ex(tester::testStreamExchangeEvents);
     }
 
     @Test
     public void testStreamForDay() throws Exception {
-        final TestCheckedRunnable r = tester::testStreamForDay;
-        TestContext.BUNDLE.tryExecuteInTransaction(r);
+        TestContext.ex(tester::testStreamForDay);
     }
 
 }

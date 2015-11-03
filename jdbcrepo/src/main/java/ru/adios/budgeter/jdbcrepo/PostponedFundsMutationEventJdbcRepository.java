@@ -7,6 +7,7 @@ import ru.adios.budgeter.api.UtcDay;
 import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -80,7 +81,8 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     private static final String SQL_STREAM_LOSSES = getStreamInnerSql(SqlDialect.Op.LESS);
     private static final String SQL_STREAM_BENEFITS = getStreamInnerSql(SqlDialect.Op.MORE);
-    private static String getStreamInnerSql(SqlDialect.Op op) {
+    private static final String SQL_STREAM_EVENTS = getStreamInnerSql(null);
+    private static String getStreamInnerSql(@Nullable SqlDialect.Op op) {
         final StringBuilder builder = SqlDialect.selectSqlBuilder(
                 TABLE_NAME,
                 COLS_FOR_SELECT,
@@ -91,7 +93,10 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
         SqlDialect.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
         SqlDialect.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
         SqlDialect.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
-        SqlDialect.appendWhereClausePart(false, builder.append("))"), true, op, COL_AMOUNT);
+        builder.append("))");
+        if (op != null) {
+            SqlDialect.appendWhereClausePart(false, builder, true, op, COL_AMOUNT);
+        }
         return builder.toString();
     }
 
@@ -200,38 +205,31 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
 
     @Override
-    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-        if (mutationEvent.amount.isNegative()) {
-            mutationEvent = FundsMutationEventJdbcRepository.negateEvent(mutationEvent);
-        }
-        Common.insert(this, new PostponedMutationEvent(mutationEvent, paidUnit, customRate));
-    }
-
-    @Override
-    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-        if (mutationEvent.amount.isPositive()) {
-            mutationEvent = FundsMutationEventJdbcRepository.negateEvent(mutationEvent);
-        }
+    public void rememberPostponedExchangeableEvent(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
         Common.insert(this, new PostponedMutationEvent(mutationEvent, paidUnit, customRate));
     }
 
     @Override
     public Stream<PostponedMutationEvent> streamRememberedBenefits(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        return streamInner(day, oneOf, secondOf, SQL_STREAM_BENEFITS);
+        return streamInner(day, oneOf, secondOf, SQL_STREAM_BENEFITS, true);
     }
 
     @Override
     public Stream<PostponedMutationEvent> streamRememberedLosses(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
-        return streamInner(day, oneOf, secondOf, SQL_STREAM_LOSSES);
+        return streamInner(day, oneOf, secondOf, SQL_STREAM_LOSSES, true);
     }
 
-    private Stream<PostponedMutationEvent> streamInner(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, String sql) {
+    @Override
+    public Stream<PostponedMutationEvent> streamRememberedEvents(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
+        return streamInner(day, oneOf, secondOf, SQL_STREAM_EVENTS, false);
+    }
+
+    private Stream<PostponedMutationEvent> streamInner(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, String sql, boolean includeZero) {
+        final ImmutableList<Comparable<? extends Comparable<? extends Comparable<?>>>> params = includeZero
+                ? ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode(), 0)
+                : ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode());
         return LazyResultSetIterator.stream(
-                Common.getRsSupplierWithParams(
-                        jdbcConnector, sqlDialect, sql,
-                        ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode(), 0),
-                        "streamRememberedExchanges"
-                ),
+                Common.getRsSupplierWithParams(jdbcConnector, sqlDialect, sql, params, "streamRememberedExchanges"),
                 Common.getMappingSqlFunction(rowMapper, sql, "streamRememberedExchanges")
         );
     }

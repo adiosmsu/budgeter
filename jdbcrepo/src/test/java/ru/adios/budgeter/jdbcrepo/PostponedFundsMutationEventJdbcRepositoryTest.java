@@ -21,46 +21,27 @@ public class PostponedFundsMutationEventJdbcRepositoryTest {
 
     @Test
     public void testRememberPostponedExchangeableBenefit() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRememberPostponedExchangeableBenefit();
-            }
-        });
+        TestContext.ex(tester::testRememberPostponedExchangeableBenefit);
     }
 
     @Test
     public void testRememberPostponedExchangeableLoss() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRememberPostponedExchangeableLoss();
-            }
-        });
+        TestContext.ex(tester::testRememberPostponedExchangeableLoss);
     }
 
     @Test
     public void testStreamRememberedBenefits() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamRememberedBenefits();
-            }
-        });
+        TestContext.ex(tester::testStreamRememberedBenefits);
     }
 
     @Test
     public void testStreamRememberedLosses() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamRememberedLosses();
-            }
-        });
+        TestContext.ex(tester::testStreamRememberedLosses);
+    }
+
+    @Test
+    public void testStreamRememberedEvents() throws Exception {
+        TestContext.ex(tester::testStreamRememberedEvents);
     }
 
 }

@@ -412,22 +412,8 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                         final BigDecimal rate = entry.getValue();
                         final BigDecimal rateReversed = CurrencyRatesProvider.Static.reverseRate(rate);
                         final CurrencyUnit toUnit = entry.getKey();
-                        accounter.postponedFundsMutationEventRepository().streamRememberedBenefits(day, forRates, toUnit).forEach(
-                                new Consumer<PostponedMutationEvent>() {
-                                    @Override
-                                    public void accept(PostponedMutationEvent event) {
-                                        final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, CurrenciesExchangeService.this);
-                                        core.setPostponedEvent(event, event.conversionUnit.equals(forRates) ? rate : rateReversed);
-                                        final Submitter.Result res = core.submit();
-                                        if (!res.isSuccessful()) {
-                                            logger.info("Remembered benefits save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
-                                        }
-
-                                    }
-                                }
-                        );
                         accounter.postponedFundsMutationEventRepository()
-                                .streamRememberedLosses(day, forRates, toUnit)
+                                .streamRememberedEvents(day, forRates, toUnit)
                                 .forEach(new Consumer<PostponedMutationEvent>() {
                                     @Override
                                     public void accept(PostponedMutationEvent event) {
@@ -435,7 +421,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                         core.setPostponedEvent(event, event.conversionUnit.equals(forRates) ? rate : rateReversed);
                                         final Submitter.Result res = core.submit();
                                         if (!res.isSuccessful()) {
-                                            logger.info("Remembered losses save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                                            logger.info("Remembered events save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
                                         }
                                     }
                                 });

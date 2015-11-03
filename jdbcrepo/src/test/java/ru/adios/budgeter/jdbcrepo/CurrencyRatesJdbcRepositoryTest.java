@@ -20,57 +20,27 @@ public class CurrencyRatesJdbcRepositoryTest {
 
     @Test
     public void testGetConversionMultiplier() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testGetConversionMultiplier();
-            }
-        });
+        TestContext.ex(tester::testGetConversionMultiplier);
     }
 
     @Test
     public void testGetLatestOptionalConversionMultiplier() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testGetLatestOptionalConversionMultiplier();
-            }
-        });
+        TestContext.ex(tester::testGetLatestOptionalConversionMultiplier);
     }
 
     @Test
     public void testIsRateStale() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testIsRateStale();
-            }
-        });
+        TestContext.ex(tester::testIsRateStale);
     }
 
     @Test
     public void testGetLatestConversionMultiplier() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testGetLatestConversionMultiplier();
-            }
-        });
+        TestContext.ex(tester::testGetLatestConversionMultiplier);
     }
 
     @Test
     public void testStreamConversionPairs() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamConversionPairs();
-            }
-        });
+        TestContext.ex(tester::testStreamConversionPairs);
     }
 
 }

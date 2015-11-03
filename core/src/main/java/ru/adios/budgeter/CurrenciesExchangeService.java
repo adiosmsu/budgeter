@@ -328,20 +328,12 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                     final BigDecimal rate = entry.getValue();
                     final BigDecimal rateReversed = CurrencyRatesProvider.reverseRate(rate);
                     final CurrencyUnit toUnit = entry.getKey();
-                    accounter.postponedFundsMutationEventRepository().streamRememberedBenefits(day, forRates, toUnit).forEach(postponedMutationEvent -> {
+                    accounter.postponedFundsMutationEventRepository().streamRememberedEvents(day, forRates, toUnit).forEach(postponedMutationEvent -> {
                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
                         final Submitter.Result res = core.submit();
                         if (!res.isSuccessful()) {
-                            logger.info("Remembered benefits save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
-                        }
-                    });
-                    accounter.postponedFundsMutationEventRepository().streamRememberedLosses(day, forRates, toUnit).forEach(postponedMutationEvent -> {
-                        final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
-                        core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
-                        final Submitter.Result res = core.submit();
-                        if (!res.isSuccessful()) {
-                            logger.info("Remembered losses save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                            logger.info("Remembered events save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
                         }
                     });
                     accounter.postponedCurrencyExchangeEventRepository().streamRememberedExchanges(day, forRates, toUnit).forEach(postponedExchange -> {

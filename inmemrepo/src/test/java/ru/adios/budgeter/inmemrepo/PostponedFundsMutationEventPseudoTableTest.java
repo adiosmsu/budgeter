@@ -39,4 +39,9 @@ public class PostponedFundsMutationEventPseudoTableTest {
         tester.testStreamRememberedLosses();
     }
 
+    @Test
+    public void testStreamRememberedEvents() throws Exception {
+        tester.testStreamRememberedEvents();
+    }
+
 }

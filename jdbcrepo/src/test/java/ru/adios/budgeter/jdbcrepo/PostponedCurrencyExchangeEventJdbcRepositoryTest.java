@@ -21,24 +21,12 @@ public class PostponedCurrencyExchangeEventJdbcRepositoryTest {
 
     @Test
     public void testRememberPostponedExchange() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testRememberPostponedExchange();
-            }
-        });
+        TestContext.ex(tester::testRememberPostponedExchange);
     }
 
     @Test
     public void testStreamRememberedExchanges() throws Exception {
-        //noinspection Convert2Lambda,Anonymous2MethodRef
-        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
-            @Override
-            public void runChecked() throws Exception {
-                tester.testStreamRememberedExchanges();
-            }
-        });
+        TestContext.ex(tester::testStreamRememberedExchanges);
     }
 
 }

@@ -59,4 +59,14 @@ public class PostponedFundsMutationEventJdbcRepositoryTest {
         });
     }
 
+    @Test
+    public void testStreamRememberedEvents() throws Exception {
+        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testStreamRememberedEvents();
+            }
+        });
+    }
+
 }

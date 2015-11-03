@@ -57,26 +57,10 @@ public interface FundsMutator {
     enum MutationDirection {
 
         BENEFIT {
-            @Override
-            BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
-                final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
-                accounter.fundsMutationEventRepository().registerBenefit(event);
-                if (mutateFunds) {
-                    treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
-                    return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
-                }
-                return null;
-            }
-
             @Nonnull
             @Override
             Money amountToSet(Money amount) {
                 return amount.getAmount().signum() >= 0 ? amount : amount.negated();
-            }
-
-            @Override
-            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-                accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableBenefit(event, paidUnit, customRate);
             }
 
             @Override
@@ -90,26 +74,10 @@ public interface FundsMutator {
             }
         },
         LOSS {
-            @Override
-            BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
-                final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
-                accounter.fundsMutationEventRepository().registerLoss(event);
-                if (mutateFunds) {
-                    treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
-                    return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
-                }
-                return null;
-            }
-
             @Nonnull
             @Override
             Money amountToSet(Money amount) {
                 return amount.getAmount().signum() >= 0 ? amount.negated() : amount;
-            }
-
-            @Override
-            void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-                accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableLoss(event, paidUnit, customRate);
             }
 
             @Override
@@ -127,12 +95,22 @@ public interface FundsMutator {
             return event.amount.getAmount().signum() >= 0 ? MutationDirection.BENEFIT : MutationDirection.LOSS;
         }
 
+        final BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds) {
+            final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
+            accounter.fundsMutationEventRepository().register(event);
+            if (mutateFunds) {
+                treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
+                return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
+            }
+            return null;
+        }
+
+        final void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+            accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableEvent(event, paidUnit, customRate);
+        }
+
         @Nonnull
         abstract Money amountToSet(Money amount);
-
-        abstract BalanceAccount register(Accounter accounter, Treasury treasury, FundsMutationEvent.Builder eventBuilder, Money amount, boolean mutateFunds);
-
-        abstract void remember(Accounter accounter, FundsMutationEvent event, CurrencyUnit paidUnit, Optional<BigDecimal> customRate);
 
         abstract MutationDirection getExchangeDifferenceDirection(boolean customMoreThanNatural);
 

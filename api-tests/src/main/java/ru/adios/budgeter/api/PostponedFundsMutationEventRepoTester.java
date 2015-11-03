@@ -21,6 +21,8 @@ import static org.junit.Assert.assertEquals;
  */
 public final class PostponedFundsMutationEventRepoTester {
 
+    private static final UtcDay BOGUS_DAY = new UtcDay(OffsetDateTime.of(1971, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC));
+
     private final Bundle bundle;
 
     public PostponedFundsMutationEventRepoTester(Bundle bundle) {
@@ -51,7 +53,7 @@ public final class PostponedFundsMutationEventRepoTester {
                 .setAgent(agent)
                 .build();
         final PostponedFundsMutationEventRepository postMutRepo = bundle.postponedFundsMutationEvents();
-        postMutRepo.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         final Long id = postMutRepo.currentSeqValue();
         assertEquals("Wrong remembered event", Money.of(Units.RUB, BigDecimal.valueOf(666L)), postMutRepo.getById(id).get().mutationEvent.amount);
     }
@@ -73,17 +75,30 @@ public final class PostponedFundsMutationEventRepoTester {
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
-                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(777L)))
+                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-777L)))
                 .setRelevantBalance(accountUsd)
                 .setAgent(agent)
                 .build();
         final PostponedFundsMutationEventRepository postMutRepo = bundle.postponedFundsMutationEvents();
-        postMutRepo.rememberPostponedExchangeableLoss(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
         final Long id = postMutRepo.currentSeqValue();
         assertEquals("Wrong remembered event", Money.of(Units.RUB, BigDecimal.valueOf(-777L)), postMutRepo.getById(id).get().mutationEvent.amount);
     }
 
     public void testStreamRememberedBenefits() throws Exception {
+        final OffsetDateTime ts = OffsetDateTime.of(1998, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
+        rememberBenefits(ts);
+
+        final List<PostponedMutationEvent> collected =
+                bundle.postponedFundsMutationEvents().streamRememberedBenefits(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.<PostponedMutationEvent>toList());
+        assertEquals(collected.size(), 1);
+        assertEquals("Wrong event streamed", Money.of(Units.RUB, BigDecimal.valueOf(888L)), collected.get(0).mutationEvent.amount);
+
+        final long count = bundle.postponedFundsMutationEvents().streamRememberedBenefits(BOGUS_DAY, CurrencyUnit.USD, CurrencyUnit.EUR).count();
+        assertEquals(count, 0);
+    }
+
+    private void rememberBenefits(OffsetDateTime ts) throws Exception {
         final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
 
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
@@ -98,7 +113,6 @@ public final class PostponedFundsMutationEventRepoTester {
         final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
 
-        final OffsetDateTime ts = OffsetDateTime.of(1998, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
@@ -110,25 +124,30 @@ public final class PostponedFundsMutationEventRepoTester {
         final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
-                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(999L)))
+                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-999L)))
                 .setRelevantBalance(accountUsd)
                 .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
         final PostponedFundsMutationEventRepository postMutRepo = bundle.postponedFundsMutationEvents();
-        postMutRepo.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
-        postMutRepo.rememberPostponedExchangeableLoss(breadBuy2, CurrencyUnit.USD, Optional.<BigDecimal>empty());
-
-        final List<PostponedMutationEvent> collected =
-                postMutRepo.streamRememberedBenefits(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.toList());
-        assertEquals(collected.size(), 1);
-        assertEquals("Wrong event streamed", collected.get(0).mutationEvent.amount, Money.of(Units.RUB, BigDecimal.valueOf(888L)));
-
-        final long count = postMutRepo.streamRememberedBenefits(new UtcDay(OffsetDateTime.of(1971, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.USD, CurrencyUnit.EUR).count();
-        assertEquals(count, 0);
+        postMutRepo.rememberPostponedExchangeableEvent(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(breadBuy2, CurrencyUnit.USD, Optional.<BigDecimal>empty());
     }
 
     public void testStreamRememberedLosses() throws Exception {
+        final OffsetDateTime ts = OffsetDateTime.of(1997, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
+        rememberLosses(ts);
+
+        final List<PostponedMutationEvent> collected =
+                bundle.postponedFundsMutationEvents().streamRememberedLosses(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.<PostponedMutationEvent>toList());
+        assertEquals(1, collected.size());
+        assertEquals("Wrong event streamed", Money.of(Units.RUB, BigDecimal.valueOf(-1001L)), collected.get(0).mutationEvent.amount);
+
+        final long count = bundle.postponedFundsMutationEvents().streamRememberedLosses(BOGUS_DAY, CurrencyUnit.USD, CurrencyUnit.EUR).count();
+        assertEquals(0, count);
+    }
+
+    private void rememberLosses(OffsetDateTime ts) throws Exception {
         final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
 
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
@@ -143,7 +162,6 @@ public final class PostponedFundsMutationEventRepoTester {
         final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
 
-        final OffsetDateTime ts = OffsetDateTime.of(1997, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
@@ -155,22 +173,25 @@ public final class PostponedFundsMutationEventRepoTester {
         final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
-                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(1001L)))
+                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-1001L)))
                 .setRelevantBalance(accountUsd)
                 .setAgent(agent)
                 .setTimestamp(ts)
                 .build();
         final PostponedFundsMutationEventRepository postMutRepo = bundle.postponedFundsMutationEvents();
-        postMutRepo.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
-        postMutRepo.rememberPostponedExchangeableLoss(breadBuy2, CurrencyUnit.USD, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(breadBuy2, CurrencyUnit.USD, Optional.<BigDecimal>empty());
+    }
+
+    public void testStreamRememberedEvents() throws Exception {
+        final OffsetDateTime ts = OffsetDateTime.of(1997, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC);
+        rememberBenefits(ts);
+        rememberLosses(ts);
 
         final List<PostponedMutationEvent> collected =
-                postMutRepo.streamRememberedLosses(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.toList());
-        assertEquals(1, collected.size());
-        assertEquals("Wrong event streamed", Money.of(Units.RUB, BigDecimal.valueOf(-1001L)), collected.get(0).mutationEvent.amount);
-
-        final long count = postMutRepo.streamRememberedLosses(new UtcDay(OffsetDateTime.of(1971, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC)), CurrencyUnit.USD, CurrencyUnit.EUR).count();
-        assertEquals(0, count);
+                bundle.postponedFundsMutationEvents().streamRememberedEvents(new UtcDay(ts), Units.RUB, CurrencyUnit.USD).collect(Collectors.<PostponedMutationEvent>toList());
+        assertEquals(4, collected.size());
+        assertEquals(0, bundle.postponedFundsMutationEvents().streamRememberedLosses(BOGUS_DAY, CurrencyUnit.USD, CurrencyUnit.EUR).count());
     }
 
 }

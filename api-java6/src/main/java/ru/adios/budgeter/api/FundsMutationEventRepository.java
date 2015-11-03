@@ -42,9 +42,7 @@ public interface FundsMutationEventRepository extends Provider<FundsMutationEven
 
     }
 
-    void registerBenefit(FundsMutationEvent mutationEvent);
-
-    void registerLoss(FundsMutationEvent mutationEvent);
+    void register(FundsMutationEvent mutationEvent);
 
     Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options); // default in java8
 

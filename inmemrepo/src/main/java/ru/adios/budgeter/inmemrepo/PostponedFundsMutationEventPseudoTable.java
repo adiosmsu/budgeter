@@ -7,6 +7,7 @@ import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,24 +50,15 @@ public final class PostponedFundsMutationEventPseudoTable
     }
 
     @Override
-    public void rememberPostponedExchangeableBenefit(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-        if (mutationEvent.amount.isNegative()) {
-            mutationEvent = negateEvent(mutationEvent);
-        }
-        store(storedFactory(mutationEvent, FundsMutationDirection.BENEFIT, paidUnit, customRate));
-    }
-
-    @Override
-    public void rememberPostponedExchangeableLoss(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-        if (mutationEvent.amount.isPositive()) {
-            mutationEvent = negateEvent(mutationEvent);
-        }
-        store(storedFactory(mutationEvent, FundsMutationDirection.LOSS, paidUnit, customRate));
-    }
-
-    @Nonnull
-    static FundsMutationEvent negateEvent(FundsMutationEvent mutationEvent) {
-        return FundsMutationEvent.builder().setFundsMutationEvent(mutationEvent).setAmount(mutationEvent.amount.negated()).build();
+    public void rememberPostponedExchangeableEvent(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
+        final StoredPostponedFundsMutationEvent event = new StoredPostponedFundsMutationEvent(
+                idSequence.incrementAndGet(),
+                mutationEvent,
+                mutationEvent.amount.isPositive() ? FundsMutationDirection.BENEFIT : FundsMutationDirection.LOSS,
+                paidUnit,
+                customRate
+        );
+        checkState(table.putIfAbsent(event.id, event) == null);
     }
 
     @Override
@@ -77,6 +69,11 @@ public final class PostponedFundsMutationEventPseudoTable
     @Override
     public Stream<PostponedMutationEvent> streamRememberedLosses(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
         return streamRemembered(day, oneOf, secondOf, FundsMutationDirection.LOSS);
+    }
+
+    @Override
+    public Stream<PostponedMutationEvent> streamRememberedEvents(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
+        return streamRemembered(day, oneOf, secondOf, null);
     }
 
     Stream<PostponedMutationEvent> streamAll() {
@@ -94,22 +91,14 @@ public final class PostponedFundsMutationEventPseudoTable
         table.clear();
     }
 
-    private Stream<PostponedMutationEvent> streamRemembered(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, FundsMutationDirection direction) {
+    private Stream<PostponedMutationEvent> streamRemembered(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, @Nullable FundsMutationDirection direction) {
         return table.values().stream().filter(event -> {
             final CurrencyUnit amountUnit = event.obj.mutationEvent.amount.getCurrencyUnit();
-            return event.direction == direction
+            return (direction == null || event.direction == direction)
                     && day.equals(new UtcDay(event.obj.mutationEvent.timestamp))
                     && (amountUnit.equals(oneOf) || amountUnit.equals(secondOf))
                     && (event.obj.conversionUnit.equals(oneOf) || event.obj.conversionUnit.equals(secondOf));
         }).map(event -> event.obj);
-    }
-
-    private void store(StoredPostponedFundsMutationEvent event) {
-        checkState(table.putIfAbsent(event.id, event) == null);
-    }
-
-    private StoredPostponedFundsMutationEvent storedFactory(FundsMutationEvent event, FundsMutationDirection direction, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate) {
-        return new StoredPostponedFundsMutationEvent(idSequence.incrementAndGet(), event, direction, conversionUnit, customRate);
     }
 
 }

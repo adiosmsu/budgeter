@@ -17,6 +17,10 @@ import java.util.concurrent.TimeUnit;
  */
 public final class TestContext {
 
+    public static void ex(TestCheckedRunnable r) {
+        BUNDLE.tryExecuteInTransaction(r);
+    }
+
     public static final SourcingBundle BUNDLE;
     public static final JdbcTransactionalSupport TRANSACTIONAL_SUPPORT;
 

@@ -202,18 +202,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
 
 
     @Override
-    public void registerBenefit(FundsMutationEvent mutationEvent) {
-        if (mutationEvent.amount.isNegative()) {
-            mutationEvent = negateEvent(mutationEvent);
-        }
-        Common.insert(this, mutationEvent);
-    }
-
-    @Override
-    public void registerLoss(FundsMutationEvent mutationEvent) {
-        if (mutationEvent.amount.isPositive()) {
-            mutationEvent = negateEvent(mutationEvent);
-        }
+    public void register(FundsMutationEvent mutationEvent) {
         Common.insert(this, mutationEvent);
     }
 

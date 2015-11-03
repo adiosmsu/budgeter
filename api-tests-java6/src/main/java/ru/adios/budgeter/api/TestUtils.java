@@ -1,5 +1,6 @@
 package ru.adios.budgeter.api;
 
+import java8.util.Optional;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.data.BalanceAccount;
 import ru.adios.budgeter.api.data.FundsMutationAgent;
@@ -19,8 +20,11 @@ public class TestUtils {
     }
 
     static BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit) {
-        final BalanceAccount account = new BalanceAccount("account" + unit.getCode(), unit);
-        return bundle.treasury().registerBalanceAccount(account);
+        final String name = "account" + unit.getCode();
+        final Optional<BalanceAccount> account = bundle.treasury().getAccountForName(name);
+        return account.isPresent()
+                ? account.get()
+                : bundle.treasury().registerBalanceAccount(new BalanceAccount(name, unit));
     }
 
 }

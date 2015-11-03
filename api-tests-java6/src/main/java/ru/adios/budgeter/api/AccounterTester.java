@@ -64,19 +64,19 @@ public final class AccounterTester {
                 .build();
 
         final PostponedFundsMutationEventRepository postMutRepo = bundle.accounter().postponedFundsMutationEventRepository();
-        postMutRepo.rememberPostponedExchangeableBenefit(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(breadBuy, CurrencyUnit.USD, Optional.<BigDecimal>empty());
 
         FundsMutationSubject game = FundsMutationSubject.builder(subjectRepository).setName("Game").setType(FundsMutationSubject.Type.PRODUCT).build();
         game = subjectRepository.addSubject(game);
         final FundsMutationEvent gameBuy = FundsMutationEvent.builder()
                 .setQuantity(1)
                 .setSubject(game)
-                .setAmount(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(10L)))
+                .setAmount(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(-10L)))
                 .setRelevantBalance(accountRub)
                 .setAgent(agent)
                 .build();
 
-        postMutRepo.rememberPostponedExchangeableLoss(gameBuy, Units.RUB, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(gameBuy, Units.RUB, Optional.<BigDecimal>empty());
 
         final UtcDay today = new UtcDay();
         final UtcDay daySecond = new UtcDay(today.inner.minus(1, ChronoUnit.DAYS));
@@ -89,7 +89,7 @@ public final class AccounterTester {
                 .setAgent(agent)
                 .build();
 
-        postMutRepo.rememberPostponedExchangeableLoss(gameBuy2, CurrencyUnit.AUD, Optional.<BigDecimal>empty());
+        postMutRepo.rememberPostponedExchangeableEvent(gameBuy2, CurrencyUnit.AUD, Optional.<BigDecimal>empty());
 
         bundle.accounter().postponedCurrencyExchangeEventRepository()
                 .rememberPostponedExchange(BigDecimal.valueOf(100L), accountEur, accountRub, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now(), agent);

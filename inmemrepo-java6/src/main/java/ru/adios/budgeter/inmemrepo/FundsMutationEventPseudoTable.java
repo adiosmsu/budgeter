@@ -55,20 +55,12 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     }
 
     @Override
-    public void registerBenefit(FundsMutationEvent mutationEvent) {
-        store(storedFactory(mutationEvent, FundsMutationDirection.BENEFIT));
-    }
-
-    @Override
-    public void registerLoss(FundsMutationEvent mutationEvent) {
-        store(storedFactory(mutationEvent, FundsMutationDirection.LOSS));
-    }
-
-    private StoredFundsMutationEvent storedFactory(FundsMutationEvent mutationEvent, FundsMutationDirection direction) {
-        return new StoredFundsMutationEvent(idSequence.incrementAndGet(), mutationEvent, direction);
-    }
-
-    private void store(final StoredFundsMutationEvent event) {
+    public void register(FundsMutationEvent mutationEvent) {
+        final StoredFundsMutationEvent event = new StoredFundsMutationEvent(
+                idSequence.incrementAndGet(),
+                mutationEvent,
+                mutationEvent.amount.isPositive() ? FundsMutationDirection.BENEFIT : FundsMutationDirection.LOSS
+        );
         Schema.FUNDS_MUTATION_SUBJECTS.findByName(event.obj.subject.name).orElseThrow(new Supplier<IllegalStateException>() {
             @Override
             public IllegalStateException get() {

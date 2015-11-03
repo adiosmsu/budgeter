@@ -194,7 +194,7 @@ public class CurrenciesExchangeServiceTest {
 
         state.accounter.postponedCurrencyExchangeEventRepository()
                 .rememberPostponedExchange(BigDecimal.valueOf(60000), state.accountRub, state.accountEur, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent);
-        state.accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableBenefit(
+        state.accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableEvent(
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.RUB, 110000.0))
                         .setRelevantBalance(state.accountRub)
