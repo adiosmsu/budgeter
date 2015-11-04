@@ -15,7 +15,6 @@ import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +70,7 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     }
 
     @Override
-    public Stream<FundsMutationEvent> streamMutationEvents(final List<OrderBy<Field>> options, final @Nullable OptLimit limit) {
+    public Stream<FundsMutationEvent> streamMutationEvents(final List<OrderBy<Field>> options, final Optional<OptLimit> limitRef) {
         final int[] offsetCounter = new int[1], limitCounter = new int[1];
         offsetCounter[0] = 0; limitCounter[0] = 0;
 
@@ -116,8 +115,11 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
                 .filter(new Predicate<FundsMutationEvent>() {
                     @Override
                     public boolean test(FundsMutationEvent event1) {
-                        return limit == null
-                                || !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
+                        if (!limitRef.isPresent()) {
+                            return true;
+                        }
+                        final OptLimit limit = limitRef.get();
+                        return !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
                                 && !(limit.limit > 0 && limit.limit < ++limitCounter[0]);
                     }
                 });

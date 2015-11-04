@@ -220,9 +220,9 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     }
 
     @Override
-    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit) {
         final StringBuilder sb = new StringBuilder(SQL_STREAM_START.length() + 20 * options.size() + 15).append(SQL_STREAM_START);
-        SqlDialect.Static.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
+        SqlDialect.Static.appendWhereClausePostfix(sb, sqlDialect, limit.orElse(null), Common.translateOrderBy(options));
         final String sql = sb.toString();
 
         return LazyResultSetIterator.stream(

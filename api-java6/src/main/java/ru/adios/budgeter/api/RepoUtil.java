@@ -1,5 +1,7 @@
 package ru.adios.budgeter.api;
 
+import java8.util.Optional;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -11,19 +13,19 @@ import java.util.List;
  *
  * @author Mikhail Kulikov
  */
-final class RepoUtil {
+public final class RepoUtil {
 
-    static final class Pair<T extends OrderedField> {
-        @Nullable final OptLimit limit;
+    public static final class Pair<T extends OrderedField> {
+        final Optional<OptLimit> limit;
         @Nonnull final List<OrderBy<T>> options;
 
         private Pair(@Nullable OptLimit limit, @Nonnull List<OrderBy<T>> options) {
-            this.limit = limit;
+            this.limit = Optional.ofNullable(limit);
             this.options = options;
         }
     }
 
-    static <T extends OrderedField> Pair<T> parseOptVarArg(RepoOption[] options, Class<T> clazz) {
+    public static <T extends OrderedField> Pair<T> parseOptVarArg(RepoOption[] options, Class<T> clazz) {
         final ArrayList<OrderBy<T>> repoOptions = new ArrayList<OrderBy<T>>(options.length);
         OptLimit limit = null;
 

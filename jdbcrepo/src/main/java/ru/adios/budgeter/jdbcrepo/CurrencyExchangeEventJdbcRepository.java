@@ -11,13 +11,13 @@ import ru.adios.budgeter.api.data.BalanceAccount;
 import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
 import ru.adios.budgeter.api.data.FundsMutationAgent;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -194,9 +194,9 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     }
 
     @Override
-    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit) {
         final StringBuilder sb = new StringBuilder(SQL_STREAM_START.length() + 20 * options.size() + 15).append(SQL_STREAM_START);
-        SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit, Common.translateOrderBy(options));
+        SqlDialect.appendWhereClausePostfix(sb, sqlDialect, limit.orElse(null), Common.translateOrderBy(options));
         final String sql = sb.toString();
 
         return LazyResultSetIterator.stream(

@@ -10,7 +10,6 @@ import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,7 +54,7 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
     }
 
     @Override
-    public Stream<CurrencyExchangeEvent> streamExchangeEvents(final List<OrderBy<Field>> options, @Nullable final OptLimit limit) {
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(final List<OrderBy<Field>> options, final Optional<OptLimit> limitRef) {
         final int[] offsetCounter = new int[1], limitCounter = new int[1];
         offsetCounter[0] = 0; limitCounter[0] = 0;
 
@@ -86,8 +85,11 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
                 .filter(new Predicate<CurrencyExchangeEvent>() {
                     @Override
                     public boolean test(CurrencyExchangeEvent event) {
-                        return limit == null
-                                || !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
+                        if (!limitRef.isPresent()) {
+                            return true;
+                        }
+                        final OptLimit limit = limitRef.get();
+                        return !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
                                 && !(limit.limit > 0 && limit.limit < ++limitCounter[0]);
                     }
                 });

@@ -7,7 +7,6 @@ import ru.adios.budgeter.api.UtcDay;
 import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,7 +52,7 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
     }
 
     @Override
-    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit) {
+    public Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, Optional<OptLimit> limitRef) {
         final int[] offsetCounter = new int[1], limitCounter = new int[1];
         offsetCounter[0] = 0; limitCounter[0] = 0;
 
@@ -74,11 +73,14 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
                     }
                     return res;
                 })
-                .filter(event1 ->
-                                limit == null
-                                        || !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
-                                        && !(limit.limit > 0 && limit.limit < ++limitCounter[0])
-                );
+                .filter(event1 -> {
+                    if (!limitRef.isPresent()) {
+                        return true;
+                    }
+                    final OptLimit limit = limitRef.get();
+                    return !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
+                            && !(limit.limit > 0 && limit.limit < ++limitCounter[0]);
+                });
 
     }
 

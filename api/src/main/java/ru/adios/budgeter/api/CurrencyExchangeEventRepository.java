@@ -2,8 +2,8 @@ package ru.adios.budgeter.api;
 
 import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -20,7 +20,7 @@ public interface CurrencyExchangeEventRepository extends Provider<CurrencyExchan
 
     void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent);
 
-    Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit);
+    Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
     Stream<CurrencyExchangeEvent> streamForDay(UtcDay day);
 

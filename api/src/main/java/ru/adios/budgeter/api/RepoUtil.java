@@ -4,6 +4,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Date: 10/24/15
@@ -11,19 +12,19 @@ import java.util.List;
  *
  * @author Mikhail Kulikov
  */
-final class RepoUtil {
+public final class RepoUtil {
 
-    static final class Pair<T extends OrderedField> {
-        @Nullable final OptLimit limit;
-        @Nonnull final List<OrderBy<T>> options;
+    public static final class Pair<T extends OrderedField> {
+        final Optional<OptLimit> limit;
+        final List<OrderBy<T>> options;
 
         private Pair(@Nullable OptLimit limit, @Nonnull List<OrderBy<T>> options) {
-            this.limit = limit;
+            this.limit = Optional.ofNullable(limit);
             this.options = options;
         }
     }
 
-    static <T extends OrderedField> Pair<T> parseOptVarArg(RepoOption[] options, Class<T> clazz) {
+    public static <T extends OrderedField> Pair<T> parseOptVarArg(RepoOption[] options, Class<T> clazz) {
         final ArrayList<OrderBy<T>> repoOptions = new ArrayList<>(options.length);
         OptLimit limit = null;
 

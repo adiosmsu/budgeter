@@ -4,7 +4,6 @@ import org.joda.money.Money;
 import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
 
-import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,7 @@ public interface FundsMutationEventRepository extends Provider<FundsMutationEven
         return streamMutationEvents(pair.options, pair.limit);
     }
 
-    Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit);
+    Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
     Stream<FundsMutationEvent> streamForDay(UtcDay day);
 

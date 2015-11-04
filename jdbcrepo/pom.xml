@@ -42,7 +42,7 @@
         <dependency>
             <groupId>ru.adios.budgeter</groupId>
             <artifactId>api</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -75,7 +75,7 @@
         <dependency>
             <groupId>ru.adios.budgeter</groupId>
             <artifactId>api-tests</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

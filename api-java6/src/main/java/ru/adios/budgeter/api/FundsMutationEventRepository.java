@@ -7,7 +7,6 @@ import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public interface FundsMutationEventRepository extends Provider<FundsMutationEven
 
     Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options); // default in java8
 
-    Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, @Nullable OptLimit limit);
+    Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
     Stream<FundsMutationEvent> streamForDay(UtcDay day);
 
