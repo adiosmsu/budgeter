@@ -43,6 +43,7 @@ final class SafeJdbcConnector {
         JdbcTemplate jdbcTemplate = templateThreadLocal.get();
         if (jdbcTemplate == null) {
             jdbcTemplate = new JdbcTemplate(dataSource);
+            jdbcTemplate.setExceptionTranslator(Common.EXCEPTION_TRANSLATOR);
             templateThreadLocal.set(jdbcTemplate);
         }
         return jdbcTemplate;

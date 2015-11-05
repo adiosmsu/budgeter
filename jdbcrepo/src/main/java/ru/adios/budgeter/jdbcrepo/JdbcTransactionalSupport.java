@@ -6,6 +6,7 @@ import ru.adios.budgeter.api.TransactionalSupport;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * Date: 10/29/15
@@ -23,6 +24,12 @@ public interface JdbcTransactionalSupport extends TransactionalSupport {
     default void releaseConnection(JdbcConnectionHolder con, DataSource dataSource) {
         if (con.isTransactional) {
             defaultRelease(con.connection, dataSource);
+        } else {
+            try {
+                con.connection.close();
+            } catch (SQLException ex) {
+                throw Common.EXCEPTION_TRANSLATOR.translate("JdbcTransactionalSupport.releaseConnection", null, ex);
+            }
         }
     }
 
