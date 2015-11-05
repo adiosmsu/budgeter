@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.MoreExecutors;
 import java8.util.Optional;
 import java8.util.function.Consumer;
 import org.joda.money.CurrencyUnit;
@@ -18,14 +19,17 @@ import ru.adios.budgeter.api.data.PostponedExchange;
 import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Date: 6/14/15
@@ -38,22 +42,26 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrenciesExchangeService.class);
 
-    private static final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
-        @Override
-        public Thread newThread(@Nonnull Runnable r) {
-            final Thread thread = new Thread(r, "currenciesExecutorThread");
-            thread.setDaemon(true);
-            return thread;
-        }
-    });
+    private static final class LazyExecutorHolder {
 
-    static {
-        executor.submit(new Runnable() {
+        private static final Executor EXECUTOR = Executors.newSingleThreadExecutor(new ThreadFactory() {
             @Override
-            public void run() {
-                logger.debug("Executor started");
+            public Thread newThread(@Nonnull Runnable r) {
+                final Thread thread = new Thread(r, "currenciesExecutorThread");
+                thread.setDaemon(true);
+                return thread;
             }
         });
+
+        static {
+            EXECUTOR.execute(new Runnable() {
+                @Override
+                public void run() {
+                    logger.debug("Executor started");
+                }
+            });
+        }
+
     }
 
     @Autowired private volatile CurrencyRatesRepository ratesRepository;
@@ -62,6 +70,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
     @Autowired private volatile ExchangeRatesLoader.BtcLoader btcLoader;
     @Autowired private volatile ExchangeRatesLoader.CbrLoader cbrLoader;
 
+    private final AtomicReference<Executor> executorRef = new AtomicReference<Executor>(null);
     private final Optional<TransactionalSupport> nonSpringTransactional;
 
     private final CurrencyRatesRepository.Default repoDef = new CurrencyRatesRepository.Default(this);
@@ -84,6 +93,22 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
         this.btcLoader = btcLoader;
         this.cbrLoader = cbrLoader;
         this.nonSpringTransactional = Optional.ofNullable(nonSpringTransactional);
+    }
+
+    public void setExecutor(Executor executor) {
+        executorRef.set(executor);
+    }
+
+    public void executeInSameThread() {
+        executorRef.set(MoreExecutors.directExecutor());
+    }
+
+    public Executor getExecutor() {
+        final Executor executor = executorRef.get();
+        if (executor == null) {
+            executorRef.compareAndSet(null, LazyExecutorHolder.EXECUTOR);
+        }
+        return executorRef.get();
     }
 
     @Transactional
@@ -180,10 +205,10 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
 
                 if (day.equals(new UtcDay())) {
                     // only momentary rates for btc, return right away
-                    return loadFromNet(btcLoader, day, other, btcUnit, from, to, tasksBuilder);
+                    return loadFromNet(btcLoader, day, other, btcUnit, from, to, tasksBuilder, null);
                 }
 
-                return conversionMultiplierFor(btcLoader, day, other, btcUnit, from, to, tasksBuilder, processPostponedForExistingRates);
+                return conversionMultiplierFor(btcLoader, day, other, btcUnit, from, to, tasksBuilder, processPostponedForExistingRates, null);
             }
 
             final CurrencyUnit rubUnit = cbrLoader.getMainUnit();
@@ -193,12 +218,16 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                         ? to
                         : from;
 
-                return conversionMultiplierFor(cbrLoader, day, other, rubUnit, from, to, tasksBuilder, processPostponedForExistingRates);
+                return conversionMultiplierFor(cbrLoader, day, other, rubUnit, from, to, tasksBuilder, processPostponedForExistingRates, null);
             }
 
             // arbitrary case
-            final Optional<BigDecimal> rubToFrom = conversionMultiplierFor(cbrLoader, day, from, rubUnit, rubUnit, from, tasksBuilder, processPostponedForExistingRates);
-            final Optional<BigDecimal> rubToTo = conversionMultiplierFor(cbrLoader, day, to, rubUnit, rubUnit, to, tasksBuilder, processPostponedForExistingRates);
+            final HashMap<CurrencyUnit, BigDecimal> rubCache = new HashMap<CurrencyUnit, BigDecimal>();
+            final Optional<BigDecimal> rubToFrom = conversionMultiplierFor(cbrLoader, day, from, rubUnit, rubUnit, from, tasksBuilder, processPostponedForExistingRates, rubCache);
+            Optional<BigDecimal> rubToTo = Optional.ofNullable(rubCache.get(to));
+            if (!rubToTo.isPresent()) {
+                rubToTo = conversionMultiplierFor(cbrLoader, day, to, rubUnit, rubUnit, to, tasksBuilder, processPostponedForExistingRates, null);
+            }
             if (rubToFrom.isPresent() && rubToTo.isPresent()) {
                 final BigDecimal arbitraryRate = CurrencyRatesProvider.Static.getConversionMultiplierFromIntermediateMultipliers(rubToFrom.get(), rubToTo.get());
                 addPostponedTask(ImmutableMap.of(from, arbitraryRate), day, to, tasksBuilder);
@@ -214,7 +243,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
     private void scheduleTasks(ImmutableList.Builder<Runnable> tasksBuilder) {
         final ImmutableList<Runnable> tasks = tasksBuilder.build();
         if (tasks.size() > 0) {
-            executor.submit(new Runnable() {
+            getExecutor().execute(new Runnable() {
                 @Override
                 public void run() {
                     runWithTransaction(tasks.reverse());
@@ -277,7 +306,8 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
             CurrencyUnit from,
             CurrencyUnit to,
             ImmutableList.Builder<Runnable> tasksBuilder,
-            boolean processPostponedForExistingRates
+            boolean processPostponedForExistingRates,
+            @Nullable HashMap<CurrencyUnit, BigDecimal> rubCache
     ) {
         final Optional<BigDecimal> resultRef = ratesRepository.getConversionMultiplier(day, from, to);
         if (resultRef.isPresent()) {
@@ -287,7 +317,7 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
             return resultRef;
         }
 
-        return fromNetToRepo(loader, day, other, mainUnit, from, to, tasksBuilder);
+        return fromNetToRepo(loader, day, other, mainUnit, from, to, tasksBuilder, rubCache);
     }
 
     private Optional<BigDecimal> fromNetToRepo(
@@ -297,9 +327,10 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
             CurrencyUnit mainUnit,
             final CurrencyUnit from,
             final CurrencyUnit to,
-            final ImmutableList.Builder<Runnable> tasksBuilder
+            final ImmutableList.Builder<Runnable> tasksBuilder,
+            @Nullable HashMap<CurrencyUnit, BigDecimal> rubCache
     ) {
-        final Optional<BigDecimal> result = loadFromNet(loader, day, other, mainUnit, from, to, tasksBuilder);
+        final Optional<BigDecimal> result = loadFromNet(loader, day, other, mainUnit, from, to, tasksBuilder, rubCache);
         result.ifPresent(
                 new Consumer<BigDecimal>() {
                     @Override
@@ -323,10 +354,17 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
     }
 
     private Optional<BigDecimal> loadFromNet(
-            ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other, CurrencyUnit mainUnit, CurrencyUnit from, CurrencyUnit to, ImmutableList.Builder<Runnable> tasksBuilder
+            ExchangeRatesLoader loader,
+            UtcDay day,
+            CurrencyUnit other,
+            CurrencyUnit mainUnit,
+            CurrencyUnit from,
+            CurrencyUnit to,
+            ImmutableList.Builder<Runnable> tasksBuilder,
+            @Nullable final HashMap<CurrencyUnit, BigDecimal> rubCache
     ) {
         final Map<CurrencyUnit, BigDecimal> rates = loadCurrencies(loader, day, other);
-        return checkOtherWayAroundAndGet(day, mainUnit, rates, from, to, tasksBuilder, loader.directionFromMainToMapped());
+        return checkOtherWayAroundAndGet(day, mainUnit, rates, from, to, tasksBuilder, loader.directionFromMainToMapped(), rubCache);
     }
 
     private static Map<CurrencyUnit, BigDecimal> loadCurrencies(ExchangeRatesLoader loader, UtcDay day, CurrencyUnit other) {
@@ -347,34 +385,35 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                                            CurrencyUnit from,
                                                            CurrencyUnit to,
                                                            final ImmutableList.Builder<Runnable> tasksBuilder,
-                                                           final boolean directionFromMainToMapped) {
+                                                           final boolean directionFromMainToMapped,
+                                                           @Nullable final HashMap<CurrencyUnit, BigDecimal> rubCache) {
         if (rates.isEmpty())
             return Optional.empty();
 
         addPostponedTask(rates, day, mainUnit, tasksBuilder);
 
+        final boolean fromIsMain = from.equals(mainUnit);
+        final boolean doStraight = fromIsMain == directionFromMainToMapped;
+        final BigDecimal ourRate = rates.remove(fromIsMain ? to : from);
         try {
-            if (from.equals(mainUnit)) {
-                if (directionFromMainToMapped) {
-                    return Optional.ofNullable(rates.remove(to));
+            try {
+                if (doStraight) {
+                    return Optional.ofNullable(ourRate);
                 } else {
-                    final BigDecimal divisor = rates.remove(to);
-                    if (divisor == null)
+                    if (ourRate == null)
                         return Optional.empty();
-                    return Optional.of(CurrencyRatesProvider.Static.reverseRate(divisor));
+                    return Optional.of(CurrencyRatesProvider.Static.reverseRate(ourRate));
                 }
-            } else {
-                if (directionFromMainToMapped) {
-                    final BigDecimal divisor = rates.remove(from);
-                    if (divisor == null)
-                        return Optional.empty();
-                    return Optional.of(CurrencyRatesProvider.Static.reverseRate(divisor));
-                } else {
-                    return Optional.ofNullable(rates.remove(from));
+            } finally {
+                if (rubCache != null) {
+                    for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
+                        rubCache.put(entry.getKey(), doStraight ? entry.getValue() : CurrencyRatesProvider.Static.reverseRate(entry.getValue()));
+                    }
                 }
             }
         } finally {
             for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
+                final CurrencyUnit key = entry.getKey();
                 tasksBuilder.add(
                         new Runnable() {
                             @Override

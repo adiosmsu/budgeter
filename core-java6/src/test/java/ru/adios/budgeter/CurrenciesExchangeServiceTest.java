@@ -101,7 +101,7 @@ public class CurrenciesExchangeServiceTest {
 
         final Optional<BigDecimal> usdToRub = state.service.getConversionMultiplier(TestUtils.YESTERDAY, CurrencyUnit.USD, Units.RUB);
         assertTrue(caseName + "usdToRub didn't compute or download", usdToRub.isPresent());
-        assertEquals(CurrencyRatesProvider.Static.reverseRate(rubToUsd.get()).round(mc), usdToRub.get().round(mc));
+        assertEquals(CurrencyRatesProvider.Static.reverseRate(rubToUsd.get()).round(mc).stripTrailingZeros(), usdToRub.get().round(mc).stripTrailingZeros());
         System.out.println(caseName + "usdToRub: " + usdToRub.get());
 
         final BigDecimal ourVal = BigDecimal.valueOf(55.5534);
