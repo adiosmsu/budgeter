@@ -313,8 +313,11 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                                            @Nullable final HashMap<CurrencyUnit, BigDecimal> rubCache) {
         if (rates.isEmpty())
             return Optional.empty();
+        final boolean btcVolatile = day.equals(new UtcDay()) && mainUnit.equals(Units.BTC);
 
-        addPostponedTask(rates, day, mainUnit, tasksBuilder);
+        if (!btcVolatile) {
+            addPostponedTask(rates, day, mainUnit, tasksBuilder);
+        }
 
         final boolean fromIsMain = from.equals(mainUnit);
         final boolean doStraight = fromIsMain == directionFromMainToMapped;
@@ -336,20 +339,22 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                 }
             }
         } finally {
-            for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
-                final CurrencyUnit key = entry.getKey();
-                tasksBuilder.add(() -> {
-                    try {
-                        if (directionFromMainToMapped) {
-                            addRateToDelegate(day, mainUnit, key, entry.getValue());
-                        } else {
-                            addRateToDelegate(day, key, mainUnit, entry.getValue());
+            if (!btcVolatile) {
+                for (final Map.Entry<CurrencyUnit, BigDecimal> entry : rates.entrySet()) {
+                    final CurrencyUnit key = entry.getKey();
+                    tasksBuilder.add(() -> {
+                        try {
+                            if (directionFromMainToMapped) {
+                                addRateToDelegate(day, mainUnit, key, entry.getValue());
+                            } else {
+                                addRateToDelegate(day, key, mainUnit, entry.getValue());
+                            }
+                        } catch (Throwable th) {
+                            logger.error("Rate addition after load from net failed", th);
+                            Throwables.propagate(th);
                         }
-                    } catch (Throwable th) {
-                        logger.error("Rate addition after load from net failed", th);
-                        Throwables.propagate(th);
-                    }
-                });
+                    });
+                }
             }
         }
     }
