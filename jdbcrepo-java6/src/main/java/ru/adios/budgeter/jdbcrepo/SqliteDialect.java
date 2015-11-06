@@ -11,8 +11,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -40,6 +38,9 @@ public final class SqliteDialect extends AbstractSqlDialect {
     private static final String SEQUENCE_SET_VALUE_SQL = "UPDATE sqlite_sequence SET seq = ? WHERE name = ";
     private static final String TABLE_EXISTENCE_QUERY = "SELECT name FROM sqlite_master WHERE type='table' AND name = '";
     private static final int MAX_LONG_PRECISION = BigInteger.valueOf(Long.MAX_VALUE).toString().length();
+
+
+    private final Default def = new Default(this);
 
     private SqliteDialect() {}
 
@@ -206,30 +207,9 @@ public final class SqliteDialect extends AbstractSqlDialect {
         return (T) object;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <T> SingleColumnRowMapper<T> getRowMapperForType(Class<T> type) {
-        if (type.equals(Long.class)) {
-            return (SingleColumnRowMapper<T>) Common.LONG_ROW_MAPPER;
-        } else if (type.equals(String.class)) {
-            return (SingleColumnRowMapper<T>) Common.STRING_ROW_MAPPER;
-        } else if (type.equals(BigDecimal.class) || type.equals(UtcDay.class) || type.equals(OffsetDateTime.class)) {
-            return new ArbitrarySingleColumnRowMapper<T>(type);
-        }
-        throw new IllegalArgumentException(type.toString() + " unsupported");
-    }
-
-    private final class ArbitrarySingleColumnRowMapper<T> extends SingleColumnRowMapper<T> {
-
-        private ArbitrarySingleColumnRowMapper(Class<T> requiredType) {
-            super(requiredType);
-        }
-
-        @Override
-        protected Object getColumnValue(ResultSet rs, int index, Class<?> requiredType) throws SQLException {
-            return translateFromDb(super.getColumnValue(rs, index, requiredType), requiredType);
-        }
-
+        return def.getRowMapperForType(type);
     }
 
 }

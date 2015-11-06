@@ -59,6 +59,7 @@ final class Common {
     }
 
     static final SingleColumnRowMapper<Long> LONG_ROW_MAPPER = new SingleColumnRowMapper<Long>(Long.class);
+    static final SingleColumnRowMapper<Integer> INTEGER_ROW_MAPPER = new SingleColumnRowMapper<Integer>(Integer.class);
     static final SingleColumnRowMapper<String> STRING_ROW_MAPPER = new SingleColumnRowMapper<String>(String.class);
     static final SqlDialect.Join[] EMPTY_JOINS = new SqlDialect.Join[] {};
 

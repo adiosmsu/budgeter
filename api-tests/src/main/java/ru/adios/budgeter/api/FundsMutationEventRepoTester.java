@@ -32,20 +32,9 @@ public final class FundsMutationEventRepoTester {
     public void testRegisterBenefit() throws Exception {
         final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
 
-        FundsMutationSubject food;
-        try {
-            food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            food = subjectRepository.addSubject(food);
-        } catch (Exception ignore) {
-            food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
-        }
+        final FundsMutationSubject food = getFoodSubject(subjectRepository);
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
-        BalanceAccount accountRub;
-        try {
-            accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
-        } catch (Exception ignore) {
-            accountRub = bundle.treasury().getAccountForName("accountRUB").get();
-        }
+        final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
@@ -73,20 +62,9 @@ public final class FundsMutationEventRepoTester {
     public void testRegisterLoss() throws Exception {
         final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
 
-        FundsMutationSubject food;
-        try {
-            food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
-            food = subjectRepository.addSubject(food);
-        } catch (Exception ignore) {
-            food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
-        }
+        final FundsMutationSubject food = getFoodSubject(subjectRepository);
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
-        BalanceAccount accountRub;
-        try {
-            accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
-        } catch (Exception ignore) {
-            accountRub = bundle.treasury().getAccountForName("accountRUB").get();
-        }
+        final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
                 .setQuantity(10)
                 .setSubject(food)
@@ -109,6 +87,26 @@ public final class FundsMutationEventRepoTester {
             mutationEventRepository.register(test);
             fail("Subject existence test failed");
         } catch (Exception ignore) {}
+    }
+
+    public void testCount() throws Exception {
+        final FundsMutationEventRepository mutationEventRepository = bundle.fundsMutationEvents();
+        testRegisterLoss();
+        testRegisterBenefit();
+        assertEquals("Wrong number of records", 2, mutationEventRepository.countMutationEvents());
+
+        final FundsMutationSubject food = getFoodSubject(bundle.fundsMutationSubjects());
+        final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
+        final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
+        final FundsMutationEvent someBuy = FundsMutationEvent.builder()
+                .setSubject(food)
+                .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-10L)))
+                .setRelevantBalance(accountRub)
+                .setAgent(agent)
+                .build();
+        mutationEventRepository.register(someBuy);
+
+        assertEquals("Wrong number of records", 3, mutationEventRepository.countMutationEvents());
     }
 
     public void testStream() throws Exception {
@@ -166,6 +164,17 @@ public final class FundsMutationEventRepoTester {
         bundle.fundsMutationEvents().register(breadBuy2);
 
         assertEquals("Stream for day counted wrong", 3, bundle.fundsMutationEvents().streamForDay(new UtcDay()).count());
+    }
+
+    private FundsMutationSubject getFoodSubject(FundsMutationSubjectRepository subjectRepository) {
+        FundsMutationSubject food;
+        try {
+            food = FundsMutationSubject.builder(subjectRepository).setName("Food").setType(FundsMutationSubject.Type.PRODUCT).build();
+            food = subjectRepository.addSubject(food);
+        } catch (Exception ignore) {
+            food = subjectRepository.findByName("Food").orElseThrow(() -> new IllegalStateException("Unable to create Food and fetch it simultaneously", ignore));
+        }
+        return food;
     }
 
 }

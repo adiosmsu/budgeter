@@ -54,6 +54,11 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
     }
 
     @Override
+    public int countExchangeEvents() {
+        return table.size();
+    }
+
+    @Override
     public Stream<CurrencyExchangeEvent> streamExchangeEvents(final List<OrderBy<Field>> options, final Optional<OptLimit> limitRef) {
         final int[] offsetCounter = new int[1], limitCounter = new int[1];
         offsetCounter[0] = 0; limitCounter[0] = 0;

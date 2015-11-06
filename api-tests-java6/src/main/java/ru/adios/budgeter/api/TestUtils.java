@@ -14,9 +14,16 @@ import ru.adios.budgeter.api.data.FundsMutationAgent;
 public class TestUtils {
 
     static FundsMutationAgent prepareTestAgent(Bundle bundle) {
-        final FundsMutationAgent test = FundsMutationAgent.builder().setName("Test").build();
-        bundle.clear(Bundle.Repo.FUNDS_MUTATION_AGENTS);
-        return bundle.fundsMutationAgents().addAgent(test);
+        final Optional<FundsMutationAgent> opt = bundle.fundsMutationAgents().findByName("Test");
+        if (opt.isPresent()) {
+            return opt.get();
+        }
+
+        return bundle.fundsMutationAgents().addAgent(
+                FundsMutationAgent.builder()
+                        .setName("Test")
+                        .build()
+        );
     }
 
     static BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit) {

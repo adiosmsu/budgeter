@@ -13,7 +13,6 @@ import ru.adios.budgeter.api.data.FundsMutationAgent;
 import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
 
-import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -82,7 +81,8 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID
     );
 
-    public static final String SQL_STREAM_START = SqlDialect.selectSqlBuilder(
+    private static final String COUNT_ALL_SQL = SqlDialect.countAllSql(TABLE_NAME);
+    private static final String SQL_STREAM_START = SqlDialect.selectSqlBuilder(
             TABLE_NAME, COLS_FOR_SELECT,
             JOIN_RELEVANT_ACCOUNT,
             JOIN_SUBJECT,
@@ -205,9 +205,9 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
         Common.insert(this, mutationEvent);
     }
 
-    @Nonnull
-    static FundsMutationEvent negateEvent(FundsMutationEvent mutationEvent) {
-        return FundsMutationEvent.builder().setFundsMutationEvent(mutationEvent).setAmount(mutationEvent.amount.negated()).build();
+    @Override
+    public int countMutationEvents() {
+        return Common.getSingleColumn(this, COUNT_ALL_SQL, Common.INTEGER_ROW_MAPPER);
     }
 
     @Override

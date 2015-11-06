@@ -30,6 +30,11 @@ public class FundsMutationEventJdbcRepositoryTest {
     }
 
     @Test
+    public void testCount() throws Exception {
+        TestContext.ex(tester::testCount);
+    }
+
+    @Test
     public void testStream() throws Exception {
         TestContext.ex(tester::testStream);
     }

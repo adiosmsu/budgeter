@@ -1,7 +1,6 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import org.intellij.lang.annotations.Language;
-import org.springframework.jdbc.core.SingleColumnRowMapper;
 import ru.adios.budgeter.DateTimeUtils;
 import ru.adios.budgeter.api.UtcDay;
 
@@ -9,8 +8,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -197,32 +194,6 @@ public final class SqliteDialect implements SqlDialect {
             return (T) DateTimeUtils.fromEpochMillis(((Number) object).longValue(), ZoneId.systemDefault());
         }
         return (T) object;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> SingleColumnRowMapper<T> getRowMapperForType(Class<T> type) {
-        if (type.equals(Long.class)) {
-            return (SingleColumnRowMapper<T>) Common.LONG_ROW_MAPPER;
-        } else if (type.equals(String.class)) {
-            return (SingleColumnRowMapper<T>) Common.STRING_ROW_MAPPER;
-        } else if (type.equals(BigDecimal.class) || type.equals(UtcDay.class) || type.equals(OffsetDateTime.class)) {
-            return new ArbitrarySingleColumnRowMapper<>(type);
-        }
-        throw new IllegalArgumentException(type.toString() + " unsupported");
-    }
-
-    private final class ArbitrarySingleColumnRowMapper<T> extends SingleColumnRowMapper<T> {
-
-        private ArbitrarySingleColumnRowMapper(Class<T> requiredType) {
-            super(requiredType);
-        }
-
-        @Override
-        protected Object getColumnValue(ResultSet rs, int index, Class<?> requiredType) throws SQLException {
-            return translateFromDb(super.getColumnValue(rs, index, requiredType), requiredType);
-        }
-
     }
 
 }

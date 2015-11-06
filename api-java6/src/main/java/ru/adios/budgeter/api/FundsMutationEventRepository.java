@@ -43,6 +43,8 @@ public interface FundsMutationEventRepository extends Provider<FundsMutationEven
 
     void register(FundsMutationEvent mutationEvent);
 
+    int countMutationEvents();
+
     Stream<FundsMutationEvent> streamMutationEvents(RepoOption... options); // default in java8
 
     Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit);

@@ -40,6 +40,16 @@ public class FundsMutationEventJdbcRepositoryTest {
     }
 
     @Test
+    public void testCount() throws Exception {
+        TestContext.BUNDLE.tryExecuteInTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testCount();
+            }
+        });
+    }
+
+    @Test
     public void testStream() throws Exception {
         TestContext.BUNDLE.tryExecuteInTransaction(new TestCheckedRunnable() {
             @Override

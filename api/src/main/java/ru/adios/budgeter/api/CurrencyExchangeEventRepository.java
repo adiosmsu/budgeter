@@ -20,6 +20,8 @@ public interface CurrencyExchangeEventRepository extends Provider<CurrencyExchan
 
     void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent);
 
+    int countExchangeEvents();
+
     Stream<CurrencyExchangeEvent> streamExchangeEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
     Stream<CurrencyExchangeEvent> streamForDay(UtcDay day);

@@ -3,8 +3,13 @@ package ru.adios.budgeter.jdbcrepo;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import ru.adios.budgeter.api.OptLimit;
 import ru.adios.budgeter.api.OrderBy;
+import ru.adios.budgeter.api.UtcDay;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -17,23 +22,55 @@ import java.util.function.Consumer;
  */
 public interface SqlDialect {
 
+    static String countAllSql(String tableName) {
+        return countSql(tableName, "*");
+    }
+
+    static String countAllSql(String tableName, @Nullable String whereClause, Join... joins) {
+        return countSql(tableName, "*", whereClause, joins);
+    }
+
+    static String countSql(String tableName, String columnName) {
+        return countSqlBuilder(tableName, columnName).toString();
+    }
+
+    static String countSql(String tableName, String columnName, @Nullable String whereClause, Join... joins) {
+        return appendJoins(
+                appendWhereClause(
+                        countSqlBuilder(tableName, columnName),
+                        whereClause
+                ),
+                joins
+        ).toString();
+    }
+
+    static StringBuilder countSqlBuilder(String tableName, String columnName) {
+        return new StringBuilder(200)
+                .append("SELECT COUNT(")
+                .append(columnName)
+                .append(')')
+                .append(" FROM ")
+                .append(tableName);
+    }
+
     static String selectSql(String tableName, @Nullable String whereClause, String... columns) {
         return selectSql(tableName, whereClause, Arrays.asList(columns));
     }
 
     static String selectSql(String tableName, @Nullable String whereClause, List<String> columns, Join... joins) {
-        final StringBuilder sb = selectSqlBuilder(tableName, columns, joins);
+        return appendWhereClause(selectSqlBuilder(tableName, columns, joins), whereClause).toString();
+    }
 
+    static StringBuilder selectSqlBuilder(String tableName, @Nullable String whereClause, String... columns) {
+        return appendWhereClause(selectSqlBuilder(tableName, Arrays.asList(columns)), whereClause);
+    }
+
+    static StringBuilder appendWhereClause(StringBuilder sb, @Nullable String whereClause) {
         if (whereClause != null) {
             sb.append(" WHERE ");
             sb.append(whereClause);
         }
-
-        return sb.toString();
-    }
-
-    static StringBuilder selectSqlBuilder(String tableName, @Nullable String whereClause, String... columns) {
-        return selectSqlBuilder(tableName, Arrays.asList(columns));
+        return sb;
     }
 
     static StringBuilder selectSqlBuilder(String tableName, List<String> columns, Join... joins) {
@@ -43,12 +80,15 @@ public interface SqlDialect {
         if (appendColumns(sb, columns)) {
             sb.append('*');
         }
-        sb.append(" FROM ").append(tableName);
+
+        return appendJoins(sb.append(" FROM ").append(tableName), joins);
+    }
+
+    static StringBuilder appendJoins(StringBuilder sb, Join[] joins) {
         for (final Join join : joins) {
             sb.append(' ');
             join.appendToBuilder(sb);
         }
-
         return sb;
     }
 
@@ -363,6 +403,34 @@ public interface SqlDialect {
 
     <T> T translateFromDb(Object object, Class<T> type);
 
-    <T> SingleColumnRowMapper<T> getRowMapperForType(Class<T> type);
+    @SuppressWarnings("unchecked")
+    default <T> SingleColumnRowMapper<T> getRowMapperForType(Class<T> type) {
+        if (type.equals(Long.class)) {
+            return (SingleColumnRowMapper<T>) Common.LONG_ROW_MAPPER;
+        } else if (type.equals(Integer.class)) {
+            return (SingleColumnRowMapper<T>) Common.INTEGER_ROW_MAPPER;
+        }  else if (type.equals(String.class)) {
+            return (SingleColumnRowMapper<T>) Common.STRING_ROW_MAPPER;
+        } else if (type.equals(BigDecimal.class) || type.equals(UtcDay.class) || type.equals(OffsetDateTime.class)) {
+            return new ArbitrarySingleColumnRowMapper<>(type, this);
+        }
+        throw new IllegalArgumentException(type.toString() + " unsupported");
+    }
+
+    final class ArbitrarySingleColumnRowMapper<T> extends SingleColumnRowMapper<T> {
+
+        private final SqlDialect sqlDialect;
+
+        private ArbitrarySingleColumnRowMapper(Class<T> requiredType, SqlDialect sqlDialect) {
+            super(requiredType);
+            this.sqlDialect = sqlDialect;
+        }
+
+        @Override
+        protected Object getColumnValue(ResultSet rs, int index, Class<?> requiredType) throws SQLException {
+            return sqlDialect.translateFromDb(super.getColumnValue(rs, index, requiredType), requiredType);
+        }
+
+    }
 
 }

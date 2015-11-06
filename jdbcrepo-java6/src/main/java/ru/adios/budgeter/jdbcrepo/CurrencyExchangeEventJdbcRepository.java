@@ -77,6 +77,7 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
             COL_SOLD_UNIT, COL_SOLD_AMOUNT, COL_BOUGHT_UNIT, COL_BOUGHT_AMOUNT, COL_SOLD_ACCOUNT_ID, COL_BOUGHT_ACCOUNT_ID, COL_RATE, COL_TIMESTAMP, COL_AGENT_ID
     );
 
+    private static final String COUNT_ALL_SQL = SqlDialect.Static.countAllSql(TABLE_NAME);
     private static final String SQL_STREAM_START = SqlDialect.Static.selectSqlBuilder(
             TABLE_NAME, COLS_FOR_SELECT,
             JOIN_SOLD_ACCOUNT,
@@ -217,6 +218,11 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     @Override
     public void registerCurrencyExchange(CurrencyExchangeEvent exchangeEvent) {
         Common.insert(this, exchangeEvent);
+    }
+
+    @Override
+    public int countExchangeEvents() {
+        return Common.getSingleColumn(this, COUNT_ALL_SQL, Common.INTEGER_ROW_MAPPER);
     }
 
     @Override

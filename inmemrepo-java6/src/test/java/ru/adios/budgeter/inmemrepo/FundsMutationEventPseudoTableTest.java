@@ -30,6 +30,11 @@ public class FundsMutationEventPseudoTableTest {
     }
 
     @Test
+    public void testCount() throws Exception {
+        tester.testCount();
+    }
+
+    @Test
     public void testStream() throws Exception {
         tester.testStream();
     }

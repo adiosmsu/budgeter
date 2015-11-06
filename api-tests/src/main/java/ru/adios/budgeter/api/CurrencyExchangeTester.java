@@ -47,6 +47,27 @@ public final class CurrencyExchangeTester {
         assertEquals("Storage broke on put/get test", exchangeEvent, exEventsRepo.getById(exEventsRepo.currentSeqValue()).get());
     }
 
+    public void testCount() throws Exception {
+        final CurrencyExchangeEventRepository curExEvents = bundle.currencyExchangeEvents();
+        testStreamExchangeEvents();
+
+        assertEquals("Wrong number of records", 2, curExEvents.countExchangeEvents());
+
+        final FundsMutationAgent agent = bundle.fundsMutationAgents().findByName("Test").get();
+        final CurrencyExchangeEvent exchangeEvent = CurrencyExchangeEvent.builder()
+                .setBought(Money.of(Units.RUB, BigDecimal.valueOf(40000L)))
+                .setSold(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(1000L)))
+                .setBoughtAccount(TestUtils.prepareBalance(bundle, Units.RUB))
+                .setSoldAccount(TestUtils.prepareBalance(bundle, CurrencyUnit.USD))
+                .setRate(BigDecimal.valueOf(40L))
+                .setTimestamp(new UtcDay().add(-2).inner)
+                .setAgent(agent)
+                .build();
+        curExEvents.registerCurrencyExchange(exchangeEvent);
+
+        assertEquals("Wrong number of records", 3, curExEvents.countExchangeEvents());
+    }
+
     public void testStreamExchangeEvents() throws Exception {
         testRegisterCurrencyExchange();
         final FundsMutationAgent agent = bundle.fundsMutationAgents().getAgentWithId(FundsMutationAgent.builder().setName("Test").build());

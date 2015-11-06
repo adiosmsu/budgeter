@@ -70,6 +70,11 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
     }
 
     @Override
+    public int countMutationEvents() {
+        return table.size();
+    }
+
+    @Override
     public Stream<FundsMutationEvent> streamMutationEvents(final List<OrderBy<Field>> options, final Optional<OptLimit> limitRef) {
         final int[] offsetCounter = new int[1], limitCounter = new int[1];
         offsetCounter[0] = 0; limitCounter[0] = 0;

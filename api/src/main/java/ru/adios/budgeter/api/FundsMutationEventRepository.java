@@ -29,6 +29,8 @@ public interface FundsMutationEventRepository extends Provider<FundsMutationEven
         return streamMutationEvents(pair.options, pair.limit);
     }
 
+    int countMutationEvents();
+
     Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
     Stream<FundsMutationEvent> streamForDay(UtcDay day);

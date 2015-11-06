@@ -25,6 +25,11 @@ public class CurrencyExchangeEventPseudoTableTest {
     }
 
     @Test
+    public void testCount() throws Exception {
+        tester.testCount();
+    }
+
+    @Test
     public void testStreamExchangeEvents() throws Exception {
         tester.testStreamExchangeEvents();
     }

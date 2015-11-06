@@ -30,6 +30,16 @@ public class CurrencyExchangeEventJdbcRepositoryTest {
     }
 
     @Test
+    public void testCount() throws Exception {
+        TestContext.BUNDLE.tryExecuteInTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testCount();
+            }
+        });
+    }
+
+    @Test
     public void testStreamExchangeEvents() throws Exception {
         TestContext.BUNDLE.tryExecuteInTransaction(new TestCheckedRunnable() {
             @Override

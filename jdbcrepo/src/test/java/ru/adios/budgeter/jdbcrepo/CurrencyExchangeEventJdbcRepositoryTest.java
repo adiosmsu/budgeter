@@ -25,6 +25,11 @@ public class CurrencyExchangeEventJdbcRepositoryTest {
     }
 
     @Test
+    public void testCount() throws Exception {
+        TestContext.ex(tester::testCount);
+    }
+
+    @Test
     public void testStreamExchangeEvents() throws Exception {
         TestContext.ex(tester::testStreamExchangeEvents);
     }
