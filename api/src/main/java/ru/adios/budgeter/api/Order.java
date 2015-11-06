@@ -13,13 +13,25 @@ public enum Order {
         public int applyToCompareResult(int compareResult) {
             return compareResult;
         }
+
+        @Override
+        public Order other() {
+            return DESC;
+        }
     }, DESC {
         @Override
         public int applyToCompareResult(int compareResult) {
             return -compareResult;
         }
+
+        @Override
+        public Order other() {
+            return ASC;
+        }
     };
 
     public abstract int applyToCompareResult(int compareResult);
+
+    public abstract Order other();
 
 }

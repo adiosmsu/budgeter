@@ -24,6 +24,10 @@ public final class OrderBy<T extends OrderedField> implements RepoOption {
         this.order = order;
     }
 
+    public OrderBy<T> flipOrder() {
+        return new OrderBy<T>(field, order.other());
+    }
+
     public static final class OrderedFieldDefault implements OrderedField {
 
         private final String n;
