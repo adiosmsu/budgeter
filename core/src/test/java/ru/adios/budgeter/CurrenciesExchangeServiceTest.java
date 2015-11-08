@@ -141,7 +141,7 @@ public class CurrenciesExchangeServiceTest {
 
         Thread.sleep(100);
 
-        checkedRunnable = () -> testPostponed(state, caseName);
+        checkedRunnable = () -> testPostponed(state, caseName + ": ");
         jdbcState.bundle.tryExecuteInTransaction(checkedRunnable);
     }
 
@@ -152,15 +152,31 @@ public class CurrenciesExchangeServiceTest {
     }
 
     private void testProcessAllPostponedEventsWithManualRatesWith(State state, String caseName) throws Exception {
+        caseName += ": ";
         prepareForPostponed(state);
 
         state.ratesRepository.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
         state.ratesRepository.addRate(TestUtils.TODAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(61.0));
 
-        state.service.processAllPostponedEvents();
+        final Integer[] tracker = new Integer[] {0};
+        final CurrenciesExchangeService.ProcessPostponedResult processPostponedResult =
+                state.service.processAllPostponedEvents(Optional.of(percent -> {
+                    System.out.println("Postponed percentage: " + percent);
+                    tracker[0] = percent;
+                }));
+
+        assertProcessPostponedResult(caseName, tracker[0], processPostponedResult);
 
         Thread.sleep(100);
         testPostponed(state, caseName);
+    }
+
+    private static void assertProcessPostponedResult(String caseName, Integer tracked, CurrenciesExchangeService.ProcessPostponedResult processPostponedResult) {
+        assertEquals(caseName + "Percentage tracker failure", 100L, tracked.longValue());
+        assertEquals(caseName + "Must be 2 succeeded conversion rates", 2, processPostponedResult.succeeded.size());
+        assertTrue(caseName + "Conversion rate is not between RUB/EUR pair ",
+                processPostponedResult.succeeded.get(0).pair.containsIgnoreOrder(CurrencyUnit.EUR, Units.RUB));
+        assertTrue(caseName + "There are failed pairs", processPostponedResult.failed.isEmpty());
     }
 
     @Test
@@ -170,9 +186,14 @@ public class CurrenciesExchangeServiceTest {
     }
 
     private void testProcessAllPostponedEventsWithRequestWith(State state, String caseName) throws Exception {
+        caseName += ": ";
         prepareForPostponed(state);
 
-        state.service.processAllPostponedEvents();
+        final Integer[] tracker = new Integer[] {0};
+        final CurrenciesExchangeService.ProcessPostponedResult processPostponedResult =
+                state.service.processAllPostponedEvents(Optional.of(percent -> tracker[0] = percent));
+
+        assertProcessPostponedResult(caseName, tracker[0], processPostponedResult);
 
         Thread.sleep(100);
         testPostponed(state, caseName);
@@ -185,7 +206,9 @@ public class CurrenciesExchangeServiceTest {
         final FundsMutationAgent testAgent = state.accounter.fundsMutationAgentRepo().addAgent(FundsMutationAgent.builder().setName("Test").build());
 
         state.accounter.postponedCurrencyExchangeEventRepository()
-                .rememberPostponedExchange(BigDecimal.valueOf(60000), state.accountRub, state.accountEur, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent);
+                .rememberPostponedExchange(
+                        BigDecimal.valueOf(60000), state.accountRub, state.accountEur, Optional.of(BigDecimal.valueOf(60.0)), TestUtils.YESTERDAY.inner, testAgent
+                );
         state.accounter.postponedFundsMutationEventRepository().rememberPostponedExchangeableEvent(
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.RUB, 110000.0))
@@ -198,7 +221,6 @@ public class CurrenciesExchangeServiceTest {
     }
 
     private void testPostponed(State state, String caseName) {
-        caseName += ": ";
         final Optional<FundsMutationEvent> todayFirst = state.bundle.fundsMutationEvents().streamForDay(TestUtils.TODAY).findFirst();
         assertTrue(caseName + "No remembered mutation event", todayFirst.isPresent());
 

@@ -23,6 +23,11 @@ public final class ConversionPair {
         this.to = to;
     }
 
+    public boolean containsIgnoreOrder(CurrencyUnit first, CurrencyUnit second) {
+        return (from.equals(first) && to.equals(second))
+                || (from.equals(second) && to.equals(first));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import ru.adios.budgeter.api.*;
+import ru.adios.budgeter.api.data.ConversionPair;
 import ru.adios.budgeter.api.data.ConversionRate;
 
 import javax.annotation.Nullable;
@@ -19,6 +20,8 @@ import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Date: 6/14/15
@@ -113,11 +116,89 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
         }
     }
 
-    public final void processAllPostponedEvents() {
-        accounter.streamAllPostponingReasons().forEach(
-                postponingReasons -> CurrencyRatesProvider.streamConversionPairs(postponingReasons.sufferingUnits)
-                        .forEach(conversionPair -> getConversionMultiplier(postponingReasons.dayUtc, conversionPair.from, conversionPair.to, true))
-        );
+    public static final class ProcessPostponedResult {
+        public final ImmutableList<ConversionRate> succeeded;
+        public final ImmutableList<ConversionRate> failed;
+
+        private ProcessPostponedResult(ImmutableList<ConversionRate> succeeded, ImmutableList<ConversionRate> failed) {
+            this.succeeded = succeeded;
+            this.failed = failed;
+        }
+    }
+    public final ProcessPostponedResult processAllPostponedEvents(Optional<Consumer<Integer>> percentageProgressTracker) {
+        final Integer[] counter = new Integer[] {0};
+        final List<Accounter.PostponingReasons> collected =
+                accounter.streamAllPostponingReasons()
+                        .peek(postponingReasons -> {
+                            if (percentageProgressTracker.isPresent() && counter[0] < 20) {
+                                counter[0] += 2;
+                                percentageProgressTracker.get().accept(counter[0]);
+                            }
+                        })
+                        .collect(Collectors.toList());
+
+        float quantaSecondStage = 0f;
+        int totalPercentage = counter[0];
+        if (percentageProgressTracker.isPresent()) {
+            if (totalPercentage < 20) {
+                percentageProgressTracker.get().accept(totalPercentage = 20);
+            }
+            float totalSecondStage = 0;
+            for (final Accounter.PostponingReasons reasons : collected) {
+                totalSecondStage += reasons.sufferingUnits.size();
+            }
+            quantaSecondStage = 20f / totalSecondStage;
+        }
+
+        final HashMap<UtcDay, List<ConversionPair>> work = new HashMap<>(collected.size() + 1, 1f);
+        float tw = 0f;
+        for (final Accounter.PostponingReasons reasons : collected) {
+            final List<ConversionPair> pairsToLoad =
+                    CurrencyRatesProvider.streamConversionPairs(reasons.sufferingUnits).collect(Collectors.toList());
+
+            work.put(reasons.dayUtc, pairsToLoad);
+
+            if (percentageProgressTracker.isPresent()) {
+                percentageProgressTracker.get().accept(totalPercentage += (int) (quantaSecondStage * reasons.sufferingUnits.size()));
+                tw += pairsToLoad.size();
+            }
+        }
+
+        float quantaLastStage = 0f;
+        if (percentageProgressTracker.isPresent()) {
+            if (totalPercentage < 40) {
+                percentageProgressTracker.get().accept(totalPercentage = 40);
+            }
+            quantaLastStage = 60f / tw;
+        }
+
+        final ImmutableList.Builder<ConversionRate> successesBuilder = ImmutableList.builder();
+        final ImmutableList.Builder<ConversionRate> failsBuilder = ImmutableList.builder();
+
+        for (final Map.Entry<UtcDay, List<ConversionPair>> entry : work.entrySet()) {
+            final UtcDay day = entry.getKey();
+            final List<ConversionPair> pairsList = entry.getValue();
+
+            for (ConversionPair conversionPair : pairsList) {
+                final Optional<BigDecimal> multiplier = getConversionMultiplier(day, conversionPair.from, conversionPair.to, true);
+
+                if (multiplier.isPresent()) {
+                    successesBuilder.add(new ConversionRate(day, conversionPair, multiplier.get()));
+                } else {
+                    failsBuilder.add(new ConversionRate(day, conversionPair, BigDecimal.ZERO));
+                }
+            }
+
+            if (percentageProgressTracker.isPresent()) {
+                percentageProgressTracker.get().accept(totalPercentage += (int) (quantaLastStage * pairsList.size()));
+            }
+        }
+
+        if (percentageProgressTracker.isPresent() && totalPercentage < 100) {
+            percentageProgressTracker.get().accept(100);
+        }
+
+        return new ProcessPostponedResult(successesBuilder.build(), failsBuilder.build());
     }
 
     @Override
