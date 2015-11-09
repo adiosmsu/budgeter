@@ -27,8 +27,9 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
     public static final String INDEX_NAME = "ix_funds_mutation_agent_name";
     public static final String COL_ID = "id";
     public static final String COL_NAME = "name";
+    public static final String COL_DESCRIPTION = "description";
 
-    private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME);
+    private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME, COL_DESCRIPTION);
     private static final AgentRowMapper AGENT_ROW_MAPPER = new AgentRowMapper();
 
 
@@ -131,7 +132,11 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
-                + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", " + COL_NAME + ' ' + sqlDialect.textType() + ')';
+                + " ("
+                    + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
+                    + COL_NAME + ' ' + sqlDialect.textType() + ", "
+                    + COL_DESCRIPTION + ' ' + sqlDialect.textType()
+                + ')';
     }
 
     private String getCreateIndexSql() {
@@ -162,10 +167,11 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
         public FundsMutationAgent mapRowStartingFrom(int start, ResultSet rs) throws SQLException {
             final long id = rs.getLong(start);
             final String name = rs.getString(start + 1);
+            final String desc = rs.getString(start + 2);
             if (name == null) {
                 return null;
             }
-            return FundsMutationAgent.builder().setId(id).setName(name).build();
+            return FundsMutationAgent.builder().setId(id).setName(name).setDescription(desc).build();
         }
 
     }

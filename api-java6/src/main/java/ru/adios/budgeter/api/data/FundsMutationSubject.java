@@ -33,6 +33,7 @@ public final class FundsMutationSubject {
         this.name = builder.name;
         this.repository = builder.repository;
         this.type = builder.type;
+        this.description = builder.description;
     }
 
     public final OptionalLong id;
@@ -41,6 +42,7 @@ public final class FundsMutationSubject {
     public final boolean childFlag;
     public final Type type;
     public final String name;
+    public final String description;
 
     private final FundsMutationSubjectRepository repository;
 
@@ -66,6 +68,7 @@ public final class FundsMutationSubject {
     public String toString() {
         return "FundsMutationSubject{" +
                 "name='" + name + '\'' +
+                ", description='" + description + '\'' +
                 ", parentId=" + parentId +
                 ", rootId=" + rootId +
                 ", type=" + type +
@@ -109,6 +112,7 @@ public final class FundsMutationSubject {
         public boolean childFlag = false;
         private Type type;
         private String name;
+        private String description;
 
         private final FundsMutationSubjectRepository repository;
 
@@ -124,6 +128,7 @@ public final class FundsMutationSubject {
             childFlag = subject.childFlag;
             type = subject.type;
             name = subject.name;
+            description = subject.description;
             return this;
         }
 
@@ -135,6 +140,11 @@ public final class FundsMutationSubject {
 
         public Builder setName(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder setDescription(String description) {
+            this.description = description;
             return this;
         }
 
@@ -162,6 +172,10 @@ public final class FundsMutationSubject {
 
         public String getName() {
             return name;
+        }
+
+        public String getDescription() {
+            return description;
         }
 
         public Type getType() {

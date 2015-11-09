@@ -59,6 +59,7 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
     private static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
     private static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
+    private static final String JOIN_AGENT_DESC = "a." + FundsMutationAgentJdbcRepository.COL_DESCRIPTION;
 
     private static final SqlDialect.Join JOIN_SOLD_ACCOUNT =
             SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "s", COL_SOLD_ACCOUNT_ID, JdbcTreasury.COL_ID);
@@ -72,7 +73,7 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
             JOIN_SOLD_ACC_ID, JOIN_SOLD_ACC_NAME, JOIN_SOLD_ACC_CURRENCY_UNIT, JOIN_SOLD_ACC_BALANCE,
             JOIN_BOUGHT_ACC_ID, JOIN_BOUGHT_ACC_NAME, JOIN_BOUGHT_ACC_CURRENCY_UNIT, JOIN_BOUGHT_ACC_BALANCE,
             COL_RATE, COL_TIMESTAMP,
-            JOIN_AGENT_ID, JOIN_AGENT_NAME
+            JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
             COL_SOLD_UNIT, COL_SOLD_AMOUNT, COL_BOUGHT_UNIT, COL_BOUGHT_AMOUNT, COL_SOLD_ACCOUNT_ID, COL_BOUGHT_ACCOUNT_ID, COL_RATE, COL_TIMESTAMP, COL_AGENT_ID

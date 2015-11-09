@@ -20,15 +20,17 @@ public final class FundsMutationAgent {
     }
 
     public static FundsMutationAgent withId(FundsMutationAgent agent, long id) {
-        return builder().setId(id).setName(agent.name).build();
+        return builder().setAgent(agent).setId(id).build();
     }
 
     public final OptionalLong id;
     public final String name;
+    public final String description;
 
     private FundsMutationAgent(Builder builder) {
         name = builder.name;
         id = builder.id;
+        description = builder.description;
         checkState(name != null, "name is null");
     }
 
@@ -36,7 +38,8 @@ public final class FundsMutationAgent {
     public String toString() {
         return "FundsMutationAgent{" +
                 "id='" + id + '\'' +
-                "name='" + name + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
                 '}';
     }
 
@@ -57,11 +60,24 @@ public final class FundsMutationAgent {
 
         private OptionalLong id = OptionalLong.empty();
         private String name;
+        private String description;
 
         private Builder() {}
 
+        public Builder setAgent(FundsMutationAgent agent) {
+            this.id = agent.id;
+            this.name = agent.name;
+            this.description = agent.description;
+            return this;
+        }
+
         public Builder setName(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder setDescription(String description) {
+            this.description = description;
             return this;
         }
 
@@ -76,6 +92,10 @@ public final class FundsMutationAgent {
 
         public String getName() {
             return name;
+        }
+
+        public String getDescription() {
+            return description;
         }
 
         public FundsMutationAgent build() {

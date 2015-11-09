@@ -33,8 +33,9 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
     public static final String COL_CHILD_FLAG = "child_flag";
     public static final String COL_TYPE = "type";
     public static final String COL_NAME = "name";
+    public static final String COL_DESCRIPTION = "description";
 
-    private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_PARENT_ID, COL_ROOT_ID, COL_CHILD_FLAG, COL_TYPE, COL_NAME);
+    private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_PARENT_ID, COL_ROOT_ID, COL_CHILD_FLAG, COL_TYPE, COL_NAME, COL_DESCRIPTION);
 
     private static final String SQL_UPDATE_CHILD_FLAG = SqlDialect.Static.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_CHILD_FLAG), ImmutableList.of(COL_ID));
 
@@ -228,7 +229,8 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
                 + COL_ROOT_ID + ' ' + sqlDialect.bigIntType() + ", "
                 + COL_CHILD_FLAG + " BOOLEAN, "
                 + COL_TYPE + " INT, "
-                + COL_NAME + ' ' + sqlDialect.textType()
+                + COL_NAME + ' ' + sqlDialect.textType() + ", "
+                + COL_DESCRIPTION + ' ' + sqlDialect.textType()
                 + ')';
     }
 
@@ -242,7 +244,8 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
             final long rootId = rs.getLong(start++);
             final boolean childFlag = rs.getBoolean(start++);
             final int type = rs.getInt(start++);
-            final String name = rs.getString(start);
+            final String name = rs.getString(start++);
+            final String desc = rs.getString(start);
 
             if (name == null) {
                 return null;
@@ -255,6 +258,7 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
                     .setChildFlag(childFlag)
                     .setType(FundsMutationSubject.Type.values()[type])
                     .setName(name)
+                    .setDescription(desc)
                     .build();
         }
 

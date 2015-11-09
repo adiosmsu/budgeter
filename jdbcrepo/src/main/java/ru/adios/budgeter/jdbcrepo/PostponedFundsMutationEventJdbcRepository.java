@@ -55,9 +55,11 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
     public static final String JOIN_SUBJECT_CHILD_FLAG = "s." + FundsMutationSubjectJdbcRepository.COL_CHILD_FLAG;
     public static final String JOIN_SUBJECT_TYPE = "s." + FundsMutationSubjectJdbcRepository.COL_TYPE;
     public static final String JOIN_SUBJECT_NAME = "s." + FundsMutationSubjectJdbcRepository.COL_NAME;
+    public static final String JOIN_SUBJECT_DESC = "s." + FundsMutationSubjectJdbcRepository.COL_DESCRIPTION;
 
     public static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
     public static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
+    public static final String JOIN_AGENT_DESC = "a." + FundsMutationAgentJdbcRepository.COL_DESCRIPTION;
 
     public static final SqlDialect.Join JOIN_RELEVANT_ACCOUNT =
             SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "r", COL_RELEVANT_ACCOUNT_ID, JdbcTreasury.COL_ID);
@@ -70,9 +72,9 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
             COL_UNIT, COL_AMOUNT,
             JOIN_RELEVANT_ACC_ID, JOIN_RELEVANT_ACC_NAME, JOIN_RELEVANT_ACC_CURRENCY_UNIT, JOIN_RELEVANT_ACC_BALANCE,
             COL_QUANTITY,
-            JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME,
+            JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME, JOIN_SUBJECT_DESC,
             COL_TIMESTAMP,
-            JOIN_AGENT_ID, JOIN_AGENT_NAME,
+            JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC,
             COL_CONVERSION_UNIT, COL_CUSTOM_RATE
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
@@ -278,8 +280,8 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
         @Override
         public PostponedMutationEvent mapRow(ResultSet rs) throws SQLException {
             final FundsMutationEvent fundsMutationEvent = mutationRepo.getRowMapper().mapRow(rs);
-            final int conversionUnit = rs.getInt(17);
-            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(18), BigDecimal.class);
+            final int conversionUnit = rs.getInt(19);
+            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(20), BigDecimal.class);
 
             return new PostponedMutationEvent(fundsMutationEvent, CurrencyUnit.ofNumericCode(conversionUnit), Optional.ofNullable(customRate));
         }

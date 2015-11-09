@@ -22,6 +22,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     public static final String FIELD_NAME = "name";
     public static final String FIELD_TYPE = "type";
     public static final String FIELD_PARENT_NAME = "parentName";
+    public static final String FIELD_DESCRIPTION = "description";
 
     private static final Logger logger = LoggerFactory.getLogger(SubjectAdditionElementCore.class);
 
@@ -45,9 +46,19 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
         subjectBuilder.setName(name);
     }
 
+    public void setDescription(String description) {
+        if (lockOn) return;
+        subjectBuilder.setDescription(description);
+    }
+
     @Nullable
     public String getName() {
         return subjectBuilder.getName();
+    }
+
+    @Nullable
+    public String getDescription() {
+        return subjectBuilder.getDescription();
     }
 
     @PotentiallyBlocking

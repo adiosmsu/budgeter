@@ -54,6 +54,7 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
 
     public static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
     public static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
+    public static final String JOIN_AGENT_DESC = "a." + FundsMutationAgentJdbcRepository.COL_DESCRIPTION;
 
     public static final SqlDialect.Join JOIN_TO_BUY_ACCOUNT =
             SqlDialect.innerJoin(TABLE_NAME, JdbcTreasury.TABLE_NAME, "b", COL_TO_BUY_ACCOUNT_ID, JdbcTreasury.COL_ID);
@@ -67,7 +68,7 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
             JOIN_TO_BUY_ACC_ID, JOIN_TO_BUY_ACC_NAME, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_TO_BUY_ACC_BALANCE,
             JOIN_SELL_ACC_ID, JOIN_SELL_ACC_NAME, JOIN_SELL_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_BALANCE,
             COL_CUSTOM_RATE, COL_TIMESTAMP,
-            JOIN_AGENT_ID, JOIN_AGENT_NAME
+            JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
             COL_DAY, COL_TO_BUY_AMOUNT, COL_TO_BUY_ACCOUNT_ID, COL_SELL_ACCOUNT_ID, COL_CUSTOM_RATE, COL_TIMESTAMP, COL_AGENT_ID

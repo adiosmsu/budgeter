@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
 
     public static final String FIELD_NAME = "name";
+    public static final String FIELD_DESCRIPTION = "description";
 
     private static final Logger logger = LoggerFactory.getLogger(AgentAdditionElementCore.class);
 
@@ -38,9 +39,19 @@ public class AgentAdditionElementCore implements Submitter<FundsMutationAgent> {
         agentBuilder.setName(name);
     }
 
+    public void setDescription(String description) {
+        if (lockOn) return;
+        agentBuilder.setDescription(description);
+    }
+
     @Nullable
     public String getName() {
         return agentBuilder.getName();
+    }
+
+    @Nullable
+    public String getDescription() {
+        return agentBuilder.getDescription();
     }
 
     @PotentiallyBlocking
