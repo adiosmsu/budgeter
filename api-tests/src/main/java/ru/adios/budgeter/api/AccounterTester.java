@@ -33,6 +33,14 @@ public final class AccounterTester {
     }
 
     public void testStreamAllPostponingReasons() throws Exception {
+        testStreamAllPostponingReasons(false);
+    }
+
+    public void testStreamAllPostponingReasonsCompat() throws Exception {
+        testStreamAllPostponingReasons(true);
+    }
+
+    private void testStreamAllPostponingReasons(boolean compat) throws Exception {
         bundle.clearSchema();
 
         final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
@@ -88,7 +96,7 @@ public final class AccounterTester {
         bundle.accounter().postponedCurrencyExchangeEventRepository()
                 .rememberPostponedExchange(BigDecimal.valueOf(100L), accountEur, accountRub, Optional.of(BigDecimal.valueOf(54.23)), OffsetDateTime.now(), agent);
 
-        final List<Accounter.PostponingReasons> collected = bundle.accounter().streamAllPostponingReasons().collect(Collectors.toList());
+        final List<Accounter.PostponingReasons> collected = bundle.accounter().streamAllPostponingReasons(compat).collect(Collectors.toList());
         assertEquals("List size don't match: " + collected.size(), 2, collected.size());
 
         final Accounter.PostponingReasons p1 = collected.get(0);
@@ -109,6 +117,20 @@ public final class AccounterTester {
         if (!expectedSecond.equals(p1.sufferingUnits) && !expectedSecond.equals(p2.sufferingUnits)) {
             fail("Expected set " + expectedSecond + " don't match either of " + p1.sufferingUnits + " and " + p2.sufferingUnits);
         }
+    }
+
+    public void testStreamAllPostponingReasonsEmptyCompat() throws Exception {
+        testStreamAllPostponingReasonsEmpty(true);
+    }
+
+    public void testStreamAllPostponingReasonsEmpty() throws Exception {
+        testStreamAllPostponingReasonsEmpty(false);
+    }
+
+    private void testStreamAllPostponingReasonsEmpty(boolean compat) throws Exception {
+        bundle.clearSchema();
+        final List<Accounter.PostponingReasons> collected = bundle.accounter().streamAllPostponingReasons(compat).collect(Collectors.toList());
+        assertEquals("Non-empty postponed on cleared DB", 0, collected.size());
     }
 
 }

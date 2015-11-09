@@ -23,7 +23,11 @@ public interface Accounter {
     PostponedCurrencyExchangeEventRepository postponedCurrencyExchangeEventRepository();
 
 
-    Stream<PostponingReasons> streamAllPostponingReasons();
+    default Stream<PostponingReasons> streamAllPostponingReasons() {
+        return streamAllPostponingReasons(false);
+    }
+
+    Stream<PostponingReasons> streamAllPostponingReasons(boolean compatMode);
 
     FundsMutationSubjectRepository fundsMutationSubjectRepo();
 

@@ -28,6 +28,15 @@ public final class ConversionPair {
                 || (from.equals(second) && to.equals(first));
     }
 
+    public StringBuilder appendTo(StringBuilder sb) {
+        return sb.append(from).append('/').append(to);
+    }
+
+    @Override
+    public String toString() {
+        return from.toString() + '/' + to.toString();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

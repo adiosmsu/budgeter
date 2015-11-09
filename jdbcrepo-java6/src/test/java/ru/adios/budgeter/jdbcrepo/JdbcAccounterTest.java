@@ -23,4 +23,34 @@ public class JdbcAccounterTest {
         });
     }
 
+    @Test
+    public void testStreamAllPostponingReasonsEmpty() throws Exception {
+        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testStreamAllPostponingReasonsEmpty();
+            }
+        });
+    }
+
+    @Test
+    public void testStreamAllPostponingReasonsCompat() throws Exception {
+        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testStreamAllPostponingReasonsCompat();
+            }
+        });
+    }
+
+    @Test
+    public void testStreamAllPostponingReasonsEmptyCompat() throws Exception {
+        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testStreamAllPostponingReasonsEmptyCompat();
+            }
+        });
+    }
+
 }

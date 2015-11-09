@@ -18,4 +18,19 @@ public class InnerMemoryAccounterTest {
         tester.testStreamAllPostponingReasons();
     }
 
+    @Test
+    public void testStreamAllPostponingReasonsEmpty() throws Exception {
+        tester.testStreamAllPostponingReasonsEmpty();
+    }
+
+    @Test
+    public void testStreamAllPostponingReasonsCompat() throws Exception {
+        tester.testStreamAllPostponingReasonsCompat();
+    }
+
+    @Test
+    public void testStreamAllPostponingReasonsEmptyCompat() throws Exception {
+        tester.testStreamAllPostponingReasonsEmptyCompat();
+    }
+
 }

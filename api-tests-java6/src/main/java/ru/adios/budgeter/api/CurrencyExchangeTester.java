@@ -3,6 +3,7 @@ package ru.adios.budgeter.api;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
+import org.threeten.bp.temporal.ChronoUnit;
 import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
 import ru.adios.budgeter.api.data.FundsMutationAgent;
 
@@ -70,6 +71,9 @@ public final class CurrencyExchangeTester {
 
     public void testStreamExchangeEvents() throws Exception {
         testRegisterCurrencyExchange();
+        final CurrencyExchangeEventRepository curExEvents = bundle.currencyExchangeEvents();
+        final CurrencyExchangeEvent currencyExchangeEvent1 = curExEvents.getById(curExEvents.currentSeqValue()).get();
+
         final FundsMutationAgent agent = bundle.fundsMutationAgents().getAgentWithId(FundsMutationAgent.builder().setName("Test").build());
         CurrencyExchangeEvent exchangeEvent = CurrencyExchangeEvent.builder()
                 .setBought(Money.of(Units.RUB, BigDecimal.valueOf(70000L)))
@@ -77,10 +81,9 @@ public final class CurrencyExchangeTester {
                 .setBoughtAccount(bundle.treasury().getAccountForName("accountRUB").get())
                 .setSoldAccount(TestUtils.prepareBalance(bundle, CurrencyUnit.EUR))
                 .setRate(BigDecimal.valueOf(70L))
-                .setTimestamp(OffsetDateTime.now())
+                .setTimestamp(OffsetDateTime.now().plus(1, ChronoUnit.MINUTES))
                 .setAgent(agent)
                 .build();
-        final CurrencyExchangeEventRepository curExEvents = bundle.currencyExchangeEvents();
         curExEvents.registerCurrencyExchange(exchangeEvent);
 
         assertEquals(1, curExEvents.streamExchangeEvents(OptLimit.createLimit(1)).count());
@@ -93,12 +96,15 @@ public final class CurrencyExchangeTester {
                         .get()
                         .bought.isEqual(Money.of(Units.RUB, BigDecimal.valueOf(30000L)))
         );
-        assertTrue(curExEvents
-                        .streamExchangeEvents(new OrderBy<CurrencyExchangeEventRepository.Field>(CurrencyExchangeEventRepository.Field.TIMESTAMP, Order.DESC))
-                        .findFirst()
-                        .get()
-                        .bought.isEqual(Money.of(Units.RUB, BigDecimal.valueOf(70000L)))
-        );
+        final CurrencyExchangeEvent currencyExchangeEvent = curExEvents
+                .streamExchangeEvents(new OrderBy<CurrencyExchangeEventRepository.Field>(CurrencyExchangeEventRepository.Field.TIMESTAMP, Order.DESC))
+                .findFirst()
+                .get();
+        final Money bought = currencyExchangeEvent
+                .bought;
+        System.out.println("---------------->" + bought);
+        assertTrue("Not 70000: " + bought + ", time=" + currencyExchangeEvent.timestamp + ", old time=" + currencyExchangeEvent1.timestamp,
+                bought.isEqual(Money.of(Units.RUB, BigDecimal.valueOf(70000L))));
     }
 
     public void testStreamForDay() throws Exception {

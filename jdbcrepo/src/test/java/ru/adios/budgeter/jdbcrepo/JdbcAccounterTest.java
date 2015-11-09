@@ -18,4 +18,19 @@ public class JdbcAccounterTest {
         TestContext.ex(tester::testStreamAllPostponingReasons);
     }
 
+    @Test
+    public void testStreamAllPostponingReasonsEmpty() throws Exception {
+        TestContext.ex(tester::testStreamAllPostponingReasonsEmpty);
+    }
+
+    @Test
+    public void testStreamAllPostponingReasonsCompat() throws Exception {
+        TestContext.ex(tester::testStreamAllPostponingReasonsCompat);
+    }
+
+    @Test
+    public void testStreamAllPostponingReasonsEmptyCompat() throws Exception {
+        TestContext.ex(tester::testStreamAllPostponingReasonsEmptyCompat);
+    }
+
 }

@@ -19,6 +19,26 @@ public class JdbcAccounter implements Accounter {
 
     @SuppressWarnings("SqlDialectInspection")
     @Language("SQL")
+    private static final String COMPAT_SQL =
+            "SELECT DISTINCT e.day, e.unit AS currency_unit" +
+                    " FROM postponed_funds_mutation_event e" +
+                    " UNION ALL" +
+                    " SELECT DISTINCT pc.day, s.currency_unit" +
+                    " FROM postponed_currency_exchange_event pc" +
+                    " INNER JOIN balance_account s ON pc.sell_account_id = s.id" +
+                    " UNION ALL" +
+                    " SELECT DISTINCT pc.day, b.currency_unit" +
+                    " FROM postponed_currency_exchange_event pc" +
+                    " INNER JOIN balance_account b ON pc.to_buy_account_id = b.id" +
+                    " UNION ALL" +
+                    " SELECT DISTINCT e.day, e.conversion_unit AS currency_unit" +
+                    " FROM postponed_funds_mutation_event e " +
+                    "UNION ALL " +
+                    "SELECT " + Long.MAX_VALUE + " AS day, " + CurrencyUnit.USD.getNumericCode() + " AS currency_unit " +
+                    "ORDER BY day, currency_unit";
+
+    @SuppressWarnings("SqlDialectInspection")
+    @Language("SQL")
     private static final String SQL =
             "WITH large AS (" +
                     "SELECT DISTINCT e.day, e.unit AS currency_unit" +
@@ -85,17 +105,34 @@ public class JdbcAccounter implements Accounter {
     }
 
     @Override
+    public Stream<PostponingReasons> streamAllPostponingReasons(boolean compatMode) {
+        if (compatMode) {
+            return getPostponingReasonsStream(COMPAT_SQL, true);
+        } else {
+            return streamAllPostponingReasons();
+        }
+    }
+
+    @Override
     public Stream<PostponingReasons> streamAllPostponingReasons() {
+        return getPostponingReasonsStream(SQL, false);
+    }
+
+    private Stream<PostponingReasons> getPostponingReasonsStream(String sql, boolean doDistinctAfterFirstStream) {
         final AccumulationContext context = new AccumulationContext();
         final LazyResultSetIterator<Pair> iterator = LazyResultSetIterator.<Pair>of(
-                Common.getRsSupplier(jdbcConnector, SQL, "streamAllPostponingReasons"),
+                Common.getRsSupplier(jdbcConnector, sql, "streamAllPostponingReasons"),
                 Common.getMappingSqlFunction(
                         rs -> new Pair(sqlDialect.translateFromDb(rs.getObject(1), UtcDay.class), CurrencyUnit.ofNumericCode(rs.getInt(2))),
-                        SQL, "streamAllPostponingReasons"
+                        sql, "streamAllPostponingReasons"
                 ),
-                SQL
+                sql
         );
-        return iterator.stream()
+        Stream<Pair> stream = iterator.stream();
+        if (doDistinctAfterFirstStream) {
+            stream = stream.distinct();
+        }
+        return stream
                 .filter(pair -> {
                     if (context.builder == null) {
                         context.builder = ImmutableSet.builder();
@@ -137,6 +174,24 @@ public class JdbcAccounter implements Accounter {
         private Pair(UtcDay day, CurrencyUnit unit) {
             this.day = day;
             this.unit = unit;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Pair pair = (Pair) o;
+
+            return day.equals(pair.day)
+                    && unit.equals(pair.unit);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = day.hashCode();
+            result = 31 * result + unit.hashCode();
+            return result;
         }
 
     }

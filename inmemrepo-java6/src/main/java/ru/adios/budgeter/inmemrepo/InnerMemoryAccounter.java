@@ -54,6 +54,11 @@ public final class InnerMemoryAccounter implements Accounter {
 
     @Override
     public Stream<PostponingReasons> streamAllPostponingReasons() {
+        return streamAllPostponingReasons(false);
+    }
+
+    @Override
+    public Stream<PostponingReasons> streamAllPostponingReasons(boolean compat) {
         final HashMap<UtcDay, HashSet<CurrencyUnit>> accumulator = new HashMap<UtcDay, HashSet<CurrencyUnit>>(100);
         Schema.POSTPONED_CURRENCY_EXCHANGE_EVENTS.streamAll().forEach(new Consumer<PostponedExchange>() {
             @Override

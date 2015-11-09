@@ -25,6 +25,8 @@ public interface Accounter {
 
     Stream<PostponingReasons> streamAllPostponingReasons();
 
+    Stream<PostponingReasons> streamAllPostponingReasons(boolean compatMode);
+
     FundsMutationSubjectRepository fundsMutationSubjectRepo();
 
     FundsMutationAgentRepository fundsMutationAgentRepo();
