@@ -174,10 +174,10 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
             this.failed = failed;
         }
     }
-    public final ProcessPostponedResult processAllPostponedEvents(final Optional<Consumer<Integer>> percentageProgressTracker) {
+    public final ProcessPostponedResult processAllPostponedEvents(final Optional<Consumer<Integer>> percentageProgressTracker, boolean compatMode) {
         final Integer[] counter = new Integer[] {0};
         final List<Accounter.PostponingReasons> collected =
-                accounter.streamAllPostponingReasons()
+                accounter.streamAllPostponingReasons(compatMode)
                         .peek(new Consumer<Accounter.PostponingReasons>() {
                             @Override
                             public void accept(Accounter.PostponingReasons postponingReasons) {

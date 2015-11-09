@@ -177,7 +177,7 @@ public class CurrenciesExchangeServiceTest {
                                 tracker[0] = percent;
                             }
                         }
-                ));
+                ), false);
 
         assertProcessPostponedResult(caseName, tracker[0], processPostponedResult);
 
@@ -212,7 +212,7 @@ public class CurrenciesExchangeServiceTest {
                                 tracker[0] = percent;
                             }
                         }
-                ));
+                ), false);
 
         assertProcessPostponedResult(caseName, tracker[0], processPostponedResult);
 

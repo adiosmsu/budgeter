@@ -163,7 +163,7 @@ public class CurrenciesExchangeServiceTest {
                 state.service.processAllPostponedEvents(Optional.of(percent -> {
                     System.out.println("Postponed percentage: " + percent);
                     tracker[0] = percent;
-                }));
+                }), false);
 
         assertProcessPostponedResult(caseName, tracker[0], processPostponedResult);
 
@@ -191,7 +191,7 @@ public class CurrenciesExchangeServiceTest {
 
         final Integer[] tracker = new Integer[] {0};
         final CurrenciesExchangeService.ProcessPostponedResult processPostponedResult =
-                state.service.processAllPostponedEvents(Optional.of(percent -> tracker[0] = percent));
+                state.service.processAllPostponedEvents(Optional.of(percent -> tracker[0] = percent), false);
 
         assertProcessPostponedResult(caseName, tracker[0], processPostponedResult);
 
