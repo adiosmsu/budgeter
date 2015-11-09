@@ -12,24 +12,27 @@ import ru.adios.budgeter.api.data.BalanceAccount;
 public final class StoredBalanceAccount extends Stored<Money> {
 
     final String name;
+    final String desc;
 
-    StoredBalanceAccount(int id, Money obj, String name) {
+    StoredBalanceAccount(int id, Money obj, String name, String desc) {
         super(id, obj);
         this.name = name;
+        this.desc = desc;
     }
 
     BalanceAccount createBalanceAccount() {
-        return new BalanceAccount((long) id, name, obj);
+        return new BalanceAccount((long) id, name, desc, obj);
     }
 
     BalanceAccount createBalanceAccount(Long id) {
-        return new BalanceAccount(id, name, obj);
+        return new BalanceAccount(id, name, desc, obj);
     }
 
     @Override
     public String toString() {
         return "StoredBalanceAccount{" +
                 "name='" + name + '\'' +
+                ", desc='" + desc + '\'' +
                 ", " + super.toString() + '}';
     }
 

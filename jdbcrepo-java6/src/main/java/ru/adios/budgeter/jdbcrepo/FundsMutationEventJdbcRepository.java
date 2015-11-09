@@ -50,6 +50,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     private static final String JOIN_RELEVANT_ACC_NAME = "r." + JdbcTreasury.COL_NAME;
     private static final String JOIN_RELEVANT_ACC_CURRENCY_UNIT = "r." + JdbcTreasury.COL_CURRENCY_UNIT;
     private static final String JOIN_RELEVANT_ACC_BALANCE = "r." + JdbcTreasury.COL_BALANCE;
+    private static final String JOIN_RELEVANT_ACC_DESC = "r." + JdbcTreasury.COL_DESCRIPTION;
 
     private static final String JOIN_SUBJECT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_ID;
     private static final String JOIN_SUBJECT_PARENT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_PARENT_ID;
@@ -72,7 +73,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_UNIT, COL_AMOUNT,
-            JOIN_RELEVANT_ACC_ID, JOIN_RELEVANT_ACC_NAME, JOIN_RELEVANT_ACC_CURRENCY_UNIT, JOIN_RELEVANT_ACC_BALANCE,
+            JOIN_RELEVANT_ACC_ID, JOIN_RELEVANT_ACC_NAME, JOIN_RELEVANT_ACC_CURRENCY_UNIT, JOIN_RELEVANT_ACC_BALANCE, JOIN_RELEVANT_ACC_DESC,
             COL_QUANTITY,
             JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME, JOIN_SUBJECT_DESC,
             COL_TIMESTAMP,
@@ -313,10 +314,10 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             final int unit = rs.getInt(1);
             final BigDecimal amount = sqlDialect.translateFromDb(rs.getObject(2), BigDecimal.class);
             final BalanceAccount account = accountRowMapper.mapRowStartingFrom(3, rs);
-            final int quantity = rs.getInt(7);
-            final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(8, rs);
-            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(15), OffsetDateTime.class);
-            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(16, rs);
+            final int quantity = rs.getInt(8);
+            final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(9, rs);
+            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(16), OffsetDateTime.class);
+            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(17, rs);
 
             return FundsMutationEvent.builder()
                     .setAmount(Money.of(CurrencyUnit.ofNumericCode(unit), amount))

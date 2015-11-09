@@ -32,7 +32,7 @@ public class TestUtils {
         final Optional<BalanceAccount> account = bundle.treasury().getAccountForName(name);
         return account.isPresent()
                 ? account.get()
-                : bundle.treasury().registerBalanceAccount(new BalanceAccount(name, unit));
+                : bundle.treasury().registerBalanceAccount(new BalanceAccount(name, unit, null));
     }
 
 }

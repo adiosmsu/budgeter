@@ -4,6 +4,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -18,19 +19,22 @@ import java.util.Optional;
 public final class BalanceAccount {
 
     public final String name;
+    public final Optional<String> description;
     public final Optional<Long> id;
     private final Optional<CurrencyUnit> unit;
     private final Optional<Money> balance;
 
-    public BalanceAccount(@Nonnull String name, @Nonnull CurrencyUnit unit) {
+    public BalanceAccount(@Nonnull String name, @Nonnull CurrencyUnit unit, @Nullable String description) {
         this.name = name;
+        this.description = Optional.ofNullable(description);
         this.unit = Optional.of(unit);
         this.balance = Optional.empty();
         this.id = Optional.empty();
     }
 
-    public BalanceAccount(@Nonnull Long id, @Nonnull String name, @Nonnull Money balance) {
+    public BalanceAccount(@Nonnull Long id, @Nonnull String name, @Nullable String description, @Nonnull Money balance) {
         this.name = name;
+        this.description = Optional.ofNullable(description);
         this.balance = Optional.of(balance);
         this.unit = Optional.empty();
         this.id = Optional.of(id);
@@ -78,8 +82,11 @@ public final class BalanceAccount {
     public String toString() {
         final StringBuilder builder = new StringBuilder(100);
 
-        builder.append("Treasury.BalanceAccount{name=").append(name)
-                .append(", currency=").append(getUnit());
+        builder.append("Treasury.BalanceAccount{name=").append(name);
+        if (description.isPresent()) {
+            builder.append(", description=").append(description.get());
+        }
+        builder.append(", currency=").append(getUnit());
         if (balance.isPresent()) {
             builder.append(", balance=").append(balance.get().getAmount());
         }

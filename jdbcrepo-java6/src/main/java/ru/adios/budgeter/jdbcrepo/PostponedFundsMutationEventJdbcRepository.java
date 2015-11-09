@@ -49,6 +49,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
     public static final String JOIN_RELEVANT_ACC_NAME = "r." + JdbcTreasury.COL_NAME;
     public static final String JOIN_RELEVANT_ACC_CURRENCY_UNIT = "r." + JdbcTreasury.COL_CURRENCY_UNIT;
     public static final String JOIN_RELEVANT_ACC_BALANCE = "r." + JdbcTreasury.COL_BALANCE;
+    public static final String JOIN_RELEVANT_ACC_DESC = "r." + JdbcTreasury.COL_DESCRIPTION;
 
     public static final String JOIN_SUBJECT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_ID;
     public static final String JOIN_SUBJECT_PARENT_ID = "s." + FundsMutationSubjectJdbcRepository.COL_PARENT_ID;
@@ -71,7 +72,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_UNIT, COL_AMOUNT,
-            JOIN_RELEVANT_ACC_ID, JOIN_RELEVANT_ACC_NAME, JOIN_RELEVANT_ACC_CURRENCY_UNIT, JOIN_RELEVANT_ACC_BALANCE,
+            JOIN_RELEVANT_ACC_ID, JOIN_RELEVANT_ACC_NAME, JOIN_RELEVANT_ACC_CURRENCY_UNIT, JOIN_RELEVANT_ACC_BALANCE, JOIN_RELEVANT_ACC_DESC,
             COL_QUANTITY,
             JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME, JOIN_SUBJECT_DESC,
             COL_TIMESTAMP,
@@ -308,8 +309,8 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
         @Override
         public PostponedMutationEvent mapRow(ResultSet rs) throws SQLException {
             final FundsMutationEvent fundsMutationEvent = mutationRepo.getRowMapper().mapRow(rs);
-            final int conversionUnit = rs.getInt(19);
-            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(20), BigDecimal.class);
+            final int conversionUnit = rs.getInt(20);
+            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(21), BigDecimal.class);
 
             return new PostponedMutationEvent(fundsMutationEvent, CurrencyUnit.ofNumericCode(conversionUnit), Optional.ofNullable(customRate));
         }

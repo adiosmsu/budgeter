@@ -51,11 +51,13 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
     private static final String JOIN_SOLD_ACC_NAME = "s." + JdbcTreasury.COL_NAME;
     private static final String JOIN_SOLD_ACC_CURRENCY_UNIT = "s." + JdbcTreasury.COL_CURRENCY_UNIT;
     private static final String JOIN_SOLD_ACC_BALANCE = "s." + JdbcTreasury.COL_BALANCE;
+    private static final String JOIN_SOLD_ACC_DESC = "s." + JdbcTreasury.COL_DESCRIPTION;
 
     private static final String JOIN_BOUGHT_ACC_ID = "b." + JdbcTreasury.COL_ID;
     private static final String JOIN_BOUGHT_ACC_NAME = "b." + JdbcTreasury.COL_NAME;
     private static final String JOIN_BOUGHT_ACC_CURRENCY_UNIT = "b." + JdbcTreasury.COL_CURRENCY_UNIT;
     private static final String JOIN_BOUGHT_ACC_BALANCE = "b." + JdbcTreasury.COL_BALANCE;
+    private static final String JOIN_BOUGHT_ACC_DESC = "b." + JdbcTreasury.COL_DESCRIPTION;
 
     private static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
     private static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
@@ -70,8 +72,8 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_SOLD_UNIT, COL_SOLD_AMOUNT, COL_BOUGHT_UNIT, COL_BOUGHT_AMOUNT,
-            JOIN_SOLD_ACC_ID, JOIN_SOLD_ACC_NAME, JOIN_SOLD_ACC_CURRENCY_UNIT, JOIN_SOLD_ACC_BALANCE,
-            JOIN_BOUGHT_ACC_ID, JOIN_BOUGHT_ACC_NAME, JOIN_BOUGHT_ACC_CURRENCY_UNIT, JOIN_BOUGHT_ACC_BALANCE,
+            JOIN_SOLD_ACC_ID, JOIN_SOLD_ACC_NAME, JOIN_SOLD_ACC_CURRENCY_UNIT, JOIN_SOLD_ACC_BALANCE, JOIN_SOLD_ACC_DESC,
+            JOIN_BOUGHT_ACC_ID, JOIN_BOUGHT_ACC_NAME, JOIN_BOUGHT_ACC_CURRENCY_UNIT, JOIN_BOUGHT_ACC_BALANCE, JOIN_BOUGHT_ACC_DESC,
             COL_RATE, COL_TIMESTAMP,
             JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC
     );
@@ -262,10 +264,10 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
             final int boughtUnit = rs.getInt(3);
             final BigDecimal boughtAmount = sqlDialect.translateFromDb(rs.getObject(4), BigDecimal.class);
             final BalanceAccount soldAccount = accountRowMapper.mapRowStartingFrom(5, rs);
-            final BalanceAccount boughtAccount = accountRowMapper.mapRowStartingFrom(9, rs);
-            final BigDecimal rate = sqlDialect.translateFromDb(rs.getObject(13), BigDecimal.class);
-            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(14), OffsetDateTime.class);
-            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(15, rs);
+            final BalanceAccount boughtAccount = accountRowMapper.mapRowStartingFrom(10, rs);
+            final BigDecimal rate = sqlDialect.translateFromDb(rs.getObject(15), BigDecimal.class);
+            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(16), OffsetDateTime.class);
+            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(17, rs);
 
             return CurrencyExchangeEvent.builder()
                     .setSold(Money.of(CurrencyUnit.ofNumericCode(soldUnit), soldAmount))

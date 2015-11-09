@@ -48,11 +48,13 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     public static final String JOIN_TO_BUY_ACC_NAME = "b." + JdbcTreasury.COL_NAME;
     public static final String JOIN_TO_BUY_ACC_CURRENCY_UNIT = "b." + JdbcTreasury.COL_CURRENCY_UNIT;
     public static final String JOIN_TO_BUY_ACC_BALANCE = "b." + JdbcTreasury.COL_BALANCE;
+    public static final String JOIN_TO_BUY_ACC_DESC = "b." + JdbcTreasury.COL_DESCRIPTION;
 
     public static final String JOIN_SELL_ACC_ID = "s." + JdbcTreasury.COL_ID;
     public static final String JOIN_SELL_ACC_NAME = "s." + JdbcTreasury.COL_NAME;
     public static final String JOIN_SELL_ACC_CURRENCY_UNIT = "s." + JdbcTreasury.COL_CURRENCY_UNIT;
     public static final String JOIN_SELL_ACC_BALANCE = "s." + JdbcTreasury.COL_BALANCE;
+    public static final String JOIN_SELL_ACC_DESC = "s." + JdbcTreasury.COL_DESCRIPTION;
 
     public static final String JOIN_AGENT_ID = "a." + FundsMutationAgentJdbcRepository.COL_ID;
     public static final String JOIN_AGENT_NAME = "a." + FundsMutationAgentJdbcRepository.COL_NAME;
@@ -67,8 +69,8 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_TO_BUY_AMOUNT,
-            JOIN_TO_BUY_ACC_ID, JOIN_TO_BUY_ACC_NAME, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_TO_BUY_ACC_BALANCE,
-            JOIN_SELL_ACC_ID, JOIN_SELL_ACC_NAME, JOIN_SELL_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_BALANCE,
+            JOIN_TO_BUY_ACC_ID, JOIN_TO_BUY_ACC_NAME, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_TO_BUY_ACC_BALANCE, JOIN_TO_BUY_ACC_DESC,
+            JOIN_SELL_ACC_ID, JOIN_SELL_ACC_NAME, JOIN_SELL_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_BALANCE, JOIN_SELL_ACC_DESC,
             COL_CUSTOM_RATE, COL_TIMESTAMP,
             JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC
     );
@@ -280,10 +282,10 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
         public PostponedExchange mapRow(ResultSet rs) throws SQLException {
             final BigDecimal toBuyAmount = sqlDialect.translateFromDb(rs.getObject(1), BigDecimal.class);
             final BalanceAccount toBuyAccount = accountRowMapper.mapRowStartingFrom(2, rs);
-            final BalanceAccount sellAccount = accountRowMapper.mapRowStartingFrom(6, rs);
-            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(10), BigDecimal.class);
-            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(11), OffsetDateTime.class);
-            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(12, rs);
+            final BalanceAccount sellAccount = accountRowMapper.mapRowStartingFrom(7, rs);
+            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(12), BigDecimal.class);
+            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(13), OffsetDateTime.class);
+            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(14, rs);
 
             return new PostponedExchange(toBuyAmount, toBuyAccount, sellAccount, Optional.ofNullable(customRate), timestamp, agent);
         }

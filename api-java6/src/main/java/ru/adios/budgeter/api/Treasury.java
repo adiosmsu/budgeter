@@ -25,7 +25,7 @@ public interface Treasury extends Provider<BalanceAccount, Long>, Repository<Lon
     final class Static {
 
         public static BalanceAccount getTransitoryAccount(CurrencyUnit unit, Treasury treasury) {
-            final BalanceAccount account = new BalanceAccount("Транзитный счет для " + unit.getCurrencyCode(), unit);
+            final BalanceAccount account = new BalanceAccount("Транзитный счет для " + unit.getCurrencyCode(), unit, null);
             final Optional<BalanceAccount> accountForName = treasury.getAccountForName(account.name);
             if (!accountForName.isPresent()) {
                 return treasury.registerBalanceAccount(account);

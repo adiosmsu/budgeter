@@ -73,13 +73,13 @@ public class BalanceElementCoreTest {
 
         // same total unit test
         Schema.clearSchemaStatic();
-        treasury.registerBalanceAccount(new BalanceAccount("Тест", Units.RUB));
+        treasury.registerBalanceAccount(new BalanceAccount("Тест", Units.RUB, null));
         core.setTotalUnit(Units.RUB);
         core.getTotalBalance();
 
         // no total unit set test
         bundle.clearSchema();
-        treasury.registerBalanceAccount(new BalanceAccount("Тест", Units.RUB));
+        treasury.registerBalanceAccount(new BalanceAccount("Тест", Units.RUB, null));
         final BalanceElementCore balanceElementCore = new BalanceElementCore(treasury, ratesRepository);
         try {
             balanceElementCore.getTotalBalance();

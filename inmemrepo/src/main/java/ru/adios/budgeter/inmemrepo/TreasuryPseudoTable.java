@@ -83,10 +83,10 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
 
     @Override
     public void addAmount(Money amount, String accountName) {
-        _addAmount(amount, accountName, false);
+        _addAmount(amount, accountName, null, false);
     }
 
-    private BalanceAccount _addAmount(Money amount, String accountName, boolean createNew) {
+    private BalanceAccount _addAmount(Money amount, String accountName, String desc, boolean createNew) {
         checkNotNull(amount, "amount is null");
         checkNotNull(accountName, "accountName is null");
 
@@ -108,8 +108,8 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
                     "Account %s, trying to add %s", moneyStored, amount);
 
             freshValueContainer[0] = (moneyStored != null)
-                    ? new StoredBalanceAccount(id, moneyStored.obj.plus(amount), accountName)
-                    : new StoredBalanceAccount(id, amount, accountName);
+                    ? new StoredBalanceAccount(id, moneyStored.obj.plus(amount), accountName, desc)
+                    : new StoredBalanceAccount(id, amount, accountName, desc);
 
             checkState(System.currentTimeMillis() - start < 5000, "Row insert/update timeout");
         } while (moneyStored != null
@@ -176,7 +176,7 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
 
     @Override
     public BalanceAccount registerBalanceAccount(BalanceAccount account) {
-        return _addAmount(Money.zero(account.getUnit()), account.name, true);
+        return _addAmount(Money.zero(account.getUnit()), account.name, account.description.orElse(null), true);
     }
 
     @Override
@@ -204,7 +204,8 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
             return account;
         }
         final Integer key = nameUniqueIndex.get(account.name);
-        return new BalanceAccount(key.longValue(), account.name, accountBalance(account.name).get());
+        final StoredBalanceAccount storedBalanceAccount = table.get(key);
+        return new BalanceAccount(key.longValue(), account.name, storedBalanceAccount.desc, storedBalanceAccount.obj);
     }
 
     @Override
@@ -213,7 +214,8 @@ public final class TreasuryPseudoTable extends AbstractPseudoTable<StoredBalance
         if (key == null) {
             return Optional.empty();
         }
-        return Optional.of(new BalanceAccount(key.longValue(), accountName, accountBalance(accountName).get()));
+        final StoredBalanceAccount storedBalanceAccount = table.get(key);
+        return Optional.of(new BalanceAccount(key.longValue(), accountName, storedBalanceAccount.desc, storedBalanceAccount.obj));
     }
 
     @Nonnull

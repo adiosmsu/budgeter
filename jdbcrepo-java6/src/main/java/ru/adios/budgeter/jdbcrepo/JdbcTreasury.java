@@ -38,8 +38,9 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     public static final String COL_NAME = "name";
     public static final String COL_CURRENCY_UNIT = "currency_unit";
     public static final String COL_BALANCE = "balance";
+    public static final String COL_DESCRIPTION = "description";
 
-    private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME, COL_CURRENCY_UNIT, COL_BALANCE);
+    private static final ImmutableList<String> COLS = ImmutableList.of(COL_ID, COL_NAME, COL_CURRENCY_UNIT, COL_BALANCE, COL_DESCRIPTION);
     private static final String SQL_AMOUNT = getSupAmountSql();
 
     private static String getSupAmountSql() {
@@ -53,7 +54,8 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
         SqlDialect.Static.appendWhereClausePart(builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_NAME);
         return builder.toString();
     }
-    private static final String SQL_ADD_AMOUNT = SqlDialect.Static.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_BALANCE), ImmutableList.of(COL_NAME), SqlDialect.Op.ADD, 0);
+    private static final String SQL_ADD_AMOUNT =
+            SqlDialect.Static.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_BALANCE), ImmutableList.of(COL_NAME), SqlDialect.Op.ADD, 0);
     private static final String SQL_STREAM_REGISTERED_CURRENCIES = "SELECT DISTINCT " + COL_CURRENCY_UNIT + " FROM " + TABLE_NAME;
 
 
@@ -209,7 +211,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     public void addAmount(Money amount, String accountName) {
         final Optional<BalanceAccount> accountForName = getAccountForName(accountName);
         if (!accountForName.isPresent()) {
-            registerBalanceAccount(new BalanceAccount(accountName, amount.getCurrencyUnit()));
+            registerBalanceAccount(new BalanceAccount(accountName, amount.getCurrencyUnit(), null));
         } else {
             final CurrencyUnit unit = accountForName.get().getUnit();
             if (!unit.equals(amount.getCurrencyUnit())) {
@@ -222,7 +224,7 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     @Override
     public BalanceAccount registerBalanceAccount(BalanceAccount account) {
         final GeneratedKeyHolder keyHolder = Common.insert(this, account);
-        return new BalanceAccount(keyHolder.getKey().longValue(), account.name, Money.of(account.getUnit(), account.getAmount()));
+        return new BalanceAccount(keyHolder.getKey().longValue(), account.name, account.description.orElse(null), Money.of(account.getUnit(), account.getAmount()));
     }
 
     @Override
@@ -307,9 +309,10 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
                 + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
-                + COL_NAME + ' ' + sqlDialect.textType() + ", "
-                + COL_CURRENCY_UNIT + " INT, "
-                + COL_BALANCE + ' ' + sqlDialect.decimalType()
+                    + COL_NAME + ' ' + sqlDialect.textType() + ", "
+                    + COL_CURRENCY_UNIT + " INT, "
+                    + COL_BALANCE + ' ' + sqlDialect.decimalType() + ", "
+                    + COL_DESCRIPTION + ' ' + sqlDialect.textType()
                 + ')';
     }
 
@@ -331,12 +334,13 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
             final String name = rs.getString(start + 1);
             final int unitCode = rs.getInt(start + 2);
             final BigDecimal balance = sqlDialect.translateFromDb(rs.getObject(start + 3), BigDecimal.class);
+            final String desc = rs.getString(start + 4);
 
             if (name == null) {
                 return null;
             }
 
-            return new BalanceAccount(id, name, Money.of(CurrencyUnit.ofNumericCode(unitCode), balance));
+            return new BalanceAccount(id, name, desc, Money.of(CurrencyUnit.ofNumericCode(unitCode), balance));
         }
 
     }

@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 public class AccountsElementCore implements Submitter<BalanceAccount> {
 
     public static final String FIELD_NAME = "name";
+    public static final String FIELD_DESCRIPTION = "description";
     public static final String FIELD_UNIT = "unit";
 
     private static final Logger logger = LoggerFactory.getLogger(AccountsElementCore.class);
@@ -32,6 +33,7 @@ public class AccountsElementCore implements Submitter<BalanceAccount> {
     private final SubmitHelper<BalanceAccount> helper = new SubmitHelper<>(logger, "Error while registering balance account");
 
     private Optional<String> nameOpt = Optional.empty();
+    private Optional<String> descOpt = Optional.empty();
     private Optional<CurrencyUnit> unitOpt = Optional.empty();
 
     private boolean lockOn = false;
@@ -46,9 +48,19 @@ public class AccountsElementCore implements Submitter<BalanceAccount> {
         return nameOpt.orElse(null);
     }
 
+    @Nullable
+    public String getDescription() {
+        return descOpt.orElse(null);
+    }
+
     public void setName(String name) {
         if (lockOn) return;
         this.nameOpt = Optional.ofNullable(name);
+    }
+
+    public void setDescription(String description) {
+        if (lockOn) return;
+        this.descOpt = Optional.ofNullable(description);
     }
 
     @Nullable
@@ -83,7 +95,7 @@ public class AccountsElementCore implements Submitter<BalanceAccount> {
     @Nonnull
     private Result<BalanceAccount> doSubmit() {
         final String name = nameOpt.get();
-        treasury.registerBalanceAccount(new BalanceAccount(name, unitOpt.get()));
+        treasury.registerBalanceAccount(new BalanceAccount(name, unitOpt.get(), descOpt.orElse(null)));
 
         return Result.success(treasury.getAccountForName(name).get());
     }
