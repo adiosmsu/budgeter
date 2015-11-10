@@ -5,6 +5,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.Accounter;
+import ru.adios.budgeter.api.SubjectPriceRepository;
 import ru.adios.budgeter.api.Treasury;
 import ru.adios.budgeter.api.UtcDay;
 import ru.adios.budgeter.api.data.*;
@@ -101,14 +102,18 @@ public interface FundsMutator {
             final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
             accounter.fundsMutationEventRepository().register(event);
             if (mutateFunds) {
-                accounter.subjectPriceRepository().register(
-                        SubjectPrice.builder()
-                                .setDay(new UtcDay(event.timestamp))
-                                .setPrice(amount.abs())
-                                .setSubject(event.subject)
-                                .setAgent(event.agent)
-                                .build()
-                );
+                final SubjectPriceRepository repository = accounter.subjectPriceRepository();
+                final UtcDay day = new UtcDay(event.timestamp);
+                if (!repository.priceExists(event.subject, event.agent, day)) {
+                    repository.register(
+                            SubjectPrice.builder()
+                                    .setDay(day)
+                                    .setPrice(amount.abs())
+                                    .setSubject(event.subject)
+                                    .setAgent(event.agent)
+                                    .build()
+                    );
+                }
                 treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                 return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
             }

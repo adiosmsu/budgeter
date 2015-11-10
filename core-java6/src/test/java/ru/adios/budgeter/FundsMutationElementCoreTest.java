@@ -6,6 +6,7 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Test;
 import org.threeten.bp.OffsetDateTime;
+import org.threeten.bp.temporal.ChronoUnit;
 import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.api.data.*;
 
@@ -138,6 +139,19 @@ public class FundsMutationElementCoreTest extends AbstractFundsTester {
         );
         assertEquals(caseName + "Rubles account fault after hour work deal", Money.of(Units.RUB, 6500.0), treasury.amountForHumans(Units.RUB));
 
+        // now let's check for price not to fail due to unique constraint
+        core = new FundsMutationElementCore(accounter, treasury, ratesService);
+        core.setAgent(inetAgent);
+        core.setDirection(FundsMutator.MutationDirection.BENEFIT);
+        core.setSubject(workSubj);
+        core.setAmountUnit(Units.RUB);
+        core.setPaidMoney(Money.of(CurrencyUnit.EUR, 100));
+        core.setTimestamp(TestUtils.JULY_3RD_2015.inner.plus(1, ChronoUnit.MINUTES));
+        core.setRelevantBalance(rubAccount);
+
+        submit = core.submit();
+        submit.raiseExceptionIfFailed();
+
         bundle.currencyRates().addRate(TestUtils.DAY_BF_YESTER, CurrencyUnit.USD, Units.RUB, BigDecimal.valueOf(56));
         // let's sell our video card to a foreign dude paying in dollars with immediate conversion to rubles on a custom rate
         core = new FundsMutationElementCore(accounter, treasury, ratesService);
@@ -218,7 +232,7 @@ public class FundsMutationElementCoreTest extends AbstractFundsTester {
                         .setTimestamp(DateTimeUtils.convertToCurrentZone(cardExchange.get().timestamp))
                         .build()
         );
-        assertEquals(caseName + "Rubles account fault after card deal", Money.of(Units.RUB, 16500.0), treasury.amountForHumans(Units.RUB));
+        assertEquals(caseName + "Rubles account fault after card deal", Money.of(Units.RUB, 23000.0), treasury.amountForHumans(Units.RUB));
 
         treasury.addAmount(Money.of(Units.RUB, 500000), "rub");
 
@@ -302,7 +316,7 @@ public class FundsMutationElementCoreTest extends AbstractFundsTester {
                         .setTimestamp(DateTimeUtils.convertToCurrentZone(guitarExchange.get().timestamp))
                         .build()
         );
-        assertEquals(caseName + "Rubles account fault after guitar deal", Money.of(Units.RUB, 236500.0), treasury.amountForHumans(Units.RUB));
+        assertEquals(caseName + "Rubles account fault after guitar deal", Money.of(Units.RUB, 243000.0), treasury.amountForHumans(Units.RUB));
     }
 
 
