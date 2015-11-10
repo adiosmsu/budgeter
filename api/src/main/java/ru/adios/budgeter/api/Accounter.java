@@ -16,6 +16,8 @@ public interface Accounter {
 
     FundsMutationEventRepository fundsMutationEventRepository();
 
+    SubjectPriceRepository subjectPriceRepository();
+
     CurrencyExchangeEventRepository currencyExchangeEventRepository();
 
     PostponedFundsMutationEventRepository postponedFundsMutationEventRepository();

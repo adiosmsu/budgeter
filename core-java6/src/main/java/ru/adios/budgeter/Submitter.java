@@ -99,6 +99,9 @@ public interface Submitter<T> {
 
         public static final String FILL_IN_PRE = "Fill in";
         public static final String POSITIVE_PRE = "Fill in positive";
+        public static final String SHORT_PRE = "Value too short (%d) for minimum length (%d) field";
+
+        private static final Object[] EMPTY_ARRAY = new Object[] {};
 
         private ImmutableSet.Builder<FieldError> fieldErrorsBuilder = new ImmutableSet.Builder<FieldError>();
         private boolean wasFieldError = false;
@@ -119,9 +122,33 @@ public interface Submitter<T> {
             return this;
         }
 
-        public ResultBuilder<T> addFieldErrorIfNegative(MoneyPositiveWrapper wrapperBean, String fieldName) {
+        public <Wrapper extends MoneyWrapper & MoneySettable> ResultBuilder<T> addFieldErrorIfNegative(Wrapper wrapperBean, String fieldName) {
             if (wrapperBean.isAmountSet() && wrapperBean.getAmountDecimal().compareTo(BigDecimal.ZERO) < 0) {
                 addFieldError(fieldName, POSITIVE_PRE);
+            }
+            return this;
+        }
+
+        public ResultBuilder<T> addFieldErrorIfNotSet(MoneyWrapper wrapper, String fieldName, String unitFieldName, String amountFieldName) {
+            if (!wrapper.isInitiable()) {
+                if (wrapper.isAmountSet()) {
+                    addFieldError(unitFieldName);
+                } else if (wrapper.isUnitSet()) {
+                    addFieldError(amountFieldName);
+                } else {
+                    addFieldError(unitFieldName);
+                    addFieldError(amountFieldName);
+                }
+                addFieldError(fieldName);
+            }
+            return this;
+        }
+
+        public ResultBuilder<T> addFieldErrorIfShorter(CharSequence sequence, int minLength, String fieldName) {
+            if (sequence == null) {
+                addFieldError(fieldName);
+            } else if (sequence.length() < minLength) {
+                addFieldError(fieldName, SHORT_PRE, new Object[] {sequence.length(), minLength});
             }
             return this;
         }
@@ -131,7 +158,11 @@ public interface Submitter<T> {
         }
 
         public ResultBuilder<T> addFieldError(String fieldInFault, String predicate) {
-            fieldErrorsBuilder.add(new FieldError(predicate + ' ' + fieldInFault, fieldInFault));
+            return addFieldError(fieldInFault, predicate, EMPTY_ARRAY);
+        }
+
+        public ResultBuilder<T> addFieldError(String fieldInFault, String predicate, Object[] params) {
+            fieldErrorsBuilder.add(new FieldError((params.length > 0 ? String.format(predicate, params) : predicate) + ' ' + fieldInFault, fieldInFault));
             wasFieldError = true;
             return this;
         }

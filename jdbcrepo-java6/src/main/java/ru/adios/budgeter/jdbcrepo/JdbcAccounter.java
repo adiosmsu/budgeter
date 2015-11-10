@@ -89,6 +89,11 @@ public class JdbcAccounter implements Accounter {
     }
 
     @Override
+    public SubjectPriceRepository subjectPriceRepository() {
+        return bundle.subjectPrices();
+    }
+
+    @Override
     public PostponedFundsMutationEventRepository postponedFundsMutationEventRepository() {
         return bundle.postponedFundsMutationEvents();
     }

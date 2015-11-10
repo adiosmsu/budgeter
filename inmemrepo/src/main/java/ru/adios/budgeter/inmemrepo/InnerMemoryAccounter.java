@@ -27,6 +27,11 @@ public final class InnerMemoryAccounter implements Accounter {
     }
 
     @Override
+    public SubjectPriceRepository subjectPriceRepository() {
+        return Schema.SUBJECT_PRICES;
+    }
+
+    @Override
     public PostponedFundsMutationEventRepository postponedFundsMutationEventRepository() {
         return Schema.POSTPONED_FUNDS_MUTATION_EVENTS;
     }

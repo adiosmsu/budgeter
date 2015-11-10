@@ -113,12 +113,8 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     @Override
     public Result<FundsMutationSubject> submit() {
         final Submitter.ResultBuilder<FundsMutationSubject> resultBuilder = new ResultBuilder<FundsMutationSubject>();
-        final String name = subjectBuilder.getName();
-        resultBuilder.addFieldErrorIfNull(name, FIELD_NAME)
+        resultBuilder.addFieldErrorIfShorter(subjectBuilder.getName(), 3, FIELD_NAME)
                 .addFieldErrorIfNull(subjectBuilder.getType(), FIELD_TYPE);
-        if (name != null && name.equals("")) {
-            resultBuilder.addFieldError(FIELD_NAME);
-        }
         if (parentName != null && subjectBuilder.getParentId() == 0) {
             resultBuilder.addFieldError(FIELD_PARENT_NAME);
             parentName = null;

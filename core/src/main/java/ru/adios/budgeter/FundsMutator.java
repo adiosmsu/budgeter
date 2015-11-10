@@ -4,10 +4,8 @@ import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import ru.adios.budgeter.api.Accounter;
 import ru.adios.budgeter.api.Treasury;
-import ru.adios.budgeter.api.data.BalanceAccount;
-import ru.adios.budgeter.api.data.FundsMutationAgent;
-import ru.adios.budgeter.api.data.FundsMutationEvent;
-import ru.adios.budgeter.api.data.FundsMutationSubject;
+import ru.adios.budgeter.api.UtcDay;
+import ru.adios.budgeter.api.data.*;
 
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;
@@ -99,6 +97,14 @@ public interface FundsMutator {
             final FundsMutationEvent event = eventBuilder.setAmount(amountToSet(amount)).build();
             accounter.fundsMutationEventRepository().register(event);
             if (mutateFunds) {
+                accounter.subjectPriceRepository().register(
+                        SubjectPrice.builder()
+                                .setDay(new UtcDay(event.timestamp))
+                                .setPrice(amount.abs())
+                                .setSubject(event.subject)
+                                .setAgent(event.agent)
+                                .build()
+                );
                 treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
                 return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
             }

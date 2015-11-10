@@ -17,7 +17,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @author Mikhail Kulikov
  */
-public final class MoneyPositiveWrapper implements MoneySettable {
+public final class MoneyPositiveWrapper implements MoneySettable, MoneyWrapper {
 
     public final String name;
 
@@ -120,15 +120,18 @@ public final class MoneyPositiveWrapper implements MoneySettable {
         });
     }
 
+    @Override
     public boolean isAmountSet() {
         return (amountRef.isPresent() && amountRef.get().getAmount().compareTo(BigDecimal.ZERO) > 0)
                 || (amountDecimalRef.isPresent() && amountDecimalRef.get().compareTo(BigDecimal.ZERO) > 0);
     }
 
+    @Override
     public boolean isUnitSet() {
         return amountRef.isPresent() || amountUnitRef.isPresent();
     }
 
+    @Override
     public boolean isInitiable() {
         return (amountRef.isPresent() && amountRef.get().getAmount().compareTo(BigDecimal.ZERO) > 0) ||
                 (amountDecimalRef.isPresent() && amountDecimalRef.get().compareTo(BigDecimal.ZERO) > 0 && amountUnitRef.isPresent());
