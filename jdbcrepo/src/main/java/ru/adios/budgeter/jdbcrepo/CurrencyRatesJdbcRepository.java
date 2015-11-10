@@ -209,12 +209,12 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
     }
 
     private String getActualCreateTableSql() {
-        return SqlDialect.CREATE_TABLE + TABLE_NAME
-                + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
-                + COL_DAY + ' ' + sqlDialect.timestampWithoutTimezoneType() + ", "
-                + COL_FROM + " INT, "
-                + COL_TO + " INT, "
-                + COL_RATE + ' ' + sqlDialect.decimalType()
+        return SqlDialect.CREATE_TABLE + TABLE_NAME+ " ("
+                    + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
+                    + COL_DAY + ' ' + sqlDialect.timestampWithoutTimezoneType() + ", "
+                    + COL_FROM + " INT, "
+                    + COL_TO + " INT, "
+                    + COL_RATE + ' ' + sqlDialect.decimalType()
                 + ')';
     }
 

@@ -2,6 +2,8 @@ package java8.util.concurrent;
 
 import java8.util.Spliterator;
 import java8.util.function.*;
+import java8.util.stream.Stream;
+import java8.util.stream.StreamSupport;
 
 import javax.annotation.Nonnull;
 import java.io.ObjectStreamField;
@@ -4438,6 +4440,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             this.value = value;
         }
 
+        public Stream<K> getStream() {
+            return StreamSupport.stream(getSpliterator(), false);
+        }
+
         /**
          * Returns the default mapped value for additions,
          * or {@code null} if additions are not supported.
@@ -4563,6 +4569,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return map.containsValue(o);
         }
 
+        public Stream<V> getStream() {
+            return StreamSupport.stream(getSpliterator(), false);
+        }
+
         public final boolean remove(Object o) {
             if (o != null) {
                 for (Iterator<V> it = iterator(); it.hasNext();) {
@@ -4618,6 +4628,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             implements Set<Map.Entry<K,V>>, java.io.Serializable {
         private static final long serialVersionUID = 2249069246763182397L;
         EntrySetView(ConcurrentHashMap<K,V> map) { super(map); }
+
+        public Stream<Map.Entry<K,V>> getStream() {
+            return StreamSupport.stream(getSpliterator(), false);
+        }
 
         public boolean contains(Object o) {
             Object k, v, r; Map.Entry<?,?> e;

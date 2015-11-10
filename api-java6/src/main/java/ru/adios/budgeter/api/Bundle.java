@@ -18,7 +18,8 @@ public interface Bundle {
         POSTPONED_FUNDS_MUTATION_EVENTS,
         TREASURY,
         CURRENCY_RATES,
-        FUNDS_MUTATION_AGENTS
+        FUNDS_MUTATION_AGENTS,
+        SUBJECT_PRICES
     }
 
     final class Default {
@@ -64,6 +65,8 @@ public interface Bundle {
     FundsMutationAgentRepository fundsMutationAgents();
 
     Accounter accounter();
+
+    SubjectPriceRepository subjectPrices();
 
     void clearSchema();
 

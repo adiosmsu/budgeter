@@ -4,7 +4,6 @@ import java8.util.Optional;
 import java8.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
 import java8.util.stream.Stream;
-import java8.util.stream.StreamSupport;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
 import ru.adios.budgeter.api.data.FundsMutationAgent;
 
@@ -50,21 +49,23 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
         checkState(nameUniqueIndex.computeIfAbsent(agent.name, new Function<String, Integer>() {
             @Override
             public Integer apply(String s) {
-                table.put(id, new Stored<FundsMutationAgent>(id, agent));
+                table.put(id, new Stored<FundsMutationAgent>(id, FundsMutationAgent.withId(agent, id)));
                 return id;
             }
         }).equals(id), "Not unique name %s", agent.name);
-        return agent;
+        return table.get(id).obj;
     }
 
     @Override
     public Stream<FundsMutationAgent> streamAll() {
-        return StreamSupport.stream(table.values().getSpliterator(), false).map(new Function<Stored<FundsMutationAgent>, FundsMutationAgent>() {
-            @Override
-            public FundsMutationAgent apply(Stored<FundsMutationAgent> stored) {
-                return FundsMutationAgent.withId(stored.obj, stored.id);
-            }
-        });
+        return table.values()
+                .getStream()
+                .map(new Function<Stored<FundsMutationAgent>, FundsMutationAgent>() {
+                    @Override
+                    public FundsMutationAgent apply(Stored<FundsMutationAgent> stored) {
+                        return FundsMutationAgent.withId(stored.obj, stored.id);
+                    }
+                });
     }
 
     @Override

@@ -22,6 +22,7 @@ public final class Schema implements Bundle {
     public static final TreasuryPseudoTable TREASURY = TreasuryPseudoTable.INSTANCE;
     public static final CurrencyRatesPseudoTable CURRENCY_RATES = CurrencyRatesPseudoTable.INSTANCE;
     public static final FundsMutationAgentPseudoTable FUNDS_MUTATION_AGENTS = FundsMutationAgentPseudoTable.INSTANCE;
+    public static final SubjectPricePseudoTable SUBJECT_PRICES = SubjectPricePseudoTable.INSTANCE;
 
     public static final InnerMemoryAccounter ACCOUNTER = new InnerMemoryAccounter();
 
@@ -89,6 +90,11 @@ public final class Schema implements Bundle {
     }
 
     @Override
+    public SubjectPriceRepository subjectPrices() {
+        return SUBJECT_PRICES;
+    }
+
+    @Override
     public void clearSchema() {
         clearSchemaStatic();
     }
@@ -122,6 +128,9 @@ public final class Schema implements Bundle {
                 return;
             case FUNDS_MUTATION_AGENTS:
                 FUNDS_MUTATION_AGENTS.clear();
+                return;
+            case SUBJECT_PRICES:
+                SUBJECT_PRICES.clear();
         }
     }
 
@@ -134,6 +143,7 @@ public final class Schema implements Bundle {
         TREASURY.clear();
         CURRENCY_RATES.clear();
         FUNDS_MUTATION_AGENTS.clear();
+        SUBJECT_PRICES.clear();
     }
 
     private Schema() {}

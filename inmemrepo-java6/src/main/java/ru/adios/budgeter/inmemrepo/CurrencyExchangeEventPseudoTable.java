@@ -60,10 +60,8 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
 
     @Override
     public Stream<CurrencyExchangeEvent> streamExchangeEvents(final List<OrderBy<Field>> options, final Optional<OptLimit> limitRef) {
-        final int[] offsetCounter = new int[1], limitCounter = new int[1];
-        offsetCounter[0] = 0; limitCounter[0] = 0;
-
-        return StreamSupport.stream(table.values().getSpliterator(), false)
+        return table.values()
+                .getStream()
                 .map(new Function<Stored<CurrencyExchangeEvent>, CurrencyExchangeEvent>() {
                     @Override
                     public CurrencyExchangeEvent apply(Stored<CurrencyExchangeEvent> stored) {
@@ -87,17 +85,7 @@ public final class CurrencyExchangeEventPseudoTable extends AbstractPseudoTable<
                         return res;
                     }
                 })
-                .filter(new Predicate<CurrencyExchangeEvent>() {
-                    @Override
-                    public boolean test(CurrencyExchangeEvent event) {
-                        if (!limitRef.isPresent()) {
-                            return true;
-                        }
-                        final OptLimit limit = limitRef.get();
-                        return !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
-                                && !(limit.limit > 0 && limit.limit < ++limitCounter[0]);
-                    }
-                });
+                .filter(new LimitingPredicate<CurrencyExchangeEvent>(limitRef));
     }
 
     @Override

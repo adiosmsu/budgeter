@@ -46,10 +46,10 @@ public class FundsMutationAgentPseudoTable extends AbstractPseudoTable<Stored<Fu
     public FundsMutationAgent addAgent(FundsMutationAgent agent) {
         final int id = idSequence.incrementAndGet();
         checkState(nameUniqueIndex.computeIfAbsent(agent.name, key -> {
-            table.put(id, new Stored<>(id, agent));
+            table.put(id, new Stored<>(id, FundsMutationAgent.withId(agent, id)));
             return id;
         }).equals(id), "Not unique name %s", agent.name);
-        return agent;
+        return table.get(id).obj;
     }
 
     @Override

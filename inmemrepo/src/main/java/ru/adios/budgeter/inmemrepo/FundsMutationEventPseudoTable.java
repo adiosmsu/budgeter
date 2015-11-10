@@ -68,9 +68,6 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
 
     @Override
     public Stream<FundsMutationEvent> streamMutationEvents(List<OrderBy<Field>> options, Optional<OptLimit> limitRef) {
-        final int[] offsetCounter = new int[1], limitCounter = new int[1];
-        offsetCounter[0] = 0; limitCounter[0] = 0;
-
         return table.values()
                 .stream()
                 .map(StoredFundsMutationEvent::constructValid)
@@ -101,14 +98,7 @@ public final class FundsMutationEventPseudoTable extends AbstractPseudoTable<Sto
                     }
                     return res;
                 })
-                .filter(event1 -> {
-                    if (!limitRef.isPresent()) {
-                        return true;
-                    }
-                    final OptLimit limit = limitRef.get();
-                    return !(limit.offset > 0 && limit.offset > offsetCounter[0]++)
-                            && !(limit.limit > 0 && limit.limit < ++limitCounter[0]);
-                });
+                .filter(new LimitingPredicate<>(limitRef));
     }
 
     @Override

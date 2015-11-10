@@ -67,4 +67,8 @@ public final class RepoFactory {
         return new FundsMutationAgentJdbcRepository(jdbcConnector);
     }
 
+    public SubjectPriceRepository createSubjectPrices() {
+        return new SubjectPriceJdbcRepository(jdbcConnector);
+    }
+
 }

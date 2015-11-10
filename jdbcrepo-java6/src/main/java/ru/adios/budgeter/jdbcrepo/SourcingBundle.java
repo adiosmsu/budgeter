@@ -48,6 +48,7 @@ public final class SourcingBundle implements Bundle {
         final PostponedCurrencyExchangeEventJdbcRepository postponedCurrencyExchangeEvents = new PostponedCurrencyExchangeEventJdbcRepository(jdbcConnector);
         final PostponedFundsMutationEventJdbcRepository postponedFundsMutationEvents = new PostponedFundsMutationEventJdbcRepository(jdbcConnector, fundsMutationEvents);
         final JdbcTreasury treasury = new JdbcTreasury(jdbcConnector);
+        final SubjectPriceJdbcRepository subjectPrices = new SubjectPriceJdbcRepository(jdbcConnector, fundsMutationSubjects);
 
         accounter = new JdbcAccounter(this, jdbcConnector);
 
@@ -60,6 +61,7 @@ public final class SourcingBundle implements Bundle {
                 .put(Repo.FUNDS_MUTATION_EVENTS, fundsMutationEvents)
                 .put(Repo.POSTPONED_CURRENCY_EXCHANGE_EVENTS, postponedCurrencyExchangeEvents)
                 .put(Repo.POSTPONED_FUNDS_MUTATION_EVENTS, postponedFundsMutationEvents)
+                .put(Repo.SUBJECT_PRICES, subjectPrices)
                 .build();
     }
 
@@ -168,6 +170,11 @@ public final class SourcingBundle implements Bundle {
     @Override
     public Accounter accounter() {
         return accounter;
+    }
+
+    @Override
+    public SubjectPriceRepository subjectPrices() {
+        return (SubjectPriceRepository) order.get(Repo.SUBJECT_PRICES);
     }
 
     @Override

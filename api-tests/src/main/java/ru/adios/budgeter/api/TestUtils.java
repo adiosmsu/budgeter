@@ -3,6 +3,7 @@ package ru.adios.budgeter.api;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.data.BalanceAccount;
 import ru.adios.budgeter.api.data.FundsMutationAgent;
+import ru.adios.budgeter.api.data.FundsMutationSubject;
 
 import java.util.Optional;
 
@@ -33,6 +34,19 @@ public class TestUtils {
         return account.isPresent()
                 ? account.get()
                 : bundle.treasury().registerBalanceAccount(new BalanceAccount(name, unit, null));
+    }
+
+    static FundsMutationSubject getSubject(Bundle bundle, String name) {
+        final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
+
+        final Optional<FundsMutationSubject> foodOpt = subjectRepository.findByName(name);
+        if (foodOpt.isPresent()) {
+            return foodOpt.get();
+        }
+
+        return subjectRepository.addSubject(
+                FundsMutationSubject.builder(subjectRepository).setName(name).setType(FundsMutationSubject.Type.PRODUCT).build()
+        );
     }
 
 }

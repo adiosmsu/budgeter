@@ -35,12 +35,12 @@ public interface SqlDialect {
     }
 
     static String countSql(String tableName, String columnName, @Nullable String whereClause, Join... joins) {
-        return appendJoins(
-                appendWhereClause(
+        return appendWhereClause(
+                appendJoins(
                         countSqlBuilder(tableName, columnName),
-                        whereClause
+                        joins
                 ),
-                joins
+                whereClause
         ).toString();
     }
 
@@ -104,11 +104,11 @@ public interface SqlDialect {
         return sb.toString();
     }
 
-    static void appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, OrderBy... orders) {
-        appendWhereClausePostfix(sb, sqlDialect, limit, Arrays.asList(orders));
+    static StringBuilder appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, OrderBy... orders) {
+        return appendWhereClausePostfix(sb, sqlDialect, limit, Arrays.asList(orders));
     }
 
-    static void appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, List<OrderBy> orders) {
+    static StringBuilder appendWhereClausePostfix(StringBuilder sb, SqlDialect sqlDialect, @Nullable OptLimit limit, List<OrderBy> orders) {
         if (orders.size() > 0) {
             sb.append(" ORDER BY ");
             boolean first = true;
@@ -129,6 +129,8 @@ public interface SqlDialect {
                 sb.append(" OFFSET ").append(limit.offset);
             }
         }
+
+        return sb;
     }
 
     static String generateWhereClausePart(boolean andIfTrue, Op op, String... columns) {
@@ -144,17 +146,16 @@ public interface SqlDialect {
     }
 
     static StringBuilder generateWhereClausePartBuilder(boolean andIfTrue, Op op, List<String> columns) {
-        final StringBuilder sb = new StringBuilder(25 * columns.size());
-        appendWhereClausePart(sb, andIfTrue, op, columns);
-        return sb;
+        return appendWhereClausePart(new StringBuilder(25 * columns.size()), andIfTrue, op, columns);
     }
 
-    static void appendWhereClausePart(StringBuilder sb, boolean andIfTrue, Op op, String... columns) {
-        appendWhereClausePart(sb, andIfTrue, op, Arrays.asList(columns));
+    static StringBuilder appendWhereClausePart(StringBuilder sb, boolean andIfTrue, Op op, String... columns) {
+        return appendWhereClausePart(sb, andIfTrue, op, Arrays.asList(columns));
     }
 
-    static void appendWhereClausePart(StringBuilder sb, boolean andIfTrue, Op op, List<String> columns) {
+    static StringBuilder appendWhereClausePart(StringBuilder sb, boolean andIfTrue, Op op, List<String> columns) {
         appendWhereClausePart(true, sb, andIfTrue, op, columns);
+        return sb;
     }
 
     static boolean appendWhereClausePart(boolean first, StringBuilder sb, boolean andIfTrue, Op op, String... columns) {

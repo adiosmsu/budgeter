@@ -42,9 +42,9 @@ public final class UtcDay implements Comparable<UtcDay> {
         if (days == 0) {
             return this;
         } else if (days > 0) {
-            return new UtcDay(inner.plus(1, ChronoUnit.DAYS), true);
+            return new UtcDay(inner.plus(days, ChronoUnit.DAYS), true);
         } else {
-            return new UtcDay(inner.minus(1, ChronoUnit.DAYS), true);
+            return new UtcDay(inner.minus(-days, ChronoUnit.DAYS), true);
         }
     }
 
