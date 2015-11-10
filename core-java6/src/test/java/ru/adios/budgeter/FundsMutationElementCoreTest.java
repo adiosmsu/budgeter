@@ -8,11 +8,9 @@ import org.junit.Test;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.api.data.*;
-import ru.adios.budgeter.inmemrepo.Schema;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;
 
 import static org.junit.Assert.*;
 
@@ -22,62 +20,28 @@ import static org.junit.Assert.*;
  *
  * @author Mikhail Kulikov
  */
-public class FundsMutationElementCoreTest {
+public class FundsMutationElementCoreTest extends AbstractFundsTester {
 
     @Test
     public void testSubmit() throws Exception {
-        testSubmitWith(Schema.INSTANCE, TestUtils.CASE_INNER);
-        testSubmitWith(TestUtils.JDBC_BUNDLE, TestUtils.CASE_JDBC);
+        innerTestSubmit();
     }
 
-    private void testSubmitWith(Bundle bundle, String caseName) throws Exception {
-        caseName += ": ";
-        final MathContext mc = new MathContext(7, RoundingMode.HALF_DOWN);
-        final Accounter accounter = bundle.accounter();
-        final Treasury treasury = bundle.treasury();
-
-        final CurrenciesExchangeService ratesService = new CurrenciesExchangeService(
-                bundle.getTransactionalSupport(),
-                bundle.currencyRates(),
-                accounter,
-                treasury,
-                ExchangeRatesLoader.createBtcLoader(treasury),
-                ExchangeRatesLoader.createCbrLoader(treasury)
-        );
-
-        bundle.clearSchema();
-
-        BalanceAccount rubAccount = TestUtils.prepareBalance(bundle, Units.RUB);
-        BalanceAccount usdAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
-        BalanceAccount eurAccount = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
-
-        final FundsMutationAgent groceryAgent = bundle.fundsMutationAgents().addAgent(FundsMutationAgent.builder().setName("Магазин").build());
-        final FundsMutationAgent inetAgent = bundle.fundsMutationAgents().addAgent(FundsMutationAgent.builder().setName("Интернет").build());
-        final FundsMutationAgent musicShopAgent = bundle.fundsMutationAgents().addAgent(FundsMutationAgent.builder().setName("Music shop").build());
-        final FundsMutationSubject breadSubj = bundle.fundsMutationSubjects().addSubject(
-                FundsMutationSubject.builder(accounter.fundsMutationSubjectRepo())
-                        .setName("Хлеб")
-                        .setType(FundsMutationSubject.Type.PRODUCT)
-                        .build()
-        );
-        final FundsMutationSubject workSubj = bundle.fundsMutationSubjects().addSubject(
-                FundsMutationSubject.builder(accounter.fundsMutationSubjectRepo())
-                        .setName("Час работы")
-                        .setType(FundsMutationSubject.Type.SERVICE)
-                        .build()
-        );
-        final FundsMutationSubject cardSubj = bundle.fundsMutationSubjects().addSubject(
-                FundsMutationSubject.builder(accounter.fundsMutationSubjectRepo())
-                        .setName("NVidea 770GTX")
-                        .setType(FundsMutationSubject.Type.PRODUCT)
-                        .build()
-        );
-        final FundsMutationSubject guitarSubj = bundle.fundsMutationSubjects().addSubject(
-                FundsMutationSubject.builder(accounter.fundsMutationSubjectRepo())
-                        .setName("Gibson Les Paul")
-                        .setType(FundsMutationSubject.Type.PRODUCT)
-                        .build()
-        );
+    @Override
+    protected void actualTest(Bundle bundle,
+                              String caseName,
+                              MathContext mc,
+                              final Accounter accounter,
+                              Treasury treasury,
+                              CurrenciesExchangeService ratesService,
+                              BalanceAccount rubAccount,
+                              FundsMutationAgent groceryAgent,
+                              FundsMutationAgent inetAgent,
+                              FundsMutationAgent musicShopAgent,
+                              FundsMutationSubject breadSubj,
+                              final FundsMutationSubject workSubj,
+                              final FundsMutationSubject cardSubj,
+                              final FundsMutationSubject guitarSubj) {
         final OffsetDateTime now = OffsetDateTime.now();
 
         // let's buy some bread at a local grocery
@@ -340,5 +304,6 @@ public class FundsMutationElementCoreTest {
         );
         assertEquals(caseName + "Rubles account fault after guitar deal", Money.of(Units.RUB, 236500.0), treasury.amountForHumans(Units.RUB));
     }
+
 
 }

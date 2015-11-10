@@ -168,6 +168,7 @@ public class PriceAdditionElementCore implements Submitter<SubjectPrice> {
 
     @Nonnull
     private Result<SubjectPrice> doSubmit() {
+        priceBuilder.setPrice(priceWrapper.getAmount());
         final SubjectPrice p = priceBuilder.build();
         priceRepository.register(p);
         return Result.success(p);
