@@ -31,7 +31,7 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     private final FundsMutationSubjectRepository repository;
     private final SubmitHelper<FundsMutationSubject> helper = new SubmitHelper<>(logger, "Error while adding new subject");
 
-    private String parentName;
+    private volatile String parentName;
 
     private boolean lockOn = false;
     private Result<FundsMutationSubject> storedResult;
@@ -62,14 +62,21 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
     }
 
     @PotentiallyBlocking
-    public boolean setParentName(String parentName) {
-        if (lockOn) return false;
+    public Optional<FundsMutationSubject> setParentName(String parentName) {
+        return setParentName(parentName, false);
+    }
+
+    @PotentiallyBlocking
+    public Optional<FundsMutationSubject> setParentName(String parentName, boolean fromSeparateThread) {
+        if (lockOn) return Optional.empty();
 
         this.parentName = parentName;
 
         if (parentName == null) {
-            subjectBuilder.setParentId(0);
-            return true;
+            if (!fromSeparateThread) {
+                subjectBuilder.setParentId(0);
+            }
+            return Optional.empty();
         }
 
         final Optional<FundsMutationSubject> parentRef = repository.findByName(parentName);
@@ -77,12 +84,18 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
         if (parentRef.isPresent()) {
             final OptionalLong idParentRef = parentRef.get().id;
             if (idParentRef.isPresent()) {
-                subjectBuilder.setParentId(idParentRef.getAsLong());
-                return true;
+                if (!fromSeparateThread) {
+                    subjectBuilder.setParentId(idParentRef.getAsLong());
+                }
+                return parentRef;
             }
         }
 
-        return false;
+        return Optional.empty();
+    }
+
+    public void setParentId(long parentId) {
+        subjectBuilder.setParentId(parentId);
     }
 
     @Nullable
