@@ -1,12 +1,14 @@
 package ru.adios.budgeter.api;
 
+import java.io.Serializable;
+
 /**
  * Date: 10/24/15
  * Time: 7:51 PM
  *
  * @author Mikhail Kulikov
  */
-public enum Order {
+public enum Order implements Serializable {
 
     ASC {
         @Override

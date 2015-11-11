@@ -1,5 +1,7 @@
 package ru.adios.budgeter.api;
 
+import java.io.Serializable;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -8,7 +10,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @author Mikhail Kulikov
  */
-public final class OrderBy<T extends OrderedField> implements RepoOption {
+public final class OrderBy<T extends OrderedField> implements RepoOption, Serializable {
 
     public static OrderBy<OrderedFieldDefault> getDefault(String fieldName, Order order) {
         return new OrderBy<OrderedFieldDefault>(new OrderedFieldDefault(fieldName), order);
