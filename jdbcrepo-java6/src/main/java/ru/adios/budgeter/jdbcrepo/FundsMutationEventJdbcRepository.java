@@ -6,6 +6,7 @@ import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.slf4j.Logger;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
@@ -306,6 +307,8 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
         };
     }
 
+    @Override
+    public void bootstrap(Logger logger) {}
 
     private final class MutationRowMapper extends AgnosticRowMapper<FundsMutationEvent> {
 

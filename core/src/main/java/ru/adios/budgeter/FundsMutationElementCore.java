@@ -391,6 +391,14 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
             resultBuilder.addFieldError(FIELD_QUANTITY, Submitter.ResultBuilder.POSITIVE_PRE);
         }
 
+        if (customRateRef.isPresent() && payeeAccountMoneyWrapper.isInitiable() && amountWrapper.isInitiable()) {
+            final BigDecimal rate = CurrencyRatesProvider.calculateRate(amountWrapper.getAmountDecimal(), payeeAccountMoneyWrapper.getAmountDecimal());
+            if (!customRateRef.get().setScale(6, BigDecimal.ROUND_HALF_DOWN).equals(rate.setScale(6, BigDecimal.ROUND_HALF_DOWN))) {
+                resultBuilder.addFieldError(FIELD_AMOUNT_DECIMAL, "Custom rate is different from rate of %s and", new Object[] {FIELD_PAYEE_AMOUNT});
+                resultBuilder.addFieldError(FIELD_PAYEE_AMOUNT, "Custom rate is different from rate of %s and", new Object[] {FIELD_AMOUNT_DECIMAL});
+            }
+        }
+
         if (resultBuilder.toBuildError()) {
             return resultBuilder.build();
         }

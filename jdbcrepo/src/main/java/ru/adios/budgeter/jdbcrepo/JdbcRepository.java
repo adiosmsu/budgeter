@@ -1,6 +1,7 @@
 package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
+import org.slf4j.Logger;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import ru.adios.budgeter.api.Provider;
 
@@ -94,6 +95,8 @@ interface JdbcRepository<ObjType> extends Provider<ObjType, Long> {
     String[] getCreateTableSql();
 
     String[] getDropTableSql();
+
+    default void bootstrap(Logger logger) {}
 
     default String getInsertSql(boolean withId) {
         return getSqlDialect().insertSql(getTableName(), getColumnNamesForInsert(withId));

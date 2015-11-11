@@ -3,6 +3,7 @@ package ru.adios.budgeter.jdbcrepo;
 import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
 import java8.util.stream.Stream;
+import org.slf4j.Logger;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.FundsMutationAgentRepository;
@@ -195,6 +196,8 @@ public class FundsMutationAgentJdbcRepository implements FundsMutationAgentRepos
         };
     }
 
+    @Override
+    public void bootstrap(Logger logger) {}
 
     static final class AgentRowMapper extends AgnosticPartialRowMapper<FundsMutationAgent> {
 

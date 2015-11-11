@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
+import org.slf4j.Logger;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import ru.adios.budgeter.api.PostponedFundsMutationEventRepository;
 import ru.adios.budgeter.api.UtcDay;
@@ -302,6 +303,9 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                 SqlDialect.Static.dropTableCommand(TABLE_NAME)
         };
     }
+
+    @Override
+    public void bootstrap(Logger logger) {}
 
 
     private final class PostponedMutationRowMapper extends AgnosticRowMapper<PostponedMutationEvent> {

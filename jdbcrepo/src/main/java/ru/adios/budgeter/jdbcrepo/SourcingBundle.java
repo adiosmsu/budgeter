@@ -186,6 +186,7 @@ public final class SourcingBundle implements Bundle {
     private void createSchema(JdbcTemplate jdbcTemplate) {
         for (final JdbcRepository repo : order.values()) {
             executeMultipleSql(jdbcTemplate, repo.getCreateTableSql(), logger);
+            repo.bootstrap(logger);
         }
     }
 
@@ -197,6 +198,7 @@ public final class SourcingBundle implements Bundle {
     private void clearRepo(JdbcTemplate jdbcTemplate, JdbcRepository repository) {
         executeMultipleSql(jdbcTemplate, repository.getDropTableSql(), logger);
         executeMultipleSql(jdbcTemplate, repository.getCreateTableSql(), logger);
+        repository.bootstrap(logger);
     }
 
 }

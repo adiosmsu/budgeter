@@ -7,6 +7,7 @@ import java8.util.function.Supplier;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.slf4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.jdbc.core.PreparedStatementCreator;
@@ -305,6 +306,9 @@ public class JdbcTreasury implements Treasury, JdbcRepository<BalanceAccount> {
                 SqlDialect.Static.dropTableCommand(TABLE_NAME)
         };
     }
+
+    @Override
+    public void bootstrap(Logger logger) {}
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME

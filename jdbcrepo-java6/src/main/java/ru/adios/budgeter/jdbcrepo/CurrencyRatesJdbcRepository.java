@@ -279,6 +279,9 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
         };
     }
 
+    @Override
+    public void bootstrap(Logger logger) {}
+
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME+ " ("
                     + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "

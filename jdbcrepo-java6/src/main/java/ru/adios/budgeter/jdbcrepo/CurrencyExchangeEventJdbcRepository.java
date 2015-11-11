@@ -5,6 +5,7 @@ import java8.util.Optional;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.slf4j.Logger;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.*;
@@ -283,6 +284,9 @@ public class CurrencyExchangeEventJdbcRepository implements CurrencyExchangeEven
                 SqlDialect.Static.dropTableCommand(TABLE_NAME)
         };
     }
+
+    @Override
+    public void bootstrap(Logger logger) {}
 
 
     private final class ExchangeEventRowMapper extends AgnosticRowMapper<CurrencyExchangeEvent> {

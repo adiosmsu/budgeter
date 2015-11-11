@@ -2,6 +2,7 @@ package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
@@ -172,6 +173,12 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
                 sqlDialect.createIndexSql(INDEX_NAME, TABLE_NAME, true, COL_NAME),
                 sqlDialect.createIndexSql(INDEX_PARENT, TABLE_NAME, false, COL_PARENT_ID)
         };
+    }
+
+    @Override
+    public void bootstrap(Logger logger) {
+        final FundsMutationSubject o = FundsMutationSubject.getCurrencyConversionDifferenceSubject(this);
+        logger.info("Bootstrap for {}: {} (Object: {})", TABLE_NAME, getInsertSql(true), o);
     }
 
     @Override

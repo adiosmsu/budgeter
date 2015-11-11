@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java8.util.Optional;
 import java8.util.stream.Stream;
+import org.slf4j.Logger;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.adios.budgeter.api.FundsMutationSubjectRepository;
@@ -220,6 +221,12 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
                 SqlDialect.Static.dropIndexCommand(INDEX_PARENT),
                 SqlDialect.Static.dropTableCommand(TABLE_NAME)
         };
+    }
+
+    @Override
+    public void bootstrap(Logger logger) {
+        final FundsMutationSubject o = FundsMutationSubject.getCurrencyConversionDifferenceSubject(this);
+        logger.info("Bootstrap for {}: {} (Object: {})", TABLE_NAME, getInsertSql(true), o);
     }
 
     private String getActualCreateTableSql() {

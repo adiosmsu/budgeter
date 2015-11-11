@@ -6,6 +6,7 @@ import java8.util.function.Supplier;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
+import org.slf4j.Logger;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import ru.adios.budgeter.api.*;
 import ru.adios.budgeter.api.data.FundsMutationAgent;
@@ -409,6 +410,9 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
                 SqlDialect.Static.dropTableCommand(TABLE_NAME)
         };
     }
+
+    @Override
+    public void bootstrap(Logger logger) {}
 
 
     private final class SubjectPriceRowMapper extends AgnosticRowMapper<SubjectPrice> {
