@@ -30,7 +30,7 @@ public final class OrderBy<T extends OrderedField> implements RepoOption, Serial
         return new OrderBy<T>(field, order.other());
     }
 
-    public static final class OrderedFieldDefault implements OrderedField {
+    public static final class OrderedFieldDefault implements OrderedField, Serializable {
 
         private final String n;
 

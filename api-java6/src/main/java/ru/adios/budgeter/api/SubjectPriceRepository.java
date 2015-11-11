@@ -6,6 +6,7 @@ import ru.adios.budgeter.api.data.FundsMutationAgent;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
 import ru.adios.budgeter.api.data.SubjectPrice;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -16,7 +17,8 @@ import java.util.List;
  */
 public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
 
-    enum Field implements OrderedField {
+    enum Field implements OrderedField, Serializable
+    {
         DAY, PRICE
     }
 

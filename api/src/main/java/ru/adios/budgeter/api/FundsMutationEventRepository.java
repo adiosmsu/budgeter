@@ -4,6 +4,7 @@ import org.joda.money.Money;
 import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.FundsMutationSubject;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.stream.Stream;
  */
 public interface FundsMutationEventRepository extends Provider<FundsMutationEvent, Long> {
 
-    enum Field implements OrderedField {
+    enum Field implements OrderedField, Serializable {
         TIMESTAMP, AMOUNT
     }
 

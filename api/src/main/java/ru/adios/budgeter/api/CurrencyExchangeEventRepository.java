@@ -2,6 +2,7 @@ package ru.adios.budgeter.api;
 
 import ru.adios.budgeter.api.data.CurrencyExchangeEvent;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -14,7 +15,7 @@ import java.util.stream.Stream;
  */
 public interface CurrencyExchangeEventRepository extends Provider<CurrencyExchangeEvent, Long> {
 
-    enum Field implements OrderedField {
+    enum Field implements OrderedField, Serializable {
         TIMESTAMP
     }
 
