@@ -104,6 +104,10 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
         return parentName;
     }
 
+    public long getParentId() {
+        return subjectBuilder.getParentId();
+    }
+
     public void setType(int typeOrdinal) {
         if (lockOn) return;
         final FundsMutationSubject.Type[] values = FundsMutationSubject.Type.values();

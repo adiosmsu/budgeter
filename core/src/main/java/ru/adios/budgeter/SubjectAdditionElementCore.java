@@ -98,6 +98,10 @@ public final class SubjectAdditionElementCore implements Submitter<FundsMutation
         subjectBuilder.setParentId(parentId);
     }
 
+    public long getParentId() {
+        return subjectBuilder.getParentId();
+    }
+
     @Nullable
     public String getParentName() {
         return parentName;

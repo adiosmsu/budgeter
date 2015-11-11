@@ -272,6 +272,14 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                     .addFieldError(FIELD_SELL_AMOUNT);
         }
 
+        if (customRateRef.isPresent() && buyAmountWrapper.isInitiable() && sellAmountWrapper.isInitiable()) {
+            final BigDecimal rate = CurrencyRatesProvider.Static.calculateRate(buyAmountWrapper.getAmountDecimal(), sellAmountWrapper.getAmountDecimal());
+            if (!customRateRef.get().setScale(6, BigDecimal.ROUND_HALF_DOWN).equals(rate.setScale(6, BigDecimal.ROUND_HALF_DOWN))) {
+                resultBuilder.addFieldError(FIELD_BUY_AMOUNT_DECIMAL, "Custom rate is different from rate of %s and", new Object[] {FIELD_BUY_AMOUNT_DECIMAL});
+                resultBuilder.addFieldError(FIELD_SELL_AMOUNT_DECIMAL, "Custom rate is different from rate of %s and", new Object[] {FIELD_BUY_AMOUNT_DECIMAL});
+            }
+        }
+
         if (resultBuilder.toBuildError()) {
             return resultBuilder.build();
         }
@@ -340,6 +348,10 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
             accounter.postponedCurrencyExchangeEventRepository()
                     .rememberPostponedExchange(buyAmountSmallMoney.getAmount(), boughtAccount, soldAccount, customRateRef, timestampRef.get(), agent);
             return Result.success(null);
+        } else {
+            if (!naturalRateRef.isPresent()) {
+                naturalRateRef = Optional.of(naturalRate);
+            }
         }
 
         if (customRateRef.isPresent()) {
