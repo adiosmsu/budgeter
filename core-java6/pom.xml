@@ -45,9 +45,9 @@
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>ru.adios.budgeter</groupId>
-            <artifactId>chm-java6-port</artifactId>
-            <version>${project.parent.version}</version>
+            <groupId>org.concurrenthashmapv8</groupId>
+            <artifactId>jdk6-support</artifactId>
+            <version>1.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>net.sourceforge.streamsupport</groupId>
@@ -110,8 +110,8 @@
                     <artifactId>api-java6</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>ru.adios.budgeter</groupId>
-                    <artifactId>chm-java6-port</artifactId>
+                    <groupId>org.concurrenthashmapv8</groupId>
+                    <artifactId>jdk6-support</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

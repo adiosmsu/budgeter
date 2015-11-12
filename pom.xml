@@ -14,7 +14,6 @@
         <module>api-java6</module>
         <module>core-java6</module>
         <module>inmemrepo-java6</module>
-        <module>chm-java6-port</module>
         <module>api-tests</module>
         <module>api-tests-java6</module>
         <module>jdbcrepo</module>
