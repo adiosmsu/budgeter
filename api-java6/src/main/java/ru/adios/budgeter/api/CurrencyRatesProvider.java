@@ -1,3 +1,21 @@
+/*
+ *
+ *  * Copyright 2015 Michael Kulikov
+ *  *
+ *  * Licensed under the Apache License, Version 2.0 (the "License");
+ *  * you may not use this file except in compliance with the License.
+ *  * You may obtain a copy of the License at
+ *  *
+ *  *    http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
+ *
+ */
+
 package ru.adios.budgeter.api;
 
 import com.google.common.collect.ImmutableList;
@@ -5,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.math.IntMath;
 import java8.util.Optional;
 import java8.util.function.BiFunction;
+import java8.util.stream.RefStreams;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import org.joda.money.CurrencyUnit;
@@ -69,10 +88,10 @@ public interface CurrencyRatesProvider extends Provider<ConversionRate, Long> {
         public static Stream<ConversionPair> streamConversionPairs(Set<CurrencyUnit> unitsSet) {
             final int sizeUnits = unitsSet.size();
             if (sizeUnits <= 1)
-                return StreamSupport.empty();
+                return RefStreams.empty();
             if (sizeUnits == 2) {
                 final Iterator<CurrencyUnit> it = unitsSet.iterator();
-                return StreamSupport.of(new ConversionPair(it.next(), it.next()));
+                return RefStreams.of(new ConversionPair(it.next(), it.next()));
             }
             final ImmutableList<CurrencyUnit> currencyUnitsList = ImmutableList.copyOf(unitsSet);
 

@@ -20,6 +20,24 @@
         <module>jdbcrepo-java6</module>
     </modules>
 
+    <scm>
+        <connection>scm:git:git@github.com:adiosmsu/budgeter.git</connection>
+        <developerConnection>scm:git:git@github.com:adiosmsu/budgeter.git</developerConnection>
+        <url>scm:git:git@github.com:adiosmsu/budgeter.git</url>
+    </scm>
+
+    <name>budgeter parent</name>
+    <description>Provides the common configuration for the budgeter modules</description>
+
+    <licenses>
+        <license>
+            <name>Apache 2</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
     <properties>
         <spring.version>4.2.2.RELEASE</spring.version>
         <slf4j-api.version>1.7.10</slf4j-api.version>
