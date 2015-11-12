@@ -289,6 +289,11 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
         return innerStream(SQL_STREAM_FOR_AGENT_FAST, options, limit, "streamByAgent", subject.id.getAsLong(), agent.id.getAsLong());
     }
 
+    @Override
+    public Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return innerStream(SQL_STREAM_FOR_AGENT_FAST, options, limit, "streamByAgent", subjectId, agentId);
+    }
+
     private Stream<SubjectPrice> innerStream(String sqlStart, List<OrderBy<Field>> options, Optional<OptLimit> limit, String methodName, Object... params) {
         final String sql = SqlDialect.appendWhereClausePostfix(
                 new StringBuilder(sqlStart.length() + 100).append(sqlStart),
@@ -316,6 +321,11 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
                 Common.INTEGER_ROW_MAPPER,
                 subjectName
         );
+    }
+
+    @Override
+    public Stream<SubjectPrice> stream(long subjectId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return innerStream(SQL_STREAM_FAST, options, limit, "stream", subjectId);
     }
 
     @Override

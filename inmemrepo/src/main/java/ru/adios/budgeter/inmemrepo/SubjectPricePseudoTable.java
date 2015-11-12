@@ -101,6 +101,11 @@ public class SubjectPricePseudoTable extends AbstractPseudoTable<Stored<SubjectP
     }
 
     @Override
+    public Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return streamByAgent(Schema.FUNDS_MUTATION_SUBJECTS.getById(subjectId).get(), Schema.FUNDS_MUTATION_AGENTS.getById(agentId).get(), options, limit);
+    }
+
+    @Override
     public Stream<SubjectPrice> streamByAgent(String subjectName, String agentName, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
         return streamByAgent(
                 Schema.FUNDS_MUTATION_SUBJECTS.findByName(subjectName).get(), Schema.FUNDS_MUTATION_AGENTS.findByName(agentName).get(), options, limit
@@ -118,6 +123,11 @@ public class SubjectPricePseudoTable extends AbstractPseudoTable<Stored<SubjectP
     @Override
     public int count(String subjectName) {
         return count(Schema.FUNDS_MUTATION_SUBJECTS.findByName(subjectName).get());
+    }
+
+    @Override
+    public Stream<SubjectPrice> stream(long subjectId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return stream(Schema.FUNDS_MUTATION_SUBJECTS.getById(subjectId).get(), options, limit);
     }
 
     @Override

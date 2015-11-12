@@ -114,6 +114,7 @@ public class SubjectPriceRepoTester {
         final SubjectPrice farthest = registerSome(subjectPrices, food, agent, new UtcDay().add(-1));
 
         assertEquals("Wrong number of prices in stream", 3, subjectPrices.streamByAgent(food, agent).collect(Collectors.toList()).size());
+        assertEquals("Wrong number of prices in stream", 3, subjectPrices.streamByAgent(food.id.getAsLong(), agent.id.getAsLong()).collect(Collectors.toList()).size());
         assertEquals(
                 "Wrong number of prices in stream (with order)",
                 3,
@@ -122,9 +123,23 @@ public class SubjectPriceRepoTester {
                         .size()
         );
         assertEquals(
+                "Wrong number of prices in stream (with order)",
+                3,
+                subjectPrices.streamByAgent(food.id.getAsLong(), agent.id.getAsLong(), new OrderBy<>(SubjectPriceRepository.Field.DAY, Order.ASC))
+                        .collect(Collectors.toList())
+                        .size()
+        );
+        assertEquals(
                 "Wrong number of prices in stream (with order and limit)",
                 2,
                 subjectPrices.streamByAgent(food, agent, OptLimit.createLimit(2), new OrderBy<>(SubjectPriceRepository.Field.DAY, Order.ASC))
+                        .collect(Collectors.toList())
+                        .size()
+        );
+        assertEquals(
+                "Wrong number of prices in stream (with order and limit)",
+                2,
+                subjectPrices.streamByAgent(food.id.getAsLong(), agent.id.getAsLong(), OptLimit.createLimit(2), new OrderBy<>(SubjectPriceRepository.Field.DAY, Order.ASC))
                         .collect(Collectors.toList())
                         .size()
         );
@@ -232,6 +247,7 @@ public class SubjectPriceRepoTester {
         final SubjectPrice farthest = registerSome(subjectPrices, food, agent, new UtcDay().add(-10));
 
         assertEquals("Wrong number of prices in stream", 5, subjectPrices.stream(food).collect(Collectors.toList()).size());
+        assertEquals("Wrong number of prices in stream", 5, subjectPrices.stream(food.id.getAsLong()).collect(Collectors.toList()).size());
         assertEquals(
                 "Wrong number of prices in stream (with order)",
                 5,
@@ -240,9 +256,23 @@ public class SubjectPriceRepoTester {
                         .size()
         );
         assertEquals(
+                "Wrong number of prices in stream (with order)",
+                5,
+                subjectPrices.stream(food.id.getAsLong(), new OrderBy<>(SubjectPriceRepository.Field.DAY, Order.ASC))
+                        .collect(Collectors.toList())
+                        .size()
+        );
+        assertEquals(
                 "Wrong number of prices in stream (with order and limit)",
                 4,
                 subjectPrices.stream(food, OptLimit.createLimit(4), new OrderBy<>(SubjectPriceRepository.Field.DAY, Order.ASC))
+                        .collect(Collectors.toList())
+                        .size()
+        );
+        assertEquals(
+                "Wrong number of prices in stream (with order and limit)",
+                4,
+                subjectPrices.stream(food.id.getAsLong(), OptLimit.createLimit(4), new OrderBy<>(SubjectPriceRepository.Field.DAY, Order.ASC))
                         .collect(Collectors.toList())
                         .size()
         );

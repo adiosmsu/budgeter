@@ -258,6 +258,16 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
     }
 
     @Override
+    public Stream<SubjectPrice> stream(long subjectId, RepoOption... options) {
+        return repoDef.stream(subjectId, options);
+    }
+
+    @Override
+    public Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, RepoOption... options) {
+        return repoDef.streamByAgent(subjectId, agentId, options);
+    }
+
+    @Override
     public Stream<SubjectPrice> stream(FundsMutationSubject subject, RepoOption... options) {
         return repoDef.stream(subject, options);
     }
@@ -330,6 +340,11 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
     }
 
     @Override
+    public Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return innerStream(SQL_STREAM_FOR_AGENT_FAST, options, limit, "streamByAgent", subjectId, agentId);
+    }
+
+    @Override
     public Stream<SubjectPrice> streamByAgent(FundsMutationSubject subject, FundsMutationAgent agent, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
         checkSubjectAndAgent(subject, agent);
         return innerStream(SQL_STREAM_FOR_AGENT_FAST, options, limit, "streamByAgent", subject.id.getAsLong(), agent.id.getAsLong());
@@ -362,6 +377,11 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
                 Common.INTEGER_ROW_MAPPER,
                 subjectName
         );
+    }
+
+    @Override
+    public Stream<SubjectPrice> stream(long subjectId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return innerStream(SQL_STREAM_FAST, options, limit, "stream", subjectId);
     }
 
     @Override

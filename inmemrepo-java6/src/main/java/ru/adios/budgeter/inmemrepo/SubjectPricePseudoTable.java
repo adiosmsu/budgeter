@@ -206,6 +206,21 @@ public class SubjectPricePseudoTable extends AbstractPseudoTable<Stored<SubjectP
     }
 
     @Override
+    public Stream<SubjectPrice> stream(long subjectId, RepoOption... options) {
+        return def.stream(subjectId, options);
+    }
+
+    @Override
+    public Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, RepoOption... options) {
+        return def.streamByAgent(subjectId, agentId, options);
+    }
+
+    @Override
+    public Stream<SubjectPrice> stream(long subjectId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return stream(Schema.FUNDS_MUTATION_SUBJECTS.getById(subjectId).get(), options, limit);
+    }
+
+    @Override
     public Stream<SubjectPrice> stream(FundsMutationSubject subject, RepoOption... options) {
         return def.stream(subject, options);
     }
@@ -213,6 +228,11 @@ public class SubjectPricePseudoTable extends AbstractPseudoTable<Stored<SubjectP
     @Override
     public Stream<SubjectPrice> stream(String subjectName, RepoOption... options) {
         return def.stream(subjectName, options);
+    }
+
+    @Override
+    public Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
+        return streamByAgent(Schema.FUNDS_MUTATION_SUBJECTS.getById(subjectId).get(), Schema.FUNDS_MUTATION_AGENTS.getById(agentId).get(), options, limit);
     }
 
     @Override

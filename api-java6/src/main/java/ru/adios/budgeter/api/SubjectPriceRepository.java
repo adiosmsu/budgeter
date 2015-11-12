@@ -48,6 +48,11 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
             this.repo = repo;
         }
 
+        public Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, RepoOption... options) {
+            final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
+            return repo.streamByAgent(subjectId, agentId, pair.options, pair.limit);
+        }
+
         public Stream<SubjectPrice> streamByAgent(FundsMutationSubject subject, FundsMutationAgent agent, RepoOption... options) {
             final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
             return repo.streamByAgent(subject, agent, pair.options, pair.limit);
@@ -56,6 +61,11 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
         public Stream<SubjectPrice> streamByAgent(String subjectName, String agentName, RepoOption... options) {
             final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
             return repo.streamByAgent(subjectName, agentName, pair.options, pair.limit);
+        }
+
+        public Stream<SubjectPrice> stream(long subjectId, RepoOption... options) {
+            final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
+            return repo.stream(subjectId, pair.options, pair.limit);
         }
 
         public Stream<SubjectPrice> stream(FundsMutationSubject subject, RepoOption... options) {
@@ -78,6 +88,10 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
 
     int countByAgent(String subjectName, String agentName);
 
+    Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, List<OrderBy<Field>> options, Optional<OptLimit> limit);
+
+    Stream<SubjectPrice> streamByAgent(long subjectId, long agentId, RepoOption... options);
+
     Stream<SubjectPrice> streamByAgent(FundsMutationSubject subject, FundsMutationAgent agent, List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
     Stream<SubjectPrice> streamByAgent(FundsMutationSubject subject, FundsMutationAgent agent, RepoOption... options); // default in java8
@@ -89,6 +103,10 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
     int count(FundsMutationSubject subject);
 
     int count(String subjectName);
+
+    Stream<SubjectPrice> stream(long subjectId, List<OrderBy<Field>> options, Optional<OptLimit> limit);
+
+    Stream<SubjectPrice> stream(long subjectId, RepoOption... options);
 
     Stream<SubjectPrice> stream(FundsMutationSubject subject, List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
