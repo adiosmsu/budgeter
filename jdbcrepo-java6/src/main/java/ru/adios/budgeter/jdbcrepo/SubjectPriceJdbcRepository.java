@@ -288,6 +288,16 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
     }
 
     @Override
+    public int count(long subjectId) {
+        return Common.getSingleColumn(
+                this,
+                COUNT_SQL_FAST,
+                Common.INTEGER_ROW_MAPPER,
+                subjectId
+        );
+    }
+
+    @Override
     public int count(final FundsMutationSubject subject) {
         return Common.getSingleColumn(
                 this,
@@ -316,6 +326,16 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
                 Common.LONG_ROW_MAPPER,
                 subject.id.getAsLong(), agent.id.getAsLong(), sqlDialect.translateForDb(day)
         ).isPresent();
+    }
+
+    @Override
+    public int countByAgent(long subjectId, long agentId) {
+        return Common.getSingleColumn(
+                this,
+                COUNT_BY_AGENTS_SQL_FAST,
+                Common.INTEGER_ROW_MAPPER,
+                subjectId, agentId
+        );
     }
 
     @Override

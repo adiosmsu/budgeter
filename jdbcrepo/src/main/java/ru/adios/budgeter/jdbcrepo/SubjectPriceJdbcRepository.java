@@ -263,6 +263,16 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
     }
 
     @Override
+    public int countByAgent(long subjectId, long agentId) {
+        return Common.getSingleColumn(
+                this,
+                COUNT_BY_AGENTS_SQL_FAST,
+                Common.INTEGER_ROW_MAPPER,
+                subjectId, agentId
+        );
+    }
+
+    @Override
     public int countByAgent(FundsMutationSubject subject, FundsMutationAgent agent) {
         checkSubjectAndAgent(subject, agent);
         return Common.getSingleColumn(
@@ -311,6 +321,16 @@ public class SubjectPriceJdbcRepository implements SubjectPriceRepository, JdbcR
     @Override
     public Stream<SubjectPrice> streamByAgent(String subjectName, String agentName, List<OrderBy<Field>> options, Optional<OptLimit> limit) {
         return innerStream(SQL_STREAM_FOR_AGENT, options, limit, "streamByAgent", subjectName, agentName);
+    }
+
+    @Override
+    public int count(long subjectId) {
+        return Common.getSingleColumn(
+                this,
+                COUNT_SQL_FAST,
+                Common.INTEGER_ROW_MAPPER,
+                subjectId
+        );
     }
 
     @Override

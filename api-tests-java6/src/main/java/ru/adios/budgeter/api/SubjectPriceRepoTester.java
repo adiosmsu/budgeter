@@ -100,6 +100,7 @@ public class SubjectPriceRepoTester {
         registerSome(subjectPrices, food, agent, new UtcDay().add(1));
 
         assertEquals("Wrong number of prices", 2, subjectPrices.countByAgent(food, agent));
+        assertEquals("Wrong number of prices", 2, subjectPrices.countByAgent(food.id.getAsLong(), agent.id.getAsLong()));
         assertEquals("Wrong number of prices (String counter edition)", 2, subjectPrices.countByAgent(food.name, agent.name));
     }
 
@@ -225,6 +226,7 @@ public class SubjectPriceRepoTester {
         registerSome(subjectPrices, food, agent2, new UtcDay());
 
         assertEquals("Wrong number of prices", 4, subjectPrices.count(food));
+        assertEquals("Wrong number of prices", 4, subjectPrices.count(food.id.getAsLong()));
         assertEquals("Wrong number of prices (String counter edition)", 4, subjectPrices.count(food.name));
     }
 

@@ -43,6 +43,8 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
 
     boolean priceExists(FundsMutationSubject subject, FundsMutationAgent agent, UtcDay day);
 
+    int countByAgent(long subjectId, long agentId);
+
     int countByAgent(FundsMutationSubject subject, FundsMutationAgent agent);
 
     int countByAgent(String subjectName, String agentName);
@@ -67,6 +69,8 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
         final RepoUtil.Pair<Field> pair = RepoUtil.parseOptVarArg(options, Field.class);
         return streamByAgent(subjectName, agentName, pair.options, pair.limit);
     }
+
+    int count(long subjectId);
 
     int count(FundsMutationSubject subject);
 

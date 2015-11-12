@@ -92,6 +92,11 @@ public class SubjectPricePseudoTable extends AbstractPseudoTable<Stored<SubjectP
     }
 
     @Override
+    public int countByAgent(long subjectId, long agentId) {
+        return countByAgent(Schema.FUNDS_MUTATION_SUBJECTS.getById(subjectId).get(), Schema.FUNDS_MUTATION_AGENTS.getById(agentId).get());
+    }
+
+    @Override
     public int countByAgent(final FundsMutationSubject subject, final FundsMutationAgent agent) {
         return (int) table.values()
                 .getStream()
@@ -134,6 +139,11 @@ public class SubjectPricePseudoTable extends AbstractPseudoTable<Stored<SubjectP
         return streamByAgent(
                 Schema.FUNDS_MUTATION_SUBJECTS.findByName(subjectName).get(), Schema.FUNDS_MUTATION_AGENTS.findByName(agentName).get(), options, limit
         );
+    }
+
+    @Override
+    public int count(long subjectId) {
+        return count(Schema.FUNDS_MUTATION_SUBJECTS.getById(subjectId).get());
     }
 
     @Override

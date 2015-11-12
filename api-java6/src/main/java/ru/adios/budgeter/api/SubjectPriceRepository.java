@@ -84,6 +84,8 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
 
     boolean priceExists(FundsMutationSubject subject, FundsMutationAgent agent, UtcDay day);
 
+    int countByAgent(long subjectId, long agentId);
+
     int countByAgent(FundsMutationSubject subject, FundsMutationAgent agent);
 
     int countByAgent(String subjectName, String agentName);
@@ -99,6 +101,8 @@ public interface SubjectPriceRepository extends Provider<SubjectPrice, Long>{
     Stream<SubjectPrice> streamByAgent(String subjectName, String agentName, List<OrderBy<Field>> options, Optional<OptLimit> limit);
 
     Stream<SubjectPrice> streamByAgent(String subjectName, String agentName, RepoOption... options);  // default in java8
+
+    int count(long subjectId);
 
     int count(FundsMutationSubject subject);
 
