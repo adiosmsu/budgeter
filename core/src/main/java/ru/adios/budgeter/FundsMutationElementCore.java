@@ -55,7 +55,6 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
     public static final String FIELD_PAYEE_AMOUNT = "payeeAmount";
     public static final String FIELD_PAID_MONEY = "paidMoney";
     public static final String FIELD_PAYEE_ACCOUNT_UNIT = "payee_account_unit";
-    public static final String FIELD_QUANTITY = "quantity";
     public static final String FIELD_PORTION = "portion";
     public static final String FIELD_TIMESTAMP = "timestamp";
 
@@ -111,9 +110,9 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
         //noinspection ConstantConditions
         if (payeeAccountMoneyWrapper.isUnitSet() && !payeeAccountMoneyWrapper.getAmountUnit().equals(amountWrapper.getAmountUnit())) {
             final Money amount = direction.getAppropriateMutationAmount(amountWrapper.getAmount(), payeeAccountMoneyWrapper.getAmount());
-            return direction.amountToSet(amount).multipliedBy(getQuantity());
+            return direction.amountToSet(amount).multipliedBy(getPortion(), RoundingMode.HALF_DOWN);
         }
-        return direction.amountToSet(amountWrapper.getAmount()).multipliedBy(getQuantity());
+        return direction.amountToSet(amountWrapper.getAmount()).multipliedBy(getPortion(), RoundingMode.HALF_DOWN);
     }
 
     public void setDirection(MutationDirection direction) {
@@ -299,15 +298,6 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
         return customRateRef.orElse(null);
     }
 
-    public void setQuantity(int quantity) {
-        if (lockOn) return;
-        eventBuilder.setQuantity(quantity);
-    }
-
-    public int getQuantity() {
-        return eventBuilder.getQuantity();
-    }
-
     public BigDecimal getPortion() {
         return eventBuilder.getPortion();
     }
@@ -415,8 +405,8 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
             resultBuilder.addFieldError(FIELD_PAYEE_ACCOUNT_UNIT);
         }
 
-        if (eventBuilder.getQuantity() <= 0) {
-            resultBuilder.addFieldError(FIELD_QUANTITY, Submitter.ResultBuilder.POSITIVE_PRE);
+        if (eventBuilder.getPortion() == null || eventBuilder.getPortion().compareTo(BigDecimal.ZERO) <= 0) {
+            resultBuilder.addFieldError(FIELD_PORTION, Submitter.ResultBuilder.POSITIVE_PRE);
         }
 
         if (customRateRef.isPresent() && payeeAccountMoneyWrapper.isInitiable() && amountWrapper.isInitiable()) {
@@ -425,11 +415,6 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
                 resultBuilder.addFieldError(FIELD_AMOUNT_DECIMAL, "Custom rate is different from rate of %s and", new Object[] {FIELD_PAYEE_AMOUNT});
                 resultBuilder.addFieldError(FIELD_PAYEE_AMOUNT, "Custom rate is different from rate of %s and", new Object[] {FIELD_AMOUNT_DECIMAL});
             }
-        }
-
-        final BigDecimal portion = getPortion();
-        if (portion != null && portion.compareTo(BigDecimal.ZERO) <= 0 && portion.compareTo(BigDecimal.ONE) > 0) {
-            resultBuilder.addFieldError(FIELD_PORTION, "Only decimal numbers between zero and one are valid for");
         }
 
         if (resultBuilder.toBuildError()) {
@@ -520,7 +505,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
                             direction,
                             eventBuilder.getAgent(),
                             eventBuilder.getTimestamp(),
-                            eventBuilder.getQuantity()
+                            eventBuilder.getPortion()
                     );
                 }
 

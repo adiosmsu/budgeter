@@ -30,6 +30,7 @@ import ru.adios.budgeter.api.data.*;
 
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Date: 6/13/15
@@ -49,14 +50,13 @@ public interface FundsMutator {
                 MutationDirection direction,
                 FundsMutationAgent agent,
                 OffsetDateTime timestamp,
-                int quantity
+                BigDecimal portion
         ) {
             final int customVsNatural = customAmount.compareTo(naturalAmount);
             if (customVsNatural != 0) {
                 final Accounter accounter = mutator.getAccounter();
                 final FundsMutationElementCore rec = new FundsMutationElementCore(accounter, mutator.getTreasury(), mutator.getRatesService());
-                rec.setQuantity(1);
-                rec.setAmount(customAmount.minus(naturalAmount).abs().multipliedBy(quantity));
+                rec.setAmount(customAmount.minus(naturalAmount).abs().multipliedBy(portion, RoundingMode.HALF_DOWN));
                 rec.setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()));
                 rec.setDirection(direction.getExchangeDifferenceDirection(customVsNatural > 0));
                 rec.setTimestamp(timestamp);
@@ -126,13 +126,13 @@ public interface FundsMutator {
                     repository.register(
                             SubjectPrice.builder()
                                     .setDay(day)
-                                    .setPrice(event.fullPriceForOne().abs())
+                                    .setPrice(event.getPrice().abs())
                                     .setSubject(event.subject)
                                     .setAgent(event.agent)
                                     .build()
                     );
                 }
-                treasury.addAmount(event.amount.multipliedBy(event.quantity), event.relevantBalance.name);
+                treasury.addAmount(event.amount.multipliedBy(event.portion, RoundingMode.HALF_DOWN), event.relevantBalance.name);
                 return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
             }
             return null;

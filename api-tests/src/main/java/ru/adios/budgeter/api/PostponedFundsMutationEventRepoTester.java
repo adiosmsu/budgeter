@@ -64,7 +64,7 @@ public final class PostponedFundsMutationEventRepoTester {
         }
 
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.TEN)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(666L)))
                 .setRelevantBalance(TestUtils.prepareBalance(bundle, Units.RUB))
@@ -91,7 +91,7 @@ public final class PostponedFundsMutationEventRepoTester {
 
         final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.TEN)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-777L)))
                 .setRelevantBalance(accountUsd)
@@ -132,7 +132,7 @@ public final class PostponedFundsMutationEventRepoTester {
         final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
 
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.TEN)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(888L)))
                 .setRelevantBalance(accountRub)
@@ -140,7 +140,7 @@ public final class PostponedFundsMutationEventRepoTester {
                 .setTimestamp(ts)
                 .build();
         final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.TEN)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-999L)))
                 .setRelevantBalance(accountUsd)
@@ -181,7 +181,7 @@ public final class PostponedFundsMutationEventRepoTester {
         final BalanceAccount accountUsd = TestUtils.prepareBalance(bundle, CurrencyUnit.USD);
 
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.TEN)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(1000L)))
                 .setRelevantBalance(accountRub)
@@ -189,7 +189,7 @@ public final class PostponedFundsMutationEventRepoTester {
                 .setTimestamp(ts)
                 .build();
         final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.TEN)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-1001L)))
                 .setRelevantBalance(accountUsd)

@@ -116,7 +116,6 @@ public class ExchangeCurrenciesElementCoreTest {
                 caseName + "Bad dollars exchange LOSS mutation values",
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(-9.01)))
-                        .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.JULY_3RD_2015.inner))
                         .setAgent(agentExchanger)
@@ -170,7 +169,6 @@ public class ExchangeCurrenciesElementCoreTest {
                 caseName + "Bad euros exchange BENEFIT mutation values",
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.RUB, 2000))
-                        .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.DAY_BF_YESTER.inner))
                         .setAgent(agentExchanger)
@@ -228,7 +226,6 @@ public class ExchangeCurrenciesElementCoreTest {
                 caseName + "Bad btc exchange LOSS mutation values",
                 FundsMutationEvent.builder()
                         .setAmount(Money.of(Units.BTC, -40))
-                        .setQuantity(1)
                         .setSubject(FundsMutationSubject.getCurrencyConversionDifferenceSubject(accounter.fundsMutationSubjectRepo()))
                         .setTimestamp(DateTimeUtils.convertToCurrentZone(TestUtils.DAY_BF_YESTER.inner))
                         .setAgent(agentExchanger)

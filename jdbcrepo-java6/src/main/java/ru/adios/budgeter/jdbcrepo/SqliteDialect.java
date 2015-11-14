@@ -216,7 +216,11 @@ public final class SqliteDialect extends AbstractSqlDialect {
             {
                 return (T) BigDecimal.ZERO;
             }
-            return (T) BigDecimal.valueOf(num.longValue(), DECIMAL_SCALE).stripTrailingZeros();
+            BigDecimal bigDecimal = BigDecimal.valueOf(((Number) object).longValue(), DECIMAL_SCALE).stripTrailingZeros();
+            if (bigDecimal.scale() < 0) {
+                bigDecimal = bigDecimal.setScale(0, BigDecimal.ROUND_UNNECESSARY);
+            }
+            return (T) bigDecimal;
         } else if (UtcDay.class.equals(type) && object instanceof Number) {
             return (T) new UtcDay(((Number) object).longValue());
         } else if (OffsetDateTime.class.equals(type) && object instanceof Number) {

@@ -76,7 +76,7 @@ public final class AccounterTester {
         final BalanceAccount accountEur = TestUtils.prepareBalance(bundle, CurrencyUnit.EUR);
         final BalanceAccount accountAud = TestUtils.prepareBalance(bundle, CurrencyUnit.AUD);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.valueOf(10))
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
                 .setRelevantBalance(accountRub)
@@ -89,7 +89,6 @@ public final class AccounterTester {
         FundsMutationSubject game = FundsMutationSubject.builder(subjectRepository).setName("Game").setType(FundsMutationSubject.Type.PRODUCT).build();
         game = subjectRepository.addSubject(game);
         final FundsMutationEvent gameBuy = FundsMutationEvent.builder()
-                .setQuantity(1)
                 .setSubject(game)
                 .setAmount(Money.of(CurrencyUnit.EUR, BigDecimal.valueOf(-10L)))
                 .setRelevantBalance(accountRub)
@@ -101,7 +100,6 @@ public final class AccounterTester {
         final UtcDay today = new UtcDay();
         final UtcDay daySecond = new UtcDay(today.inner.minus(1, ChronoUnit.DAYS));
         final FundsMutationEvent gameBuy2 = FundsMutationEvent.builder()
-                .setQuantity(1)
                 .setSubject(game)
                 .setAmount(Money.of(CurrencyUnit.GBP, BigDecimal.valueOf(-10L)))
                 .setRelevantBalance(accountAud)

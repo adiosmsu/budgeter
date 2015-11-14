@@ -357,7 +357,7 @@ public final class ExchangeCurrenciesElementCore implements FundsMutator, Submit
                     MutationDirection.BENEFIT,
                     agent,
                     timestampRef.get(),
-                    1
+                    BigDecimal.ONE
             );
         }
 

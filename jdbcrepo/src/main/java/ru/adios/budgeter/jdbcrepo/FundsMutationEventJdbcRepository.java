@@ -60,7 +60,6 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     public static final String COL_UNIT = "unit";
     public static final String COL_AMOUNT = "amount";
     public static final String COL_RELEVANT_ACCOUNT_ID = "relevant_account_id";
-    public static final String COL_QUANTITY = "quantity";
     public static final String COL_SUBJECT_ID = "subject_id";
     public static final String COL_TIMESTAMP = "timestamp";
     public static final String COL_AGENT_ID = "agent_id";
@@ -94,14 +93,13 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
             COL_UNIT, COL_AMOUNT,
             JOIN_RELEVANT_ACC_ID, JOIN_RELEVANT_ACC_NAME, JOIN_RELEVANT_ACC_CURRENCY_UNIT, JOIN_RELEVANT_ACC_BALANCE, JOIN_RELEVANT_ACC_DESC,
-            COL_QUANTITY,
             JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME, JOIN_SUBJECT_DESC,
             COL_TIMESTAMP,
             JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC,
             COL_PORTION
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
-            COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID, COL_PORTION
+            COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID, COL_PORTION
     );
 
     private static final String COUNT_ALL_SQL = SqlDialect.countAllSql(TABLE_NAME);
@@ -205,11 +203,10 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                 object.amount.isPositive(),
                 object.amount.getCurrencyUnit().getNumericCode(), object.amount.getAmount(),
                 object.relevantBalance.id.get(),
-                object.quantity,
                 object.subject.id.getAsLong(),
                 object.timestamp,
                 object.agent.id.getAsLong(),
-                JdbcRepository.wrapNull(object.portion.orElse(null))
+                object.portion
         );
     }
 
@@ -264,7 +261,6 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                     + COL_UNIT + " INT, "
                     + COL_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
                     + COL_RELEVANT_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
-                    + COL_QUANTITY + " INT, "
                     + COL_SUBJECT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
                     + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
@@ -299,16 +295,14 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             final int unit = rs.getInt(ix);
             final BigDecimal amount = sqlDialect.translateFromDb(rs.getObject(ix + 1), BigDecimal.class);
             final BalanceAccount account = accountRowMapper.mapRowStartingFrom(ix + 2, rs);
-            final int quantity = rs.getInt(ix + 7);
-            final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(ix + 8, rs);
-            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(ix + 15), OffsetDateTime.class);
-            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(ix + 16, rs);
-            final BigDecimal portion = sqlDialect.translateFromDb(rs.getObject(ix + 19), BigDecimal.class);
+            final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(ix + 7, rs);
+            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(ix + 14), OffsetDateTime.class);
+            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(ix + 15, rs);
+            final BigDecimal portion = sqlDialect.translateFromDb(rs.getObject(ix + 18), BigDecimal.class);
 
             return FundsMutationEvent.builder()
                     .setAmount(Money.of(CurrencyUnit.ofNumericCode(unit), amount))
                     .setRelevantBalance(account)
-                    .setQuantity(quantity)
                     .setSubject(sub)
                     .setTimestamp(timestamp)
                     .setAgent(agent)

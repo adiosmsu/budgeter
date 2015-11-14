@@ -18,7 +18,6 @@
 
 package ru.adios.budgeter.api.data;
 
-import java8.util.Optional;
 import org.joda.money.Money;
 import org.threeten.bp.OffsetDateTime;
 
@@ -45,8 +44,7 @@ public final class FundsMutationEvent {
 
     public final Money amount;
     public final BalanceAccount relevantBalance;
-    public final int quantity;
-    public final Optional<BigDecimal> portion;
+    public final BigDecimal portion;
     public final FundsMutationSubject subject;
     public final OffsetDateTime timestamp;
     public final FundsMutationAgent agent;
@@ -54,24 +52,20 @@ public final class FundsMutationEvent {
     private FundsMutationEvent(Builder builder) {
         this.amount = builder.amount;
         this.relevantBalance = builder.relevantBalance;
-        this.quantity = builder.quantity;
-        this.portion = Optional.ofNullable(builder.portion);
+        this.portion = builder.portion;
         this.subject = builder.subject;
         this.timestamp = builder.timestamp;
         this.agent = builder.agent;
         checkArgument(
-                amount != null && relevantBalance != null && subject != null && quantity > 0 && timestamp != null && agent != null,
+                amount != null && relevantBalance != null && subject != null && portion != null
+                        && portion.compareTo(BigDecimal.ZERO) > 0 && timestamp != null && agent != null,
                 "Bad data, possibly uninitialized %s",
                 builder
         );
     }
 
-    public Money fullPriceForOne() {
-        return portion.isPresent() ? amount.dividedBy(portion.get(), RoundingMode.HALF_DOWN) : amount;
-    }
-
-    public Money fullPriceForAll() {
-        return fullPriceForOne().multipliedBy(quantity);
+    public Money getPrice() {
+        return amount.dividedBy(portion, RoundingMode.HALF_DOWN);
     }
 
     @Override
@@ -79,7 +73,6 @@ public final class FundsMutationEvent {
         return "FundsMutationEvent{" +
                 "amount=" + amount +
                 ", relevantBalance=" + relevantBalance +
-                ", quantity=" + quantity +
                 ", portion=" + portion +
                 ", subject=" + subject +
                 ", timestamp=" + timestamp +
@@ -94,8 +87,7 @@ public final class FundsMutationEvent {
 
         FundsMutationEvent that = (FundsMutationEvent) o;
 
-        return quantity == that.quantity
-                && portion.equals(that.portion)
+        return portion.equals(that.portion)
                 && amount.equals(that.amount)
                 && relevantBalance.equals(that.relevantBalance)
                 && subject.equals(that.subject)
@@ -105,7 +97,6 @@ public final class FundsMutationEvent {
     @Override
     public int hashCode() {
         int result = amount.hashCode();
-        result = 31 * result + quantity;
         result = 31 * result + portion.hashCode();
         result = 31 * result + relevantBalance.hashCode();
         result = 31 * result + subject.hashCode();
@@ -118,8 +109,7 @@ public final class FundsMutationEvent {
 
         private Money amount;
         private BalanceAccount relevantBalance;
-        private int quantity = 1;
-        private BigDecimal portion;
+        private BigDecimal portion = BigDecimal.ONE;
         private FundsMutationSubject subject;
         private OffsetDateTime timestamp = OffsetDateTime.now();
         private FundsMutationAgent agent;
@@ -130,7 +120,6 @@ public final class FundsMutationEvent {
             agent = fundsMutationEvent.agent;
             amount = fundsMutationEvent.amount;
             relevantBalance = fundsMutationEvent.relevantBalance;
-            quantity = fundsMutationEvent.quantity;
             subject = fundsMutationEvent.subject;
             timestamp = fundsMutationEvent.timestamp;
             return this;
@@ -141,7 +130,6 @@ public final class FundsMutationEvent {
             return "FundsMutationEvent.Builder{" +
                     "amount=" + amount +
                     ", relevantBalance=" + relevantBalance +
-                    ", quantity=" + quantity +
                     ", portion=" + portion +
                     ", subject=" + subject +
                     ", timestamp=" + timestamp +
@@ -161,11 +149,6 @@ public final class FundsMutationEvent {
 
         public Builder setRelevantBalance(BalanceAccount relevantBalance) {
             this.relevantBalance = relevantBalance;
-            return this;
-        }
-
-        public Builder setQuantity(int quantity) {
-            this.quantity = quantity;
             return this;
         }
 
@@ -201,10 +184,6 @@ public final class FundsMutationEvent {
         @Nullable
         public FundsMutationAgent getAgent() {
             return agent;
-        }
-
-        public int getQuantity() {
-            return quantity;
         }
 
         @Nullable

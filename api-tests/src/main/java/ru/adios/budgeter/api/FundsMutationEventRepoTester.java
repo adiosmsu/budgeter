@@ -54,7 +54,7 @@ public final class FundsMutationEventRepoTester {
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
         final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.valueOf(10))
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
                 .setRelevantBalance(accountRub)
@@ -67,7 +67,7 @@ public final class FundsMutationEventRepoTester {
         assertEquals("No breadBuy event found", breadBuy, mutationEventRepository.getById(mutationEventRepository.currentSeqValue()).get());
         try {
             final FundsMutationEvent test = FundsMutationEvent.builder()
-                    .setQuantity(10)
+                    .setPortion(BigDecimal.valueOf(10))
                     .setSubject(FundsMutationSubject.builder(subjectRepository).setName("Test").setType(FundsMutationSubject.Type.PRODUCT).build())
                     .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
                     .setRelevantBalance(accountRub)
@@ -84,7 +84,7 @@ public final class FundsMutationEventRepoTester {
         final FundsMutationAgent agent = TestUtils.prepareTestAgent(bundle);
         final BalanceAccount accountRub = TestUtils.prepareBalance(bundle, Units.RUB);
         final FundsMutationEvent breadBuy = FundsMutationEvent.builder()
-                .setQuantity(10)
+                .setPortion(BigDecimal.valueOf(10))
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-50L)))
                 .setRelevantBalance(accountRub)
@@ -97,7 +97,7 @@ public final class FundsMutationEventRepoTester {
         assertEquals("No breadBuy event found", breadBuy, mutationEventRepository.getById(mutationEventRepository.currentSeqValue()).get());
         try {
             final FundsMutationEvent test = FundsMutationEvent.builder()
-                    .setQuantity(10)
+                    .setPortion(BigDecimal.valueOf(10))
                     .setSubject(FundsMutationSubject.builder(subjectRepository).setName("Test").setType(FundsMutationSubject.Type.PRODUCT).build())
                     .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(50L)))
                     .setRelevantBalance(accountRub)
@@ -163,14 +163,12 @@ public final class FundsMutationEventRepoTester {
         final FundsMutationAgent agent = bundle.fundsMutationAgents().findByName("Test").get();
         final FundsMutationSubject food = bundle.fundsMutationSubjects().findByName("Food").get();
         final FundsMutationEvent breadBuy1 = FundsMutationEvent.builder()
-                .setQuantity(1)
                 .setSubject(food)
                 .setAmount(Money.of(Units.RUB, BigDecimal.valueOf(-100L)))
                 .setRelevantBalance(accountRub)
                 .setAgent(agent)
                 .build();
         final FundsMutationEvent breadBuy2 = FundsMutationEvent.builder()
-                .setQuantity(1)
                 .setSubject(food)
                 .setAmount(Money.of(CurrencyUnit.USD, BigDecimal.valueOf(-10L)))
                 .setRelevantBalance(accountRub)
