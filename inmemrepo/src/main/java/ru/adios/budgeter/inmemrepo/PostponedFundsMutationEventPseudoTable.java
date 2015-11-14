@@ -18,6 +18,7 @@
 
 package ru.adios.budgeter.inmemrepo;
 
+import com.google.common.base.Preconditions;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.PostponedFundsMutationEventRepository;
 import ru.adios.budgeter.api.UtcDay;
@@ -74,7 +75,8 @@ public final class PostponedFundsMutationEventPseudoTable
                 mutationEvent,
                 mutationEvent.amount.isPositive() ? FundsMutationDirection.BENEFIT : FundsMutationDirection.LOSS,
                 paidUnit,
-                customRate
+                customRate,
+                true
         );
         checkState(table.putIfAbsent(event.id, event) == null);
     }
@@ -94,6 +96,26 @@ public final class PostponedFundsMutationEventPseudoTable
         return streamRemembered(day, oneOf, secondOf, null);
     }
 
+    @Override
+    public boolean markEventProcessed(PostponedMutationEvent mutationEvent) {
+        Preconditions.checkArgument(mutationEvent.id.isPresent());
+        final int key = (int) mutationEvent.id.getAsLong();
+        final StoredPostponedFundsMutationEvent stored = table.get(key);
+        final PostponedMutationEvent old = stored.obj;
+        return table.replace(
+                key,
+                stored,
+                new StoredPostponedFundsMutationEvent(
+                        key,
+                        old.mutationEvent,
+                        stored.direction,
+                        old.conversionUnit,
+                        old.customRate,
+                        false
+                )
+        );
+    }
+
     Stream<PostponedMutationEvent> streamAll() {
         return table.values().stream().map(storedPostponedFundsMutationEvent -> storedPostponedFundsMutationEvent.obj);
     }
@@ -111,6 +133,9 @@ public final class PostponedFundsMutationEventPseudoTable
 
     private Stream<PostponedMutationEvent> streamRemembered(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, @Nullable FundsMutationDirection direction) {
         return table.values().stream().filter(event -> {
+            if (!event.obj.relevant) {
+                return false;
+            }
             final CurrencyUnit amountUnit = event.obj.mutationEvent.amount.getCurrencyUnit();
             return (direction == null || event.direction == direction)
                     && day.equals(new UtcDay(event.obj.mutationEvent.timestamp))

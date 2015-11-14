@@ -42,4 +42,6 @@ public interface PostponedFundsMutationEventRepository extends Provider<Postpone
 
     Stream<PostponedMutationEvent> streamRememberedEvents(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf);
 
+    boolean markEventProcessed(PostponedMutationEvent mutationEvent);
+
 }

@@ -19,6 +19,7 @@
 package ru.adios.budgeter.api.data;
 
 import java8.util.Optional;
+import java8.util.OptionalLong;
 import org.joda.money.CurrencyUnit;
 
 import javax.annotation.concurrent.Immutable;
@@ -33,14 +34,18 @@ import java.math.BigDecimal;
 @Immutable
 public final class PostponedMutationEvent {
 
+    public final OptionalLong id;
     public final FundsMutationEvent mutationEvent;
     public final CurrencyUnit conversionUnit;
     public final Optional<BigDecimal> customRate;
+    public final boolean relevant;
 
-    public PostponedMutationEvent(FundsMutationEvent mutationEvent, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate) {
+    public PostponedMutationEvent(OptionalLong id, FundsMutationEvent mutationEvent, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate, boolean relevant) {
+        this.id = id;
         this.customRate = customRate.isPresent() ? Optional.of(customRate.get().stripTrailingZeros()) : Optional.<BigDecimal>empty();
         this.mutationEvent = mutationEvent;
         this.conversionUnit = conversionUnit;
+        this.relevant = relevant;
     }
 
 }

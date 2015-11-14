@@ -164,7 +164,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     }
 
     @Override
-    public AgnosticRowMapper<FundsMutationEvent> getRowMapper() {
+    public AgnosticPartialRowMapper<FundsMutationEvent> getRowMapper() {
         return rowMapper;
     }
 
@@ -332,18 +332,18 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     @Override
     public void bootstrap(Logger logger) {}
 
-    private final class MutationRowMapper extends AgnosticRowMapper<FundsMutationEvent> {
+    private final class MutationRowMapper extends AgnosticPartialRowMapper<FundsMutationEvent> {
 
         @Override
-        public FundsMutationEvent mapRow(ResultSet rs) throws SQLException {
-            final int unit = rs.getInt(1);
-            final BigDecimal amount = sqlDialect.translateFromDb(rs.getObject(2), BigDecimal.class);
-            final BalanceAccount account = accountRowMapper.mapRowStartingFrom(3, rs);
-            final int quantity = rs.getInt(8);
-            final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(9, rs);
-            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(16), OffsetDateTime.class);
-            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(17, rs);
-            final BigDecimal portion = sqlDialect.translateFromDb(rs.getObject(20), BigDecimal.class);
+        public FundsMutationEvent mapRowStartingFrom(int ix, ResultSet rs) throws SQLException {
+            final int unit = rs.getInt(ix);
+            final BigDecimal amount = sqlDialect.translateFromDb(rs.getObject(ix + 1), BigDecimal.class);
+            final BalanceAccount account = accountRowMapper.mapRowStartingFrom(ix + 2, rs);
+            final int quantity = rs.getInt(ix + 7);
+            final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(ix + 8, rs);
+            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(ix + 15), OffsetDateTime.class);
+            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(ix + 16, rs);
+            final BigDecimal portion = sqlDialect.translateFromDb(rs.getObject(ix + 19), BigDecimal.class);
 
             return FundsMutationEvent.builder()
                     .setAmount(Money.of(CurrencyUnit.ofNumericCode(unit), amount))

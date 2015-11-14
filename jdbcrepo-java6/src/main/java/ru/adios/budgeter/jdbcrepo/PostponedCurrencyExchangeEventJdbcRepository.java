@@ -20,9 +20,11 @@ package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
+import java8.util.OptionalLong;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.threeten.bp.OffsetDateTime;
 import ru.adios.budgeter.api.PostponedCurrencyExchangeEventRepository;
@@ -48,6 +50,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 @ThreadSafe
 public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCurrencyExchangeEventRepository, JdbcRepository<PostponedExchange> {
 
+    private static final Logger logger = LoggerFactory.getLogger(PostponedCurrencyExchangeEventJdbcRepository.class);
+
     public static final String TABLE_NAME = "postponed_currency_exchange_event";
     public static final String SEQ_NAME = "seq_postponed_currency_exchange_event";
     public static final String FK_TO_BUY_ACC = "fk_pce_e_to_buy_acc";
@@ -62,6 +66,7 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
     public static final String COL_CUSTOM_RATE = "custom_rate";
     public static final String COL_TIMESTAMP = "timestamp";
     public static final String COL_AGENT_ID = "agent_id";
+    public static final String COL_RELEVANT = "relevant";
 
     public static final String JOIN_TO_BUY_ACC_ID = "b." + JdbcTreasury.COL_ID;
     public static final String JOIN_TO_BUY_ACC_NAME = "b." + JdbcTreasury.COL_NAME;
@@ -87,14 +92,16 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
             SqlDialect.Join.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID);
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
+            TABLE_NAME + '.' + COL_ID,
             COL_TO_BUY_AMOUNT,
             JOIN_TO_BUY_ACC_ID, JOIN_TO_BUY_ACC_NAME, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_TO_BUY_ACC_BALANCE, JOIN_TO_BUY_ACC_DESC,
             JOIN_SELL_ACC_ID, JOIN_SELL_ACC_NAME, JOIN_SELL_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_BALANCE, JOIN_SELL_ACC_DESC,
             COL_CUSTOM_RATE, COL_TIMESTAMP,
-            JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC
+            JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC,
+            COL_RELEVANT
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
-            COL_DAY, COL_TO_BUY_AMOUNT, COL_TO_BUY_ACCOUNT_ID, COL_SELL_ACCOUNT_ID, COL_CUSTOM_RATE, COL_TIMESTAMP, COL_AGENT_ID
+            COL_DAY, COL_TO_BUY_AMOUNT, COL_TO_BUY_ACCOUNT_ID, COL_SELL_ACCOUNT_ID, COL_CUSTOM_RATE, COL_TIMESTAMP, COL_AGENT_ID, COL_RELEVANT
     );
 
     private static final String SQL_STREAM_REM_EX = getExStreamSql();
@@ -107,10 +114,12 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
                 JOIN_AGENT
         );
         SqlDialect.Static.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
+        SqlDialect.Static.appendWhereClausePart(true, builder.append(" AND "), true, SqlDialect.Op.EQUAL, COL_RELEVANT);
         SqlDialect.Static.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_CURRENCY_UNIT);
         SqlDialect.Static.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, JOIN_TO_BUY_ACC_CURRENCY_UNIT, JOIN_SELL_ACC_CURRENCY_UNIT);
         return builder.append("))").toString();
     }
+    private static final String SQL_UPDATE_RELEVANCE = SqlDialect.Static.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_RELEVANT), ImmutableList.of(COL_ID));
 
 
     private final SafeJdbcConnector jdbcConnector;
@@ -206,7 +215,8 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
                 object.sellAccount.id.get(),
                 JdbcRepository.Static.wrapNull(object.customRate.orElse(null)),
                 object.timestamp,
-                object.agent.id.getAsLong()
+                object.agent.id.getAsLong(),
+                object.relevant
         );
     }
 
@@ -244,7 +254,7 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
                                           Optional<BigDecimal> customRate,
                                           OffsetDateTime timestamp,
                                           FundsMutationAgent agent) {
-        Common.insert(this, new PostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent));
+        Common.insert(this, new PostponedExchange(OptionalLong.empty(), toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent, true));
     }
 
     @Override
@@ -252,27 +262,40 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
         return LazyResultSetIterator.stream(
                 Common.getRsSupplierWithParams(
                         jdbcConnector, sqlDialect, SQL_STREAM_REM_EX,
-                        ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode()),
+                        ImmutableList.of(day, true, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode()),
                         "streamRememberedExchanges"
                 ),
                 Common.getMappingSqlFunction(rowMapper, SQL_STREAM_REM_EX, "streamRememberedExchanges")
         );
     }
 
+    @Override
+    public boolean markEventProcessed(PostponedExchange exchange) {
+        checkArgument(exchange.id.isPresent());
+        try {
+            jdbcConnector.getJdbcTemplate().update(SQL_UPDATE_RELEVANCE, false, exchange.id.getAsLong());
+            return true;
+        } catch (RuntimeException ex) {
+            logger.error("Postponed task relevance update failed", ex);
+            return false;
+        }
+    }
+
 
     private String getActualCreateTableSql() {
         return SqlDialect.CREATE_TABLE + TABLE_NAME
                 + " (" + COL_ID + ' ' + sqlDialect.bigIntType() + ' ' + sqlDialect.primaryKeyWithNextValue(SEQ_NAME) + ", "
-                + COL_DAY + ' ' + sqlDialect.timestampWithoutTimezoneType() + ", "
-                + COL_TO_BUY_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
-                + COL_TO_BUY_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
-                + COL_SELL_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
-                + COL_CUSTOM_RATE + ' ' + sqlDialect.decimalType() + ", "
-                + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
-                + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
-                + sqlDialect.foreignKey(new String[] {COL_TO_BUY_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_TO_BUY_ACC) + ", "
-                + sqlDialect.foreignKey(new String[] {COL_SELL_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_SELL_ACC) + ", "
-                + sqlDialect.foreignKey(new String[] {COL_AGENT_ID}, FundsMutationAgentJdbcRepository.TABLE_NAME, new String[] {FundsMutationAgentJdbcRepository.COL_ID}, FK_AGENT)
+                    + COL_DAY + ' ' + sqlDialect.timestampWithoutTimezoneType() + ", "
+                    + COL_TO_BUY_AMOUNT + ' ' + sqlDialect.decimalType() + ", "
+                    + COL_TO_BUY_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                    + COL_SELL_ACCOUNT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                    + COL_CUSTOM_RATE + ' ' + sqlDialect.decimalType() + ", "
+                    + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
+                    + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                    + COL_RELEVANT + " BOOLEAN, "
+                    + sqlDialect.foreignKey(new String[] {COL_TO_BUY_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_TO_BUY_ACC) + ", "
+                    + sqlDialect.foreignKey(new String[] {COL_SELL_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_SELL_ACC) + ", "
+                    + sqlDialect.foreignKey(new String[] {COL_AGENT_ID}, FundsMutationAgentJdbcRepository.TABLE_NAME, new String[] {FundsMutationAgentJdbcRepository.COL_ID}, FK_AGENT)
                 + ')';
     }
 
@@ -302,14 +325,16 @@ public class PostponedCurrencyExchangeEventJdbcRepository implements PostponedCu
 
         @Override
         public PostponedExchange mapRow(ResultSet rs) throws SQLException {
-            final BigDecimal toBuyAmount = sqlDialect.translateFromDb(rs.getObject(1), BigDecimal.class);
-            final BalanceAccount toBuyAccount = accountRowMapper.mapRowStartingFrom(2, rs);
-            final BalanceAccount sellAccount = accountRowMapper.mapRowStartingFrom(7, rs);
-            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(12), BigDecimal.class);
-            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(13), OffsetDateTime.class);
-            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(14, rs);
+            final long id = rs.getLong(1);
+            final BigDecimal toBuyAmount = sqlDialect.translateFromDb(rs.getObject(2), BigDecimal.class);
+            final BalanceAccount toBuyAccount = accountRowMapper.mapRowStartingFrom(3, rs);
+            final BalanceAccount sellAccount = accountRowMapper.mapRowStartingFrom(8, rs);
+            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(13), BigDecimal.class);
+            final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(14), OffsetDateTime.class);
+            final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(15, rs);
+            final boolean relevant = rs.getBoolean(18);
 
-            return new PostponedExchange(toBuyAmount, toBuyAccount, sellAccount, Optional.ofNullable(customRate), timestamp, agent);
+            return new PostponedExchange(OptionalLong.of(id), toBuyAmount, toBuyAccount, sellAccount, Optional.ofNullable(customRate), timestamp, agent, relevant);
         }
 
     }

@@ -20,9 +20,11 @@ package ru.adios.budgeter.jdbcrepo;
 
 import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
+import java8.util.OptionalLong;
 import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import ru.adios.budgeter.api.PostponedFundsMutationEventRepository;
 import ru.adios.budgeter.api.UtcDay;
@@ -46,6 +48,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 @ThreadSafe
 public class PostponedFundsMutationEventJdbcRepository implements PostponedFundsMutationEventRepository, JdbcRepository<PostponedMutationEvent> {
 
+    private static final Logger logger = LoggerFactory.getLogger(PostponedCurrencyExchangeEventJdbcRepository.class);
+
     public static final String TABLE_NAME = "postponed_funds_mutation_event";
     public static final String SEQ_NAME = "seq_postponed_funds_mutation_event";
     public static final String FK_REL_ACC = "fk_fme_relevant_acc";
@@ -64,6 +68,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
     public static final String COL_PORTION = "portion";
     public static final String COL_CONVERSION_UNIT = "conversion_unit";
     public static final String COL_CUSTOM_RATE = "custom_rate";
+    public static final String COL_RELEVANT = "relevant";
 
     public static final String JOIN_RELEVANT_ACC_ID = "r." + JdbcTreasury.COL_ID;
     public static final String JOIN_RELEVANT_ACC_NAME = "r." + JdbcTreasury.COL_NAME;
@@ -91,6 +96,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
             SqlDialect.Join.innerJoin(TABLE_NAME, FundsMutationAgentJdbcRepository.TABLE_NAME, "a", COL_AGENT_ID, FundsMutationAgentJdbcRepository.COL_ID);
 
     private static final ImmutableList<String> COLS_FOR_SELECT = ImmutableList.of(
+            TABLE_NAME + '.' + COL_ID,
             COL_UNIT, COL_AMOUNT,
             JOIN_RELEVANT_ACC_ID, JOIN_RELEVANT_ACC_NAME, JOIN_RELEVANT_ACC_CURRENCY_UNIT, JOIN_RELEVANT_ACC_BALANCE, JOIN_RELEVANT_ACC_DESC,
             COL_QUANTITY,
@@ -98,7 +104,8 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
             COL_TIMESTAMP,
             JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC,
             COL_PORTION,
-            COL_CONVERSION_UNIT, COL_CUSTOM_RATE
+            COL_CONVERSION_UNIT, COL_CUSTOM_RATE,
+            COL_RELEVANT
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
             COL_DAY,
@@ -111,7 +118,8 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
             COL_AGENT_ID,
             COL_PORTION,
             COL_CONVERSION_UNIT,
-            COL_CUSTOM_RATE
+            COL_CUSTOM_RATE,
+            COL_RELEVANT
     );
 
     private static final String SQL_STREAM_LOSSES = getStreamInnerSql(SqlDialect.Op.LESS);
@@ -126,6 +134,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                 JOIN_AGENT
         );
         SqlDialect.Static.appendWhereClausePart(true, builder.append(" WHERE"), true, SqlDialect.Op.EQUAL, COL_DAY);
+        SqlDialect.Static.appendWhereClausePart(true, builder.append(" AND "), true, SqlDialect.Op.EQUAL, COL_RELEVANT);
         SqlDialect.Static.appendWhereClausePart(true, builder.append(" AND (("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
         SqlDialect.Static.appendWhereClausePart(true, builder.append(") OR ("), true, SqlDialect.Op.EQUAL, COL_UNIT, COL_CONVERSION_UNIT);
         builder.append("))");
@@ -134,6 +143,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
         }
         return builder.toString();
     }
+    private static final String SQL_UPDATE_RELEVANCE = SqlDialect.Static.getUpdateSqlStandard(TABLE_NAME, ImmutableList.of(COL_RELEVANT), ImmutableList.of(COL_ID));
 
 
     private final SafeJdbcConnector jdbcConnector;
@@ -236,7 +246,8 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                 object.mutationEvent.agent.id.getAsLong(),
                 JdbcRepository.Static.wrapNull(object.mutationEvent.portion.orElse(null)),
                 object.conversionUnit.getNumericCode(),
-                JdbcRepository.Static.wrapNull(object.customRate.orElse(null))
+                JdbcRepository.Static.wrapNull(object.customRate.orElse(null)),
+                object.relevant
         );
     }
 
@@ -269,7 +280,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     @Override
     public void rememberPostponedExchangeableEvent(FundsMutationEvent mutationEvent, CurrencyUnit paidUnit, Optional<BigDecimal> customRate) {
-        Common.insert(this, new PostponedMutationEvent(mutationEvent, paidUnit, customRate));
+        Common.insert(this, new PostponedMutationEvent(OptionalLong.empty(), mutationEvent, paidUnit, customRate, true));
     }
 
     @Override
@@ -289,12 +300,24 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
     private Stream<PostponedMutationEvent> streamInner(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf, String sql, boolean includeZero) {
         final ImmutableList params = includeZero
-                ? ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode(), 0)
-                : ImmutableList.of(day, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode());
+                ? ImmutableList.of(day, true, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode(), 0)
+                : ImmutableList.of(day, true, oneOf.getNumericCode(), secondOf.getNumericCode(), secondOf.getNumericCode(), oneOf.getNumericCode());
         return LazyResultSetIterator.stream(
                 Common.getRsSupplierWithParams(jdbcConnector, sqlDialect, sql, params, "streamRememberedExchanges"),
                 Common.getMappingSqlFunction(rowMapper, sql, "streamRememberedExchanges")
         );
+    }
+
+    @Override
+    public boolean markEventProcessed(PostponedMutationEvent exchange) {
+        checkArgument(exchange.id.isPresent());
+        try {
+            jdbcConnector.getJdbcTemplate().update(SQL_UPDATE_RELEVANCE, false, exchange.id.getAsLong());
+            return true;
+        } catch (RuntimeException ex) {
+            logger.error("Postponed task relevance update failed", ex);
+            return false;
+        }
     }
 
 
@@ -312,6 +335,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                     + COL_PORTION + ' ' + sqlDialect.decimalType() + ", "
                     + COL_CONVERSION_UNIT + " INT, "
                     + COL_CUSTOM_RATE + ' ' + sqlDialect.decimalType() + ", "
+                    + COL_RELEVANT + " BOOLEAN, "
                     + sqlDialect.foreignKey(new String[] {COL_RELEVANT_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_REL_ACC) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_AGENT_ID}, FundsMutationAgentJdbcRepository.TABLE_NAME, new String[] {FundsMutationAgentJdbcRepository.COL_ID}, FK_AGENT) + ", "
                     + sqlDialect.foreignKey(new String[] {COL_SUBJECT_ID}, FundsMutationSubjectJdbcRepository.TABLE_NAME, new String[] {FundsMutationSubjectJdbcRepository.COL_ID}, FK_SUBJ)
@@ -344,11 +368,13 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
 
         @Override
         public PostponedMutationEvent mapRow(ResultSet rs) throws SQLException {
-            final FundsMutationEvent fundsMutationEvent = mutationRepo.getRowMapper().mapRow(rs);
-            final int conversionUnit = rs.getInt(21);
-            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(22), BigDecimal.class);
+            final long id = rs.getLong(1);
+            final FundsMutationEvent fundsMutationEvent = mutationRepo.getRowMapper().mapRowStartingFrom(2, rs);
+            final int conversionUnit = rs.getInt(22);
+            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(23), BigDecimal.class);
+            final boolean relevant = rs.getBoolean(24);
 
-            return new PostponedMutationEvent(fundsMutationEvent, CurrencyUnit.ofNumericCode(conversionUnit), Optional.ofNullable(customRate));
+            return new PostponedMutationEvent(OptionalLong.of(id), fundsMutationEvent, CurrencyUnit.ofNumericCode(conversionUnit), Optional.ofNullable(customRate), relevant);
         }
 
     }

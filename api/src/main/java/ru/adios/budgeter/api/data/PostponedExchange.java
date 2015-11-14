@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /**
  * Date: 11/3/15
@@ -32,27 +33,32 @@ import java.util.Optional;
 @Immutable
 public final class PostponedExchange {
 
+    public final OptionalLong id;
     public final BigDecimal toBuy;
     public final BalanceAccount toBuyAccount;
     public final BalanceAccount sellAccount;
     public final Optional<BigDecimal> customRate;
     public final OffsetDateTime timestamp;
     public final FundsMutationAgent agent;
+    public final boolean relevant;
 
     public PostponedExchange(
+            OptionalLong id,
             BigDecimal toBuy,
             BalanceAccount toBuyAccount,
             BalanceAccount sellAccount,
             Optional<BigDecimal> customRate,
             OffsetDateTime timestamp,
-            FundsMutationAgent agent
-    ) {
+            FundsMutationAgent agent,
+            boolean relevant) {
+        this.id = id;
         this.agent = agent;
         this.customRate = customRate.isPresent() ? Optional.of(customRate.get().stripTrailingZeros()) : Optional.empty();
         this.toBuy = toBuy;
         this.toBuyAccount = toBuyAccount;
         this.sellAccount = sellAccount;
         this.timestamp = timestamp;
+        this.relevant = relevant;
     }
 
 }

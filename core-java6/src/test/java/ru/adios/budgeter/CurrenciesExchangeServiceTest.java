@@ -20,6 +20,7 @@ package ru.adios.budgeter;
 
 import java8.util.Optional;
 import java8.util.function.Consumer;
+import java8.util.stream.Collectors;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.junit.Before;
@@ -33,6 +34,7 @@ import ru.adios.budgeter.inmemrepo.Schema;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -180,6 +182,37 @@ public class CurrenciesExchangeServiceTest {
 
     private void testProcessAllPostponedEventsWithManualRatesWith(State state, String caseName) throws Exception {
         caseName += ": ";
+        postponedNaturalRates(state, caseName);
+
+        Thread.sleep(100);
+        testPostponed(state, caseName);
+    }
+
+    @Test
+    public void testProcessAllPostponedTwice() throws Exception {
+        testProcessAllPostponedTwiceWith(innerState, TestUtils.CASE_INNER);
+        testProcessAllPostponedTwiceWith(jdbcState, TestUtils.CASE_JDBC);
+    }
+
+    private void testProcessAllPostponedTwiceWith(State state, String caseName) throws Exception {
+        caseName += ": ";
+        postponedNaturalRates(state, caseName);
+
+        Thread.sleep(100);
+        postponedNaturalRates(state, caseName);
+        Thread.sleep(100);
+
+        final List<FundsMutationEvent> collected =
+                state.bundle.fundsMutationEvents().streamForDay(TestUtils.TODAY).collect(Collectors.<FundsMutationEvent>toList());
+        assertEquals(caseName + "Postponed twice processed for mutations", 2, collected.size());
+
+        final List<CurrencyExchangeEvent> collect2 =
+                state.bundle.currencyExchangeEvents().streamForDay(TestUtils.YESTERDAY).collect(Collectors.<CurrencyExchangeEvent>toList());
+        System.out.println(1);
+        assertEquals(caseName + "Postponed twice processed for exchanges", 2, collect2.size());
+    }
+
+    private void postponedNaturalRates(State state, String caseName) {
         prepareForPostponed(state);
 
         state.ratesRepository.addRate(TestUtils.YESTERDAY, CurrencyUnit.EUR, Units.RUB, BigDecimal.valueOf(62.0));
@@ -198,9 +231,6 @@ public class CurrenciesExchangeServiceTest {
                 ), false);
 
         assertProcessPostponedResult(caseName, tracker[0], processPostponedResult);
-
-        Thread.sleep(100);
-        testPostponed(state, caseName);
     }
 
     private static void assertProcessPostponedResult(String caseName, Integer tracked, CurrenciesExchangeService.ProcessPostponedResult processPostponedResult) {
@@ -240,9 +270,12 @@ public class CurrenciesExchangeServiceTest {
 
     private void prepareForPostponed(State state) {
         final FundsMutationSubjectRepository subjRepo = state.accounter.fundsMutationSubjectRepo();
-        final FundsMutationSubject jobSubj = subjRepo.addSubject(FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.Type.SERVICE).setName("Job").build());
+        final FundsMutationSubject job = FundsMutationSubject.builder(subjRepo).setType(FundsMutationSubject.Type.SERVICE).setName("Job").build();
+        final FundsMutationSubject jobSubj = !subjRepo.findByName("Job").isPresent() ? subjRepo.addSubject(job) : subjRepo.findByName("Job").get();
 
-        final FundsMutationAgent testAgent = state.accounter.fundsMutationAgentRepo().addAgent(FundsMutationAgent.builder().setName("Test").build());
+        final FundsMutationAgentRepository agentRepository = state.accounter.fundsMutationAgentRepo();
+        final FundsMutationAgent test = FundsMutationAgent.builder().setName("Test").build();
+        final FundsMutationAgent testAgent = !agentRepository.findByName("Test").isPresent() ? agentRepository.addAgent(test) : agentRepository.findByName("Test").get();
 
         state.accounter.postponedCurrencyExchangeEventRepository()
                 .rememberPostponedExchange(

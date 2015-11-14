@@ -24,6 +24,7 @@ import ru.adios.budgeter.api.data.PostponedMutationEvent;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /**
  * Date: 6/15/15
@@ -35,8 +36,10 @@ final class StoredPostponedFundsMutationEvent extends Stored<PostponedMutationEv
 
     final FundsMutationDirection direction;
 
-    StoredPostponedFundsMutationEvent(int id, FundsMutationEvent obj, FundsMutationDirection direction, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate) {
-        super(id, new PostponedMutationEvent(obj, conversionUnit, customRate));
+    StoredPostponedFundsMutationEvent(
+            int id, FundsMutationEvent obj, FundsMutationDirection direction, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate, boolean relevant
+    ) {
+        super(id, new PostponedMutationEvent(OptionalLong.of(id), obj, conversionUnit, customRate, relevant));
         this.direction = direction;
     }
 

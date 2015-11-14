@@ -47,4 +47,6 @@ public interface PostponedCurrencyExchangeEventRepository extends Provider<Postp
 
     Stream<PostponedExchange> streamRememberedExchanges(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf);
 
+    boolean markEventProcessed(PostponedExchange exchange);
+
 }

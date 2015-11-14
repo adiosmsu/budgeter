@@ -29,10 +29,12 @@ import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -78,7 +80,7 @@ public final class PostponedCurrencyExchangeEventPseudoTable
     {
         final int id = idSequence.incrementAndGet();
         checkState(
-                table.computeIfAbsent(id, integer -> new Stored<>(id, new PostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent)))
+                table.computeIfAbsent(id, integer -> new Stored<>(id, new PostponedExchange(OptionalLong.of(id), toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent, true)))
                         .id == id
         );
     }
@@ -86,12 +88,31 @@ public final class PostponedCurrencyExchangeEventPseudoTable
     @Override
     public Stream<PostponedExchange> streamRememberedExchanges(UtcDay day, CurrencyUnit oneOf, CurrencyUnit secondOf) {
         return table.values().stream().filter(event -> {
+            if (!event.obj.relevant) {
+                return false;
+            }
             final CurrencyUnit bu = event.obj.toBuyAccount.getUnit();
             final CurrencyUnit su = event.obj.sellAccount.getUnit();
             return day.equals(new UtcDay(event.obj.timestamp))
                     && (bu.equals(oneOf) || bu.equals(secondOf))
                     && (su.equals(oneOf) || su.equals(secondOf));
         }).map(storedPostponedExchangeEvent -> storedPostponedExchangeEvent.obj);
+    }
+
+    @Override
+    public boolean markEventProcessed(PostponedExchange exchange) {
+        checkArgument(exchange.id.isPresent());
+        final int key = (int) exchange.id.getAsLong();
+        final Stored<PostponedExchange> stored = table.get(key);
+        final PostponedExchange old = stored.obj;
+        return table.replace(
+                key,
+                stored,
+                new Stored<>(
+                        key,
+                        new PostponedExchange(OptionalLong.of(key), old.toBuy, old.toBuyAccount, old.sellAccount, old.customRate, old.timestamp, old.agent, false)
+                )
+        );
     }
 
     Stream<PostponedExchange> streamAll() {

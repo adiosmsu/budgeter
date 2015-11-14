@@ -555,6 +555,8 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                         final Submitter.Result res = core.submit();
                                         if (!res.isSuccessful()) {
                                             logger.info("Remembered events save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                                        } else {
+                                            accounter.postponedFundsMutationEventRepository().markEventProcessed(event);
                                         }
                                     }
                                 });
@@ -568,6 +570,8 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                                         final Submitter.Result res = core.submit();
                                         if (!res.isSuccessful()) {
                                             logger.info("Remembered exchanges save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                                        } else {
+                                            accounter.postponedCurrencyExchangeEventRepository().markEventProcessed(postponedExchange);
                                         }
                                     }
                                 });

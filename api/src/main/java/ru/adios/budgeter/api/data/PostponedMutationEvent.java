@@ -23,6 +23,7 @@ import org.joda.money.CurrencyUnit;
 import javax.annotation.concurrent.Immutable;
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /**
  * Date: 11/3/15
@@ -33,14 +34,18 @@ import java.util.Optional;
 @Immutable
 public final class PostponedMutationEvent {
 
+    public final OptionalLong id;
     public final FundsMutationEvent mutationEvent;
     public final CurrencyUnit conversionUnit;
     public final Optional<BigDecimal> customRate;
+    public final boolean relevant;
 
-    public PostponedMutationEvent(FundsMutationEvent mutationEvent, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate) {
+    public PostponedMutationEvent(OptionalLong id, FundsMutationEvent mutationEvent, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate, boolean relevant) {
+        this.id = id;
         this.customRate = customRate.isPresent() ? Optional.of(customRate.get().stripTrailingZeros()) : Optional.empty();
         this.mutationEvent = mutationEvent;
         this.conversionUnit = conversionUnit;
+        this.relevant = relevant;
     }
 
 }

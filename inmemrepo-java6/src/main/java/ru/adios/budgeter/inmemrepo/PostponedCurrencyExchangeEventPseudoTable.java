@@ -19,6 +19,7 @@
 package ru.adios.budgeter.inmemrepo;
 
 import java8.util.Optional;
+import java8.util.OptionalLong;
 import java8.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
 import java8.util.function.Predicate;
@@ -36,6 +37,7 @@ import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -84,7 +86,7 @@ public final class PostponedCurrencyExchangeEventPseudoTable
                 table.computeIfAbsent(id, new Function<Integer, Stored<PostponedExchange>>() {
                     @Override
                     public Stored<PostponedExchange> apply(Integer integer) {
-                        return new Stored<PostponedExchange>(id, new PostponedExchange(toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent));
+                        return new Stored<PostponedExchange>(id, new PostponedExchange(OptionalLong.of(id), toBuy, toBuyAccount, sellAccount, customRate, timestamp, agent, true));
                     }
                 }).id == id
         );
@@ -96,6 +98,9 @@ public final class PostponedCurrencyExchangeEventPseudoTable
                 .filter(new Predicate<Stored<PostponedExchange>>() {
                     @Override
                     public boolean test(Stored<PostponedExchange> event) {
+                        if (!event.obj.relevant) {
+                            return false;
+                        }
                         final CurrencyUnit bu = event.obj.toBuyAccount.getUnit();
                         final CurrencyUnit su = event.obj.sellAccount.getUnit();
                         return day.equals(new UtcDay(event.obj.timestamp))
@@ -109,6 +114,22 @@ public final class PostponedCurrencyExchangeEventPseudoTable
                         return postponedExchangeStored.obj;
                     }
                 });
+    }
+
+    @Override
+    public boolean markEventProcessed(PostponedExchange exchange) {
+        checkArgument(exchange.id.isPresent());
+        final int key = (int) exchange.id.getAsLong();
+        final Stored<PostponedExchange> stored = table.get(key);
+        final PostponedExchange old = stored.obj;
+        return table.replace(
+                key,
+                stored,
+                new Stored<PostponedExchange>(
+                        key,
+                        new PostponedExchange(OptionalLong.of(key), old.toBuy, old.toBuyAccount, old.sellAccount, old.customRate, old.timestamp, old.agent, false)
+                )
+        );
     }
 
     Stream<PostponedExchange> streamAll() {

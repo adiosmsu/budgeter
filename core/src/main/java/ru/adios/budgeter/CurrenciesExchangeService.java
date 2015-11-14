@@ -472,20 +472,24 @@ public class CurrenciesExchangeService implements CurrencyRatesRepository {
                     final BigDecimal rate = entry.getValue();
                     final BigDecimal rateReversed = CurrencyRatesProvider.reverseRate(rate);
                     final CurrencyUnit toUnit = entry.getKey();
-                    accounter.postponedFundsMutationEventRepository().streamRememberedEvents(day, forRates, toUnit).forEach(postponedMutationEvent -> {
+                    accounter.postponedFundsMutationEventRepository().streamRememberedEvents(day, forRates, toUnit).collect(Collectors.toList()).forEach(postponedMutationEvent -> {
                         final FundsMutationElementCore core = new FundsMutationElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedMutationEvent, postponedMutationEvent.conversionUnit.equals(forRates) ? rate : rateReversed);
                         final Submitter.Result res = core.submit();
                         if (!res.isSuccessful()) {
                             logger.info("Remembered events save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                        } else {
+                            accounter.postponedFundsMutationEventRepository().markEventProcessed(postponedMutationEvent);
                         }
                     });
-                    accounter.postponedCurrencyExchangeEventRepository().streamRememberedExchanges(day, forRates, toUnit).forEach(postponedExchange -> {
+                    accounter.postponedCurrencyExchangeEventRepository().streamRememberedExchanges(day, forRates, toUnit).collect(Collectors.toList()).forEach(postponedExchange -> {
                         final ExchangeCurrenciesElementCore core = new ExchangeCurrenciesElementCore(accounter, treasury, this);
                         core.setPostponedEvent(postponedExchange, postponedExchange.sellAccount.getUnit().equals(forRates) ? rate : rateReversed);
                         final Submitter.Result res = core.submit();
                         if (!res.isSuccessful()) {
                             logger.info("Remembered exchanges save fail; general error: {}; field errors: {}", res.generalError, Arrays.toString(res.fieldErrors.toArray()));
+                        } else {
+                            accounter.postponedCurrencyExchangeEventRepository().markEventProcessed(postponedExchange);
                         }
                     });
                 }

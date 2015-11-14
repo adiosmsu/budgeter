@@ -19,6 +19,7 @@
 package ru.adios.budgeter.inmemrepo;
 
 import java8.util.Optional;
+import java8.util.OptionalLong;
 import org.joda.money.CurrencyUnit;
 import ru.adios.budgeter.api.data.FundsMutationEvent;
 import ru.adios.budgeter.api.data.PostponedMutationEvent;
@@ -35,8 +36,10 @@ final class StoredPostponedFundsMutationEvent extends Stored<PostponedMutationEv
 
     final FundsMutationDirection direction;
 
-    StoredPostponedFundsMutationEvent(int id, FundsMutationEvent obj, FundsMutationDirection direction, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate) {
-        super(id, new PostponedMutationEvent(obj, conversionUnit, customRate));
+    StoredPostponedFundsMutationEvent(
+            int id, FundsMutationEvent obj, FundsMutationDirection direction, CurrencyUnit conversionUnit, Optional<BigDecimal> customRate, boolean relevant
+    ) {
+        super(id, new PostponedMutationEvent(OptionalLong.of(id), obj, conversionUnit, customRate, relevant));
         this.direction = direction;
     }
 
