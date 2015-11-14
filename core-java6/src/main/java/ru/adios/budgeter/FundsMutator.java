@@ -132,7 +132,7 @@ public interface FundsMutator {
                                     .build()
                     );
                 }
-                treasury.addAmount(event.amount.multipliedBy(event.portion, RoundingMode.HALF_DOWN), event.relevantBalance.name);
+                treasury.addAmount(event.amount, event.relevantBalance.name);
                 return treasury.getAccountForName(event.relevantBalance.name).orElse(null);
             }
             return null;
