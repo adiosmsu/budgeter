@@ -59,6 +59,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
     public static final String COL_SUBJECT_ID = "subject_id";
     public static final String COL_TIMESTAMP = "timestamp";
     public static final String COL_AGENT_ID = "agent_id";
+    public static final String COL_PORTION = "portion";
     public static final String COL_CONVERSION_UNIT = "conversion_unit";
     public static final String COL_CUSTOM_RATE = "custom_rate";
 
@@ -94,10 +95,21 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
             JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME, JOIN_SUBJECT_DESC,
             COL_TIMESTAMP,
             JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC,
+            COL_PORTION,
             COL_CONVERSION_UNIT, COL_CUSTOM_RATE
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
-            COL_DAY, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID, COL_CONVERSION_UNIT, COL_CUSTOM_RATE
+            COL_DAY,
+            COL_UNIT,
+            COL_AMOUNT,
+            COL_RELEVANT_ACCOUNT_ID,
+            COL_QUANTITY,
+            COL_SUBJECT_ID,
+            COL_TIMESTAMP,
+            COL_AGENT_ID,
+            COL_PORTION,
+            COL_CONVERSION_UNIT,
+            COL_CUSTOM_RATE
     );
 
     private static final String SQL_STREAM_LOSSES = getStreamInnerSql(SqlDialect.Op.LESS);
@@ -209,6 +221,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                 object.mutationEvent.subject.id.getAsLong(),
                 object.mutationEvent.timestamp,
                 object.mutationEvent.agent.id.getAsLong(),
+                JdbcRepository.wrapNull(object.mutationEvent.portion.orElse(null)),
                 object.conversionUnit.getNumericCode(),
                 JdbcRepository.wrapNull(object.customRate.orElse(null))
         );
@@ -267,6 +280,7 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
                     + COL_SUBJECT_ID + ' ' + sqlDialect.bigIntType() + ", "
                     + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
                     + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                    + COL_PORTION + ' ' + sqlDialect.decimalType() + ", "
                     + COL_CONVERSION_UNIT + " INT, "
                     + COL_CUSTOM_RATE + ' ' + sqlDialect.decimalType() + ", "
                     + sqlDialect.foreignKey(new String[] {COL_RELEVANT_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_REL_ACC) + ", "
@@ -299,8 +313,8 @@ public class PostponedFundsMutationEventJdbcRepository implements PostponedFunds
         @Override
         public PostponedMutationEvent mapRow(ResultSet rs) throws SQLException {
             final FundsMutationEvent fundsMutationEvent = mutationRepo.getRowMapper().mapRow(rs);
-            final int conversionUnit = rs.getInt(20);
-            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(21), BigDecimal.class);
+            final int conversionUnit = rs.getInt(21);
+            final BigDecimal customRate = sqlDialect.translateFromDb(rs.getObject(22), BigDecimal.class);
 
             return new PostponedMutationEvent(fundsMutationEvent, CurrencyUnit.ofNumericCode(conversionUnit), Optional.ofNullable(customRate));
         }

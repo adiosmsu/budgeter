@@ -122,7 +122,7 @@ public interface FundsMutator {
                     repository.register(
                             SubjectPrice.builder()
                                     .setDay(day)
-                                    .setPrice(amount.abs())
+                                    .setPrice(event.fullPriceForOne().abs())
                                     .setSubject(event.subject)
                                     .setAgent(event.agent)
                                     .build()

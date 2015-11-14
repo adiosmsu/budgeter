@@ -64,6 +64,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
     public static final String COL_SUBJECT_ID = "subject_id";
     public static final String COL_TIMESTAMP = "timestamp";
     public static final String COL_AGENT_ID = "agent_id";
+    public static final String COL_PORTION = "portion";
 
     private static final String JOIN_RELEVANT_ACC_ID = "r." + JdbcTreasury.COL_ID;
     private static final String JOIN_RELEVANT_ACC_NAME = "r." + JdbcTreasury.COL_NAME;
@@ -96,10 +97,11 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             COL_QUANTITY,
             JOIN_SUBJECT_ID, JOIN_SUBJECT_PARENT_ID, JOIN_SUBJECT_ROOT_ID, JOIN_SUBJECT_CHILD_FLAG, JOIN_SUBJECT_TYPE, JOIN_SUBJECT_NAME, JOIN_SUBJECT_DESC,
             COL_TIMESTAMP,
-            JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC
+            JOIN_AGENT_ID, JOIN_AGENT_NAME, JOIN_AGENT_DESC,
+            COL_PORTION
     );
     private static final ImmutableList<String> COLS_FOR_INSERT = ImmutableList.of(
-            COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID
+            COL_DIRECTION, COL_UNIT, COL_AMOUNT, COL_RELEVANT_ACCOUNT_ID, COL_QUANTITY, COL_SUBJECT_ID, COL_TIMESTAMP, COL_AGENT_ID, COL_PORTION
     );
 
     private static final String COUNT_ALL_SQL = SqlDialect.Static.countAllSql(TABLE_NAME);
@@ -218,7 +220,8 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                 object.quantity,
                 object.subject.id.getAsLong(),
                 object.timestamp,
-                object.agent.id.getAsLong()
+                object.agent.id.getAsLong(),
+                JdbcRepository.Static.wrapNull(object.portion.orElse(null))
         );
     }
 
@@ -303,6 +306,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                 + COL_SUBJECT_ID + ' ' + sqlDialect.bigIntType() + ", "
                 + COL_TIMESTAMP + ' ' + sqlDialect.timestampType() + ", "
                 + COL_AGENT_ID + ' ' + sqlDialect.bigIntType() + ", "
+                + COL_PORTION + ' ' + sqlDialect.decimalType() + ", "
                 + sqlDialect.foreignKey(new String[] {COL_RELEVANT_ACCOUNT_ID}, JdbcTreasury.TABLE_NAME, new String[] {JdbcTreasury.COL_ID}, FK_REL_ACC) + ", "
                 + sqlDialect.foreignKey(new String[] {COL_AGENT_ID}, FundsMutationAgentJdbcRepository.TABLE_NAME, new String[] {FundsMutationAgentJdbcRepository.COL_ID}, FK_AGENT) + ", "
                 + sqlDialect.foreignKey(new String[] {COL_SUBJECT_ID}, FundsMutationSubjectJdbcRepository.TABLE_NAME, new String[] {FundsMutationSubjectJdbcRepository.COL_ID}, FK_SUBJ)
@@ -339,6 +343,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
             final FundsMutationSubject sub = subjRepo.getRowMapper().mapRowStartingFrom(9, rs);
             final OffsetDateTime timestamp = sqlDialect.translateFromDb(rs.getObject(16), OffsetDateTime.class);
             final FundsMutationAgent agent = agentRowMapper.mapRowStartingFrom(17, rs);
+            final BigDecimal portion = sqlDialect.translateFromDb(rs.getObject(20), BigDecimal.class);
 
             return FundsMutationEvent.builder()
                     .setAmount(Money.of(CurrencyUnit.ofNumericCode(unit), amount))
@@ -347,6 +352,7 @@ public class FundsMutationEventJdbcRepository implements FundsMutationEventRepos
                     .setSubject(sub)
                     .setTimestamp(timestamp)
                     .setAgent(agent)
+                    .setPortion(portion)
                     .build();
         }
 

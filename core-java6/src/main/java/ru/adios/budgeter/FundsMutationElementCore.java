@@ -54,6 +54,7 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
     public static final String FIELD_PAID_MONEY = "paidMoney";
     public static final String FIELD_PAYEE_ACCOUNT_UNIT = "payee_account_unit";
     public static final String FIELD_QUANTITY = "quantity";
+    public static final String FIELD_PORTION = "portion";
     public static final String FIELD_TIMESTAMP = "timestamp";
 
     private static final Logger logger = LoggerFactory.getLogger(FundsMutationElementCore.class);
@@ -309,6 +310,15 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
         return eventBuilder.getQuantity();
     }
 
+    public BigDecimal getPortion() {
+        return eventBuilder.getPortion();
+    }
+
+    public void setPortion(BigDecimal portion) {
+        if (lockOn) return;
+        eventBuilder.setPortion(portion);
+    }
+
     @PotentiallyBlocking
     public boolean setSubject(String subjectName) {
         if (lockOn) return false;
@@ -420,6 +430,11 @@ public final class FundsMutationElementCore implements MoneySettable, TimestampS
                 resultBuilder.addFieldError(FIELD_AMOUNT_DECIMAL, "Custom rate is different from rate of %s and", new Object[] {FIELD_PAYEE_AMOUNT});
                 resultBuilder.addFieldError(FIELD_PAYEE_AMOUNT, "Custom rate is different from rate of %s and", new Object[] {FIELD_AMOUNT_DECIMAL});
             }
+        }
+
+        final BigDecimal portion = getPortion();
+        if (portion != null && portion.compareTo(BigDecimal.ZERO) <= 0 && portion.compareTo(BigDecimal.ONE) > 0) {
+            resultBuilder.addFieldError(FIELD_PORTION, "Only decimal numbers between zero and one are valid for");
         }
 
         if (resultBuilder.toBuildError()) {
