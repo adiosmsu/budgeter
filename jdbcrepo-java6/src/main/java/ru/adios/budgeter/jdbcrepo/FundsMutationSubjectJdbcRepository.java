@@ -109,7 +109,7 @@ public class FundsMutationSubjectJdbcRepository implements FundsMutationSubjectR
 
     @Override
     public ImmutableList<?> decomposeObject(FundsMutationSubject object) {
-        return ImmutableList.of(object.parentId, object.rootId, object.childFlag, object.type.ordinal(), object.name);
+        return ImmutableList.of(object.parentId, object.rootId, object.childFlag, object.type.ordinal(), object.name, JdbcRepository.Static.wrapNull(object.description));
     }
 
     @Nullable

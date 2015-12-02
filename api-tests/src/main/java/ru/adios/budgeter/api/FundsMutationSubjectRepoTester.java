@@ -58,6 +58,18 @@ public final class FundsMutationSubjectRepoTester {
         } catch (Exception ignored) {}
     }
 
+    public void testDescription() throws Exception {
+        final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
+        final String descCheck = "Don't you dare!";
+        FundsMutationSubject withDesc = FundsMutationSubject.builder(subjectRepository)
+                .setType(FundsMutationSubject.Type.PRODUCT)
+                .setName("Cucumber")
+                .setDescription(descCheck)
+                .build();
+        subjectRepository.rawAddition(withDesc);
+        assertEquals("Description don't match", descCheck, subjectRepository.findByName("Cucumber").get().description);
+    }
+
     public void testUpdateChildFlag() throws Exception {
         final FundsMutationSubjectRepository subjectRepository = bundle.fundsMutationSubjects();
 

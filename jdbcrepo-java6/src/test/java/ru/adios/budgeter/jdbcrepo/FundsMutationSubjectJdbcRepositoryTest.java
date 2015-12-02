@@ -42,6 +42,16 @@ public class FundsMutationSubjectJdbcRepositoryTest {
     }
 
     @Test
+    public void testDescription() throws Exception {
+        TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
+            @Override
+            public void runChecked() throws Exception {
+                tester.testDescription();
+            }
+        });
+    }
+
+    @Test
     public void testUpdateChildFlag() throws Exception {
         TestContext.TRANSACTIONAL_SUPPORT.runWithTransaction(new TestCheckedRunnable() {
             @Override

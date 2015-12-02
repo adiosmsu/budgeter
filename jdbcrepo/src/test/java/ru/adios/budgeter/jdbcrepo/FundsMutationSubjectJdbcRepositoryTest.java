@@ -37,6 +37,11 @@ public class FundsMutationSubjectJdbcRepositoryTest {
     }
 
     @Test
+    public void testDescription() throws Exception {
+        TestContext.ex(tester::testDescription);
+    }
+
+    @Test
     public void testUpdateChildFlag() throws Exception {
         TestContext.ex(tester::testUpdateChildFlag);
     }

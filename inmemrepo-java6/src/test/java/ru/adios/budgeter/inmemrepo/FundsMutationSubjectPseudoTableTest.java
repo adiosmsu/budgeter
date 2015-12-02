@@ -37,6 +37,11 @@ public class FundsMutationSubjectPseudoTableTest {
     }
 
     @Test
+    public void testDescription() throws Exception {
+        tester.testDescription();
+    }
+
+    @Test
     public void testFindByParent() throws Exception {
         tester.testFindByParent();
     }
