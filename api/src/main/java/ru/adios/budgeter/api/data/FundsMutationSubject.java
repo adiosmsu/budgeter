@@ -172,6 +172,9 @@ public final class FundsMutationSubject {
 
         public Builder setParentId(long parentId) {
             checkArgument(parentId >= 0, "Parent id must not be negative");
+            if (parentId != this.parentId) {
+                rootId = 0;
+            }
             this.parentId = parentId;
             return this;
         }
