@@ -18,11 +18,12 @@
 
 package ru.adios.budgeter;
 
-import com.google.common.collect.ImmutableList;
 import java8.util.Optional;
 import java8.util.function.Predicate;
 import java8.util.function.Supplier;
 import java8.util.stream.Collectors;
+import java8.util.stream.RefStreams;
+import java8.util.stream.Stream;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.slf4j.Logger;
@@ -174,6 +175,12 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
 
     @PotentiallyBlocking
     public List<BalanceAccount> suggestAppropriateAccounts() {
+        return getSuggestedAccountsStream()
+                .collect(Collectors.<BalanceAccount>toList());
+    }
+
+    @PotentiallyBlocking
+    public Stream<BalanceAccount> getSuggestedAccountsStream() {
         final BalanceAccount[] usedAccounts = new BalanceAccount[2];
         final CurrencyUnit curUnit;
         if (trAmountWrapper.isUnitSet()) {
@@ -186,7 +193,7 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
                 }
             });
             if (nonEmptyAcc == null) {
-                return ImmutableList.of();
+                return RefStreams.empty();
             }
             curUnit = nonEmptyAcc.getUnit();
         }
@@ -199,8 +206,7 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
                     public boolean test(BalanceAccount account) {
                         return !account.equals(usedAccounts[0]) && !account.equals(usedAccounts[1]);
                     }
-                })
-                .collect(Collectors.<BalanceAccount>toList());
+                });
     }
 
     private void fillUsedAccountsInfo(BalanceAccount[] usedAccounts) {

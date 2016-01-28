@@ -18,7 +18,6 @@
 
 package ru.adios.budgeter;
 
-import com.google.common.collect.ImmutableList;
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
 import org.slf4j.Logger;
@@ -34,6 +33,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Date: 1/26/16
@@ -172,6 +172,12 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
 
     @PotentiallyBlocking
     public List<BalanceAccount> suggestAppropriateAccounts() {
+        return getSuggestedAccountsStream()
+                .collect(Collectors.toList());
+    }
+
+    @PotentiallyBlocking
+    public Stream<BalanceAccount> getSuggestedAccountsStream() {
         final BalanceAccount[] usedAccounts = new BalanceAccount[2];
         final CurrencyUnit curUnit;
         if (trAmountWrapper.isUnitSet()) {
@@ -179,7 +185,7 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
         } else {
             final BalanceAccount nonEmptyAcc = senderAccountRef.orElseGet(() -> receiverAccountRef.orElse(null));
             if (nonEmptyAcc == null) {
-                return ImmutableList.of();
+                return Stream.empty();
             }
             curUnit = nonEmptyAcc.getUnit();
         }
@@ -187,8 +193,7 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
         fillUsedAccountsInfo(usedAccounts);
 
         return treasury.streamAccountsByCurrency(curUnit)
-                .filter(account -> !account.equals(usedAccounts[0]) && !account.equals(usedAccounts[1]))
-                .collect(Collectors.toList());
+                .filter(account -> !account.equals(usedAccounts[0]) && !account.equals(usedAccounts[1]));
     }
 
     private void fillUsedAccountsInfo(BalanceAccount[] usedAccounts) {
