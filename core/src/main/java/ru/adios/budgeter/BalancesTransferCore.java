@@ -140,14 +140,24 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
         trAmountWrapper.setAmount(coins, cents);
     }
 
-    public void setSenderAccountRef(BalanceAccount senderAccount) {
+    public void setSenderAccount(BalanceAccount senderAccount) {
         if (lockOn) return;
         senderAccountRef = helpAccountSetting(senderAccount);
     }
 
-    public void setReceiverAccountRef(BalanceAccount receiverAccount) {
+    public void setReceiverAccount(BalanceAccount receiverAccount) {
         if (lockOn) return;
         receiverAccountRef = helpAccountSetting(receiverAccount);
+    }
+
+    @Nullable
+    public BalanceAccount getSenderAccount() {
+        return senderAccountRef.orElse(null);
+    }
+
+    @Nullable
+    public BalanceAccount getReceiverAccount() {
+        return receiverAccountRef.orElse(null);
     }
 
     private Optional<BalanceAccount> helpAccountSetting(BalanceAccount account) {
@@ -162,6 +172,7 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
 
     @PotentiallyBlocking
     public List<BalanceAccount> suggestAppropriateAccounts() {
+        final BalanceAccount[] usedAccounts = new BalanceAccount[2];
         final CurrencyUnit curUnit;
         if (trAmountWrapper.isUnitSet()) {
             curUnit = trAmountWrapper.getAmountUnit();
@@ -173,7 +184,22 @@ public class BalancesTransferCore implements MoneySettable, Submitter<BalancesTr
             curUnit = nonEmptyAcc.getUnit();
         }
 
-        return treasury.streamAccountsByCurrency(curUnit).collect(Collectors.toList());
+        fillUsedAccountsInfo(usedAccounts);
+
+        return treasury.streamAccountsByCurrency(curUnit)
+                .filter(account -> !account.equals(usedAccounts[0]) && !account.equals(usedAccounts[1]))
+                .collect(Collectors.toList());
+    }
+
+    private void fillUsedAccountsInfo(BalanceAccount[] usedAccounts) {
+        final BalanceAccount senderAccount = getSenderAccount();
+        final BalanceAccount receiverAccount = getReceiverAccount();
+        if (senderAccount != null) {
+            usedAccounts[0] = senderAccount;
+        }
+        if (receiverAccount != null) {
+            usedAccounts[1] = receiverAccount;
+        }
     }
 
     @PotentiallyBlocking
