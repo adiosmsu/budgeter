@@ -36,6 +36,7 @@ import ru.adios.budgeter.jdbcrepo.JdbcConnectionHolder;
 import ru.adios.budgeter.jdbcrepo.JdbcTransactionalSupport;
 import ru.adios.budgeter.jdbcrepo.SourcingBundle;
 
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 /**
@@ -97,7 +98,11 @@ public final class TestUtils {
     public static final UtcDay JULY_3RD_2015 = new UtcDay(OffsetDateTime.of(2015, 7, 3, 0, 0, 0, 0, ZoneOffset.UTC));
 
     static BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit) {
-        final BalanceAccount account = new BalanceAccount("account" + unit.getCode(), unit, null);
+        return prepareBalance(bundle, unit, null);
+    }
+
+    static BalanceAccount prepareBalance(Bundle bundle, CurrencyUnit unit, @Nullable String suffix) {
+        final BalanceAccount account = new BalanceAccount("account" + (suffix == null ? unit.getCode() : unit.getCode() + '_' + suffix), unit, null);
         return bundle.treasury().registerBalanceAccount(account);
     }
 
