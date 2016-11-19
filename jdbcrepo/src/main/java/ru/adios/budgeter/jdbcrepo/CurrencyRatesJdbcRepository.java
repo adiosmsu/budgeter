@@ -157,7 +157,7 @@ public class CurrencyRatesJdbcRepository implements CurrencyRatesRepository, Jdb
         try {
             return Common.insert(this, new ConversionRate(dayUtc, new ConversionPair(from, to), rate)).getKey() != null;
         } catch (RuntimeException ex) {
-            logger.warn("addRate() exception", ex);
+            logger.warn(String.format("addRate(%s, %s, %s, %s) exception", dayUtc, from, to, rate), ex);
             return false;
         }
     }
